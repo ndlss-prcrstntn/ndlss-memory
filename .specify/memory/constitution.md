@@ -1,12 +1,8 @@
 ﻿<!--
 Sync Impact Report
-- Version change: N/A -> 1.0.0
+- Version change: 1.0.0 -> 1.1.0
 - Modified principles:
-  - Principle 1 placeholder -> I. Docker Compose Reproducibility
-  - Principle 2 placeholder -> II. Deterministic File Indexing
-  - Principle 3 placeholder -> III. Secure MCP Interoperability
-  - Principle 4 placeholder -> IV. Quality Gates and Test Discipline
-  - Principle 5 placeholder -> V. Documentation as a Product
+  - Development Workflow and Delivery Gates (добавлено обязательное обновление статусов roadmap/checklist после implementation)
 - Added sections:
   - Architecture and Operational Constraints
   - Development Workflow and Delivery Gates
@@ -97,6 +93,9 @@ Sync Impact Report
 описан план миграции и обратная совместимость.
 4. Любое ослабление требований этой конституции требует явного исключения в PR с
 обоснованием и сроком устранения.
+5. После завершения implementation ДОЛЖНЫ быть явно отмечены выполненные пункты
+в пользовательских roadmap/checklist-артефактах (например, в `README.md`,
+`tasks.md`, release-checklist), если они затронуты изменением.
 
 ## Governance
 
@@ -113,6 +112,6 @@ quality gates;
 - отсутствие подтверждения compliance блокирует merge;
 - обнаруженные нарушения фиксируются как отдельные задачи с дедлайном.
 
-**Version**: 1.0.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-21
+**Version**: 1.1.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-21
 
 
