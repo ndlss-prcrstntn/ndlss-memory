@@ -1,0 +1,32 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RuntimeConfig",
+  "type": "object",
+  "required": [
+    "INDEX_MODE",
+    "INDEX_FILE_TYPES",
+    "INDEX_EXCLUDE_PATTERNS",
+    "COMMAND_ALLOWLIST",
+    "COMMAND_TIMEOUT_SECONDS"
+  ],
+  "properties": {
+    "INDEX_MODE": {
+      "type": "string",
+      "enum": ["full-scan", "delta-after-commit"]
+    },
+    "INDEX_FILE_TYPES": {
+      "type": "string",
+      "minLength": 1
+    },
+    "INDEX_EXCLUDE_PATTERNS": {
+      "type": "string"
+    },
+    "COMMAND_ALLOWLIST": {
+      "type": "string"
+    },
+    "COMMAND_TIMEOUT_SECONDS": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

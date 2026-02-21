@@ -1,0 +1,165 @@
+﻿openapi: 3.1.0
+info:
+  title: Compose Stack Observability API
+  version: 0.1.0
+  description: >-
+    Контракт операционного статуса для базового Docker Compose стека.
+servers:
+  - url: http://localhost:{mcp_port}
+    variables:
+      mcp_port:
+        default: "8080"
+paths:
+  /health:
+    get:
+      summary: Проверка доступности API
+      operationId: getHealth
+      responses:
+        "200":
+          description: API доступен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthPing"
+  /v1/system/status:
+    get:
+      summary: Получить агрегированный статус compose-стека
+      operationId: getSystemStatus
+      responses:
+        "200":
+          description: Успешный ответ со статусом сервисов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceHealthReport"
+  /v1/system/config:
+    get:
+      summary: Получить эффективную runtime-конфигурацию
+      operationId: getRuntimeConfig
+      responses:
+        "200":
+          description: Эффективная конфигурация окружения
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeConfig"
+  /v1/system/services/{serviceName}:
+    get:
+      summary: Получить детальный статус конкретного сервиса
+      operationId: getServiceStatus
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ServiceName"
+      responses:
+        "200":
+          description: Детальный статус сервиса
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComposeServiceStatus"
+        "404":
+          description: Сервис не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    ServiceName:
+      type: string
+      enum: [qdrant, file-indexer, mcp-server]
+    HealthPing:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        timestamp:
+          type: string
+          format: date-time
+    ComposeServiceStatus:
+      type: object
+      required: [name, status, lastCheck]
+      properties:
+        name:
+          $ref: "#/components/schemas/ServiceName"
+        status:
+          type: string
+          enum: [starting, healthy, unhealthy, stopped]
+        lastCheck:
+          type: string
+          format: date-time
+        details:
+          type: string
+    ServiceHealthReport:
+      type: object
+      required: [timestamp, overallStatus, services]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        overallStatus:
+          type: string
+          enum: [healthy, degraded, down]
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/ComposeServiceStatus"
+        issues:
+          type: array
+          items:
+            type: string
+    RuntimeConfig:
+      type: object
+      required:
+        - projectName
+        - qdrantPort
+        - mcpPort
+        - indexMode
+        - indexFileTypes
+        - indexExcludePatterns
+        - commandAllowlist
+        - commandTimeoutSeconds
+      properties:
+        projectName:
+          type: string
+        qdrantPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        mcpPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        indexMode:
+          type: string
+          enum: [full-scan, delta-after-commit]
+        indexFileTypes:
+          type: array
+          items:
+            type: string
+        indexExcludePatterns:
+          type: array
+          items:
+            type: string
+        commandAllowlist:
+          type: array
+          items:
+            type: string
+        commandTimeoutSeconds:
+          type: integer
+          minimum: 1
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: string

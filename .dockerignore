@@ -1,0 +1,14 @@
+﻿.git/
+.gitignore
+Dockerfile*
+.dockerignore
+node_modules/
+coverage/
+*.log*
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.vscode/
+.idea/

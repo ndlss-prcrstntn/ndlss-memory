@@ -1,0 +1,33 @@
+﻿# Operating system
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.tmp
+
+# Logs
+*.log
+*.log*
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build/test outputs
+coverage/
+dist/
+build/
+
+# Docker runtime artifacts
+docker-data/
+/.codex
