@@ -1,0 +1,212 @@
+﻿openapi: 3.1.0
+info:
+  title: MCP Search Tools API
+  version: 0.1.0
+  description: >-
+    Контракт MCP-инструментов поиска: semantic search, источник по ID,
+    метаданные документа по ID, фильтрация и обработка пустых результатов.
+servers:
+  - url: http://localhost:{mcp_port}
+    variables:
+      mcp_port:
+        default: "8080"
+paths:
+  /v1/search/semantic:
+    post:
+      summary: Выполнить semantic search
+      operationId: semanticSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SemanticSearchRequest"
+      responses:
+        "200":
+          description: Structured search response (`ok` or `empty`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SemanticSearchResponse"
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/search/results/{resultId}/source:
+    get:
+      summary: Получить источник по resultId
+      operationId: getSearchResultSource
+      parameters:
+        - name: resultId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Source payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceResponse"
+        "404":
+          description: Result ID not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/search/results/{resultId}/metadata:
+    get:
+      summary: Получить метаданные документа по resultId
+      operationId: getSearchResultMetadata
+      parameters:
+        - name: resultId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Metadata payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetadataResponse"
+        "404":
+          description: Result ID not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    SemanticSearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+        limit:
+          type: integer
+          minimum: 1
+          default: 10
+        filters:
+          type: object
+          properties:
+            path:
+              type: string
+            folder:
+              type: string
+            fileType:
+              type: string
+    SemanticSearchResponse:
+      type: object
+      required: [status, results, meta]
+      properties:
+        status:
+          type: string
+          enum: [ok, empty]
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchResult"
+        meta:
+          type: object
+          required: [count]
+          properties:
+            count:
+              type: integer
+              minimum: 0
+            limit:
+              type: integer
+              minimum: 1
+            requestedAt:
+              type: string
+              format: date-time
+    SourceResponse:
+      type: object
+      required: [status, source, meta]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        source:
+          $ref: "#/components/schemas/DocumentSource"
+        meta:
+          type: object
+          properties:
+            requestedAt:
+              type: string
+              format: date-time
+    MetadataResponse:
+      type: object
+      required: [status, metadata, meta]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        metadata:
+          $ref: "#/components/schemas/DocumentMetadata"
+        meta:
+          type: object
+          properties:
+            requestedAt:
+              type: string
+              format: date-time
+    SearchResult:
+      type: object
+      required: [resultId, score, snippet, sourcePath, fileType]
+      properties:
+        resultId:
+          type: string
+        score:
+          type: number
+        snippet:
+          type: string
+        sourcePath:
+          type: string
+        fileType:
+          type: string
+    DocumentSource:
+      type: object
+      required: [resultId, content, sourcePath]
+      properties:
+        resultId:
+          type: string
+        content:
+          type: string
+        sourcePath:
+          type: string
+        chunkIndex:
+          type: integer
+          minimum: 0
+    DocumentMetadata:
+      type: object
+      required: [resultId, fileName, fileType, sourcePath]
+      properties:
+        resultId:
+          type: string
+        fileName:
+          type: string
+        fileType:
+          type: string
+        sourcePath:
+          type: string
+        contentHash:
+          type: string
+        indexedAt:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: string

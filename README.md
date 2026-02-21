@@ -1,13 +1,14 @@
 ﻿# ndlss-memory
 
 `ndlss-memory` — локальный memory-слой для MCP-агентов: индексирует файлы проекта,
-сохраняет векторы и метаданные в Qdrant и отдает статус/управление через `mcp-server`.
+сохраняет векторы и метаданные в Qdrant, а также предоставляет MCP-инструменты поиска
+и управление индексацией через `mcp-server`.
 
 ## Что внутри
 
 - `qdrant`: векторное хранилище и метаданные документов.
 - `file-indexer`: full-scan/ingestion/idempotency пайплайны индексации.
-- `mcp-server`: API статуса, запуска и контроля индексации для MCP-клиентов.
+- `mcp-server`: API статуса, запуска/контроля индексации и MCP search tools для MCP-клиентов.
 
 ## Структура репозитория
 
@@ -86,6 +87,10 @@ pwsh scripts/dev/down.ps1
   - `POST /v1/indexing/delta-after-commit/jobs`
   - `GET /v1/indexing/delta-after-commit/jobs/{runId}`
   - `GET /v1/indexing/delta-after-commit/jobs/{runId}/summary`
+- MCP search tools:
+  - `POST /v1/search/semantic`
+  - `GET /v1/search/results/{resultId}/source`
+  - `GET /v1/search/results/{resultId}/metadata`
 
 ## Тестирование и регрессии
 
@@ -93,6 +98,7 @@ pwsh scripts/dev/down.ps1
 
 ```bash
 .\.venv\Scripts\python.exe -m pytest tests/unit/file_indexer
+.\.venv\Scripts\python.exe -m pytest tests/unit/mcp_server
 ```
 
 - Compose-regression для идемпотентности:
@@ -114,6 +120,7 @@ pwsh scripts/tests/delta_after_commit_compose_regression.ps1
 - `specs/003-chunking-embeddings-pipeline/`
 - `specs/004-indexing-idempotency/`
 - `specs/005-delta-after-commit/`
+- `specs/006-mcp-search-tools/`
 
 ## Roadmap
 

@@ -16,6 +16,10 @@ from idempotency_errors import json_error as idempotency_json_error
 from idempotency_state import STATE as IDEMPOTENCY_STATE
 from ingestion_errors import json_error as ingestion_json_error
 from ingestion_state import STATE as INGESTION_STATE
+from search_errors import SearchApiError, json_error_from_exception as search_json_error_from_exception
+from search_models import SemanticSearchRequest
+from search_repository import QdrantSearchRepository
+from search_service import SearchService
 
 SERVICE_NAMES = ("qdrant", "file-indexer", "mcp-server")
 STATUS_ENV_MAP = {
@@ -25,6 +29,7 @@ STATUS_ENV_MAP = {
 }
 
 app = Flask(__name__)
+SEARCH_SERVICE = SearchService(QdrantSearchRepository.from_env())
 
 
 def _now_iso() -> str:
@@ -430,6 +435,32 @@ def get_service_status(service_name: str):
             404,
         )
     return jsonify(build_service_status(service_name))
+
+
+@app.post("/v1/search/semantic")
+def semantic_search():
+    payload = request.get_json(silent=True) or {}
+    try:
+        search_request = SemanticSearchRequest.from_payload(payload)
+        return jsonify(SEARCH_SERVICE.semantic_search(search_request))
+    except SearchApiError as exc:
+        return search_json_error_from_exception(exc)
+
+
+@app.get("/v1/search/results/<result_id>/source")
+def get_search_result_source(result_id: str):
+    try:
+        return jsonify(SEARCH_SERVICE.get_source(result_id))
+    except SearchApiError as exc:
+        return search_json_error_from_exception(exc)
+
+
+@app.get("/v1/search/results/<result_id>/metadata")
+def get_search_result_metadata(result_id: str):
+    try:
+        return jsonify(SEARCH_SERVICE.get_metadata(result_id))
+    except SearchApiError as exc:
+        return search_json_error_from_exception(exc)
 
 
 @app.post("/v1/indexing/full-scan/jobs")

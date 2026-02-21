@@ -13,6 +13,11 @@ COPY src/idempotency_state.py /app/src/idempotency_state.py
 COPY src/idempotency_errors.py /app/src/idempotency_errors.py
 COPY src/delta_after_commit_state.py /app/src/delta_after_commit_state.py
 COPY src/delta_after_commit_errors.py /app/src/delta_after_commit_errors.py
+COPY src/search_models.py /app/src/search_models.py
+COPY src/search_errors.py /app/src/search_errors.py
+COPY src/search_result_ref.py /app/src/search_result_ref.py
+COPY src/search_repository.py /app/src/search_repository.py
+COPY src/search_service.py /app/src/search_service.py
 COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
 COPY config/security-policy.yaml /app/config/security-policy.yaml
 COPY openapi/compose-observability.openapi.yaml /app/openapi/compose-observability.openapi.yaml
@@ -20,6 +25,7 @@ COPY openapi/full-scan-indexing.openapi.yaml /app/openapi/full-scan-indexing.ope
 COPY openapi/chunking-embeddings.openapi.yaml /app/openapi/chunking-embeddings.openapi.yaml
 COPY openapi/idempotency-indexing.openapi.yaml /app/openapi/idempotency-indexing.openapi.yaml
 COPY openapi/delta-after-commit-indexing.openapi.yaml /app/openapi/delta-after-commit-indexing.openapi.yaml
+COPY openapi/mcp-search-tools.openapi.yaml /app/openapi/mcp-search-tools.openapi.yaml
 
 RUN chmod +x /app/scripts/entrypoint.sh
 
