@@ -1,14 +1,26 @@
 ﻿# ndlss-memory
 
-`ndlss-memory` — локальный memory-слой для MCP-агентов: индексирует файлы проекта,
-сохраняет векторы и метаданные в Qdrant, а также предоставляет MCP-инструменты поиска
-и управление индексацией через `mcp-server`.
+`ndlss-memory` - локальный memory-слой для MCP-агентов.
+Проект индексирует файлы workspace, хранит векторы/метаданные в Qdrant и предоставляет HTTP API через `mcp-server`.
 
-## Что внутри
+## Что реализовано сейчас
 
-- `qdrant`: векторное хранилище и метаданные документов.
-- `file-indexer`: full-scan/ingestion/idempotency пайплайны индексации.
-- `mcp-server`: API статуса, запуска/контроля индексации и MCP search tools для MCP-клиентов.
+- Docker Compose стек из трех сервисов: `qdrant`, `file-indexer`, `mcp-server`.
+- Режимы индексации: `full-scan` и `delta-after-commit`.
+- Пайплайн чанкинга и эмбеддингов с retry.
+- Идемпотентная синхронизация индекса (без дублей, cleanup устаревших чанков).
+- MCP search tools:
+  - `semantic search`
+  - получение источника по `resultId`
+  - получение метаданных по `resultId`
+  - фильтрация по `path` / `folder` / `fileType`
+  - структурированные ответы и машиночитаемые ошибки
+
+## Сервисы
+
+- `qdrant`: векторное хранилище и payload-метаданные.
+- `file-indexer`: full-scan, ingestion, idempotency, delta-after-commit.
+- `mcp-server`: REST API статуса, управления индексацией и MCP search tools.
 
 ## Структура репозитория
 
@@ -18,8 +30,8 @@ services/file-indexer/        # логика индексатора
 services/mcp-server/          # API и контракты MCP-сервера
 scripts/dev/                  # запуск/остановка стека
 scripts/ops/                  # операционные проверки
-scripts/tests/                # e2e/regression сценарии
-tests/                        # unit/integration/contract сценарии
+scripts/tests/                # compose/regression сценарии
+tests/                        # unit/integration/contract артефакты
 specs/                        # feature-спеки, планы и задачи
 ```
 
@@ -28,89 +40,101 @@ specs/                        # feature-спеки, планы и задачи
 Требования:
 
 - Docker Engine + Docker Compose v2
-- PowerShell 7+
+- Windows PowerShell (или PowerShell 7+)
 
-Запуск:
+Запуск стека:
 
-```bash
-pwsh scripts/dev/up.ps1
+```powershell
+powershell -File scripts/dev/up.ps1
 ```
 
-Проверка:
+Проверка состояния:
 
-```bash
+```powershell
 docker compose -f infra/docker/docker-compose.yml ps
-pwsh scripts/ops/stack-status.ps1
+powershell -File scripts/ops/stack-status.ps1
 curl http://localhost:8080/health
 ```
 
 Остановка:
 
-```bash
-pwsh scripts/dev/down.ps1
+```powershell
+powershell -File scripts/dev/down.ps1
 ```
+
+## Первый поисковый запрос
+
+```bash
+curl -X POST http://localhost:8080/v1/search/semantic \
+  -H "Content-Type: application/json" \
+  -d '{"query":"docker compose healthcheck","limit":5}'
+```
+
+Далее можно использовать `resultId`:
+
+- `GET /v1/search/results/{resultId}/source`
+- `GET /v1/search/results/{resultId}/metadata`
 
 ## Конфигурация
 
-Базовые параметры задаются через `.env` (пример: `.env.example`).
+Базовая конфигурация задается через `.env` (пример: `.env.example`).
 
 Ключевые группы параметров:
 
 - Индексация: `INDEX_MODE`, `INDEX_FILE_TYPES`, `INDEX_EXCLUDE_PATTERNS`, `INDEX_MAX_FILE_SIZE_BYTES`.
-- Чанкинг/эмбеддинги: `CHUNK_SIZE`, `CHUNK_OVERLAP`, `EMBEDDING_*`, `INGESTION_RETRY_*`.
+- Чанкинг/эмбеддинги: `INGESTION_CHUNK_SIZE`, `INGESTION_CHUNK_OVERLAP`, `INGESTION_RETRY_*`.
 - Delta-after-commit: `DELTA_GIT_BASE_REF`, `DELTA_GIT_TARGET_REF`, `DELTA_INCLUDE_RENAMES`, `DELTA_ENABLE_FALLBACK`.
 - Идемпотентность: `IDEMPOTENCY_HASH_ALGORITHM`, `IDEMPOTENCY_SKIP_UNCHANGED`, `IDEMPOTENCY_ENABLE_STALE_CLEANUP`.
 - Безопасность команд: `COMMAND_ALLOWLIST`, `COMMAND_TIMEOUT_SECONDS`.
 
 Подробно: `docs/configuration.md`.
 
-## Основные API endpoints
+## API
 
-- Системные:
-  - `GET /health`
-  - `GET /v1/system/status`
-  - `GET /v1/system/config`
-  - `GET /v1/system/services/{serviceName}`
-- Full scan:
-  - `POST /v1/indexing/full-scan/jobs`
-  - `GET /v1/indexing/full-scan/jobs/{jobId}`
-  - `GET /v1/indexing/full-scan/jobs/{jobId}/summary`
-- Ingestion pipeline:
-  - `POST /v1/indexing/ingestion/jobs`
-  - `GET /v1/indexing/ingestion/jobs/{runId}`
-  - `GET /v1/indexing/ingestion/jobs/{runId}/summary`
-- Idempotency pipeline:
-  - `POST /v1/indexing/idempotency/jobs`
-  - `GET /v1/indexing/idempotency/jobs/{runId}`
-  - `GET /v1/indexing/idempotency/jobs/{runId}/summary`
-- Delta-after-commit pipeline:
-  - `POST /v1/indexing/delta-after-commit/jobs`
-  - `GET /v1/indexing/delta-after-commit/jobs/{runId}`
-  - `GET /v1/indexing/delta-after-commit/jobs/{runId}/summary`
-- MCP search tools:
-  - `POST /v1/search/semantic`
-  - `GET /v1/search/results/{resultId}/source`
-  - `GET /v1/search/results/{resultId}/metadata`
+Системные:
 
-## Тестирование и регрессии
+- `GET /health`
+- `GET /v1/system/status`
+- `GET /v1/system/config`
+- `GET /v1/system/services/{serviceName}`
 
-- Локальные unit-тесты (Python):
+Индексация:
 
-```bash
+- `POST /v1/indexing/full-scan/jobs`
+- `GET /v1/indexing/full-scan/jobs/{jobId}`
+- `GET /v1/indexing/full-scan/jobs/{jobId}/summary`
+- `POST /v1/indexing/ingestion/jobs`
+- `GET /v1/indexing/ingestion/jobs/{runId}`
+- `GET /v1/indexing/ingestion/jobs/{runId}/summary`
+- `POST /v1/indexing/idempotency/jobs`
+- `GET /v1/indexing/idempotency/jobs/{runId}`
+- `GET /v1/indexing/idempotency/jobs/{runId}/summary`
+- `POST /v1/indexing/delta-after-commit/jobs`
+- `GET /v1/indexing/delta-after-commit/jobs/{runId}`
+- `GET /v1/indexing/delta-after-commit/jobs/{runId}/summary`
+
+MCP search tools:
+
+- `POST /v1/search/semantic`
+- `GET /v1/search/results/{resultId}/source`
+- `GET /v1/search/results/{resultId}/metadata`
+
+## Тестирование
+
+Unit:
+
+```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit/file_indexer
 .\.venv\Scripts\python.exe -m pytest tests/unit/mcp_server
 ```
 
-- Compose-regression для идемпотентности:
+Compose regression:
 
-```bash
-pwsh scripts/tests/idempotency_compose_regression.ps1
-```
-
-- Compose-regression для delta-after-commit:
-
-```bash
-pwsh scripts/tests/delta_after_commit_compose_regression.ps1
+```powershell
+powershell -File scripts/tests/full_scan_compose_regression.ps1
+powershell -File scripts/tests/ingestion_compose_regression.ps1
+powershell -File scripts/tests/idempotency_compose_regression.ps1
+powershell -File scripts/tests/delta_after_commit_compose_regression.ps1
 ```
 
 ## Документация по фичам
@@ -121,7 +145,6 @@ pwsh scripts/tests/delta_after_commit_compose_regression.ps1
 - `specs/004-indexing-idempotency/`
 - `specs/005-delta-after-commit/`
 - `specs/006-mcp-search-tools/`
-
 ## Roadmap
 
 ### 0. Zero-Friction Setup (DX-first)
@@ -199,15 +222,15 @@ pwsh scripts/tests/delta_after_commit_compose_regression.ps1
 
 ### 7. MCP-инструменты поиска
 
-- [ ] Tool: semantic search
-- [ ] Tool: получить источник по ID
-- [ ] Tool: получить метаданные документа
-- [ ] Поддержка фильтрации по:
-  - [ ] пути
-  - [ ] папке
-  - [ ] типу файла
-- [ ] Возврат структурированного ответа
-- [ ] Обработка пустых результатов
+- [x] Tool: semantic search
+- [x] Tool: получить источник по ID
+- [x] Tool: получить метаданные документа
+- [x] Поддержка фильтрации по:
+  - [x] пути
+  - [x] папке
+  - [x] типу файла
+- [x] Возврат структурированного ответа
+- [x] Обработка пустых результатов
 
 ### 8. Безопасный запуск команд через MCP
 
@@ -227,8 +250,8 @@ pwsh scripts/tests/delta_after_commit_compose_regression.ps1
   - [x] фильтрация файлов
 - [ ] Integration-тесты:
   - [ ] запись в Qdrant
-  - [ ] поиск через MCP
-- [ ] Contract-тесты MCP-инструментов
+  - [x] поиск через MCP
+- [x] Contract-тесты MCP-инструментов
 - [ ] E2E тест:
   - [x] `docker compose up`
   - [ ] full-scan
@@ -242,7 +265,7 @@ pwsh scripts/tests/delta_after_commit_compose_regression.ps1
 - [ ] Quickstart (5-10 минут до первого поиска)
 - [x] Примеры `.env`
 - [x] Пример docker-compose
-- [ ] Описание MCP-инструментов
+- [x] Описание MCP-инструментов
 - [x] Архитектурная схема
 - [ ] CONTRIBUTING.md
 - [x] LICENSE
@@ -252,5 +275,6 @@ pwsh scripts/tests/delta_after_commit_compose_regression.ps1
   - [ ] теги
   - [ ] проверка Docker image
   - [ ] проверка примеров
+
 
 
