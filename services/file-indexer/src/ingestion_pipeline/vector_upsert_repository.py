@@ -52,6 +52,12 @@ class VectorUpsertRepository:
         self._file_hash_index.pop(file_path, None)
         self._file_chunk_index.pop(file_path, None)
 
+    def delete_file_records(self, file_path: str) -> int:
+        point_ids = self.get_file_chunk_ids(file_path)
+        deleted = self.delete_points(point_ids)
+        self.remove_file(file_path)
+        return deleted
+
     def delete_points(self, point_ids: set[str]) -> int:
         if not point_ids:
             return 0

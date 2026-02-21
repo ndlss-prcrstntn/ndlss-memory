@@ -1,27 +1,35 @@
 ﻿# ndlss-memory
 
-`ndlss-memory` - локальный MCP-стек на Docker Compose для индексации файлов,
-поиска контекста и безопасных tool-вызовов.
+`ndlss-memory` — локальный memory-слой для MCP-агентов: индексирует файлы проекта,
+сохраняет векторы и метаданные в Qdrant и отдает статус/управление через `mcp-server`.
 
-## Сервисы
+## Что внутри
 
-- `qdrant`: хранение векторных данных и метаданных.
-- `file-indexer`: сбор и обработка файлов из смонтированной директории.
-- `mcp-server`: API/контракт статуса и входная точка для MCP-клиентов.
+- `qdrant`: векторное хранилище и метаданные документов.
+- `file-indexer`: full-scan/ingestion/idempotency пайплайны индексации.
+- `mcp-server`: API статуса, запуска и контроля индексации для MCP-клиентов.
 
-## Архитектура
+## Структура репозитория
 
 ```text
-Host workspace (bind mount)
-        |
-        v
-  file-indexer -----> qdrant (named volume)
-        |
-        v
-      mcp-server <---- AI clients / IDE / agents
+infra/docker/                 # docker compose стек
+services/file-indexer/        # логика индексатора
+services/mcp-server/          # API и контракты MCP-сервера
+scripts/dev/                  # запуск/остановка стека
+scripts/ops/                  # операционные проверки
+scripts/tests/                # e2e/regression сценарии
+tests/                        # unit/integration/contract сценарии
+specs/                        # feature-спеки, планы и задачи
 ```
 
 ## Быстрый старт
+
+Требования:
+
+- Docker Engine + Docker Compose v2
+- PowerShell 7+
+
+Запуск:
 
 ```bash
 pwsh scripts/dev/up.ps1
@@ -41,70 +49,71 @@ curl http://localhost:8080/health
 pwsh scripts/dev/down.ps1
 ```
 
-## Ключевая конфигурация
+## Конфигурация
 
-Смотрите `.env.example` и `docs/configuration.md`.
+Базовые параметры задаются через `.env` (пример: `.env.example`).
 
-- `INDEX_MODE=full-scan|delta-after-commit`
-- `INDEX_FILE_TYPES=.md,.txt,...`
-- `INDEX_EXCLUDE_PATTERNS=.git,node_modules,...`
-- `INDEX_MAX_FILE_SIZE_BYTES=...`
-- `INDEX_PROGRESS_INTERVAL_SECONDS=...`
-- `IDEMPOTENCY_HASH_ALGORITHM=sha256`
-- `IDEMPOTENCY_SKIP_UNCHANGED=0|1`
-- `IDEMPOTENCY_ENABLE_STALE_CLEANUP=0|1`
-- `COMMAND_ALLOWLIST=...`
-- `COMMAND_TIMEOUT_SECONDS=...`
+Ключевые группы параметров:
 
-## Диагностика и recovery
+- Индексация: `INDEX_MODE`, `INDEX_FILE_TYPES`, `INDEX_EXCLUDE_PATTERNS`, `INDEX_MAX_FILE_SIZE_BYTES`.
+- Чанкинг/эмбеддинги: `CHUNK_SIZE`, `CHUNK_OVERLAP`, `EMBEDDING_*`, `INGESTION_RETRY_*`.
+- Delta-after-commit: `DELTA_GIT_BASE_REF`, `DELTA_GIT_TARGET_REF`, `DELTA_INCLUDE_RENAMES`, `DELTA_ENABLE_FALLBACK`.
+- Идемпотентность: `IDEMPOTENCY_HASH_ALGORITHM`, `IDEMPOTENCY_SKIP_UNCHANGED`, `IDEMPOTENCY_ENABLE_STALE_CLEANUP`.
+- Безопасность команд: `COMMAND_ALLOWLIST`, `COMMAND_TIMEOUT_SECONDS`.
 
-- Операционный статус: `GET /v1/system/status`
-- Конфигурация рантайма: `GET /v1/system/config`
-- Статус сервиса: `GET /v1/system/services/{serviceName}`
-- Диагностика из CLI: `pwsh scripts/ops/stack-status.ps1`
+Подробно: `docs/configuration.md`.
 
-Если сервис unhealthy:
+## Основные API endpoints
 
-1. Проверьте `docker compose -f infra/docker/docker-compose.yml logs <service>`
-2. Уточните env-параметры в `.env`/`.env.example`
-3. Перезапустите стек (`up`/`down` скрипты)
+- Системные:
+  - `GET /health`
+  - `GET /v1/system/status`
+  - `GET /v1/system/config`
+  - `GET /v1/system/services/{serviceName}`
+- Full scan:
+  - `POST /v1/indexing/full-scan/jobs`
+  - `GET /v1/indexing/full-scan/jobs/{jobId}`
+  - `GET /v1/indexing/full-scan/jobs/{jobId}/summary`
+- Ingestion pipeline:
+  - `POST /v1/indexing/ingestion/jobs`
+  - `GET /v1/indexing/ingestion/jobs/{runId}`
+  - `GET /v1/indexing/ingestion/jobs/{runId}/summary`
+- Idempotency pipeline:
+  - `POST /v1/indexing/idempotency/jobs`
+  - `GET /v1/indexing/idempotency/jobs/{runId}`
+  - `GET /v1/indexing/idempotency/jobs/{runId}/summary`
+- Delta-after-commit pipeline:
+  - `POST /v1/indexing/delta-after-commit/jobs`
+  - `GET /v1/indexing/delta-after-commit/jobs/{runId}`
+  - `GET /v1/indexing/delta-after-commit/jobs/{runId}/summary`
 
-### Full Scan troubleshooting
+## Тестирование и регрессии
 
-- `FULL_SCAN_ALREADY_RUNNING`: дождитесь завершения активной задачи или
-  проверьте статус через `GET /v1/indexing/full-scan/jobs/{jobId}`.
-- `JOB_NOT_FINISHED` при запросе summary: дождитесь финального статуса
-  (`completed|failed|cancelled`) и повторите запрос.
-- Большой `skipCount`: проверьте `INDEX_FILE_TYPES`,
-  `INDEX_EXCLUDE_PATTERNS` и `INDEX_MAX_FILE_SIZE_BYTES`.
-- Нулевой прогресс: проверьте `WORKSPACE_PATH` и наличие файлов в
-  смонтированной директории.
+- Локальные unit-тесты (Python):
 
-### Ingestion troubleshooting
+```bash
+.\.venv\Scripts\python.exe -m pytest tests/unit/file_indexer
+```
 
-- `INGESTION_ALREADY_RUNNING`: дождитесь завершения активного ingestion run.
-- `RUN_NOT_FINISHED`: дождитесь терминального статуса перед запросом summary.
-- Высокий `retryCount`: проверьте стабильность embedding provider.
-- Высокий `failedChunks`: проверьте `INGESTION_RETRY_MAX_ATTEMPTS` и
-  `INGESTION_RETRY_BACKOFF_SECONDS`.
-- Низкий `metadataCoverage`: проверьте `workspacePath` и маппинг обязательных
-  полей (`path`, `fileName`, `fileType`, `contentHash`, `timestamp`).
+- Compose-regression для идемпотентности:
 
-### Idempotency troubleshooting
+```bash
+pwsh scripts/tests/idempotency_compose_regression.ps1
+```
 
-- `IDEMPOTENCY_ALREADY_RUNNING`: дождитесь завершения активного idempotency run.
-- `RUN_NOT_FINISHED` при запросе summary: дождитесь финального статуса run.
-- `failedChunks > 0`: проверьте логи `mcp-server`/`file-indexer` и reason codes в summary.
-- Отсутствует `skippedChunks` на повторном запуске: проверьте `IDEMPOTENCY_SKIP_UNCHANGED=1`.
-- Отсутствует `deletedChunks` после удаления файла: проверьте `IDEMPOTENCY_ENABLE_STALE_CLEANUP=1`.
+- Compose-regression для delta-after-commit:
 
-## Документация фичи
+```bash
+pwsh scripts/tests/delta_after_commit_compose_regression.ps1
+```
 
-- Спецификация: `specs/001-base-docker-compose/spec.md`
-- План: `specs/001-base-docker-compose/plan.md`
-- Задачи: `specs/001-base-docker-compose/tasks.md`
-- Quickstart: `specs/001-base-docker-compose/quickstart.md`
-- Контракт: `specs/001-base-docker-compose/contracts/compose-observability.openapi.yaml`
+## Документация по фичам
+
+- `specs/001-base-docker-compose/`
+- `specs/002-full-scan/`
+- `specs/003-chunking-embeddings-pipeline/`
+- `specs/004-indexing-idempotency/`
+- `specs/005-delta-after-commit/`
 
 ## Roadmap
 
@@ -172,14 +181,14 @@ pwsh scripts/dev/down.ps1
 
 ### 6. Режим Delta-after-commit
 
-- [ ] Интеграция с Git
-- [ ] Использование `git diff` для получения измененных файлов
-- [ ] Индексация только:
-  - [ ] добавленных файлов
-  - [ ] измененных файлов
-  - [ ] удаление удаленных файлов из Qdrant
-- [ ] Обработка rename файлов
-- [ ] Фоллбек на full-scan при ошибке
+- [x] Интеграция с Git
+- [x] Использование `git diff` для получения измененных файлов
+- [x] Индексация только:
+  - [x] добавленных файлов
+  - [x] измененных файлов
+  - [x] удаление удаленных файлов из Qdrant
+- [x] Обработка rename файлов
+- [x] Фоллбек на full-scan при ошибке
 
 ### 7. MCP-инструменты поиска
 
@@ -207,18 +216,18 @@ pwsh scripts/dev/down.ps1
 
 - [ ] Unit-тесты:
   - [ ] чанкинг
-  - [ ] хеширование
+  - [x] хеширование
   - [x] фильтрация файлов
 - [ ] Integration-тесты:
   - [ ] запись в Qdrant
   - [ ] поиск через MCP
 - [ ] Contract-тесты MCP-инструментов
 - [ ] E2E тест:
-  - [ ] `docker compose up`
+  - [x] `docker compose up`
   - [ ] full-scan
-  - [ ] delta-after-commit
+  - [x] delta-after-commit
   - [ ] проверка поискового запроса
-- [ ] Проверка идемпотентности повторного запуска
+- [x] Проверка идемпотентности повторного запуска
 
 ### 10. Open-source упаковка
 
@@ -236,4 +245,5 @@ pwsh scripts/dev/down.ps1
   - [ ] теги
   - [ ] проверка Docker image
   - [ ] проверка примеров
+
 

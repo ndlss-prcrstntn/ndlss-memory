@@ -12,6 +12,11 @@
     "INGESTION_CHUNK_OVERLAP",
     "INGESTION_RETRY_MAX_ATTEMPTS",
     "INGESTION_RETRY_BACKOFF_SECONDS",
+    "DELTA_GIT_BASE_REF",
+    "DELTA_GIT_TARGET_REF",
+    "DELTA_INCLUDE_RENAMES",
+    "DELTA_ENABLE_FALLBACK",
+    "DELTA_BOOTSTRAP_ON_START",
     "IDEMPOTENCY_HASH_ALGORITHM",
     "IDEMPOTENCY_SKIP_UNCHANGED",
     "IDEMPOTENCY_ENABLE_STALE_CLEANUP",
@@ -57,6 +62,26 @@
     "INGESTION_MAX_CHUNKS_PER_FILE": {
       "type": "integer",
       "minimum": 1
+    },
+    "DELTA_GIT_BASE_REF": {
+      "type": "string",
+      "minLength": 1
+    },
+    "DELTA_GIT_TARGET_REF": {
+      "type": "string",
+      "minLength": 1
+    },
+    "DELTA_INCLUDE_RENAMES": {
+      "type": "string",
+      "enum": ["0", "1"]
+    },
+    "DELTA_ENABLE_FALLBACK": {
+      "type": "string",
+      "enum": ["0", "1"]
+    },
+    "DELTA_BOOTSTRAP_ON_START": {
+      "type": "string",
+      "enum": ["0", "1"]
     },
     "IDEMPOTENCY_HASH_ALGORITHM": {
       "type": "string",

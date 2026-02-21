@@ -54,6 +54,31 @@ if [ -z "${INGESTION_RETRY_BACKOFF_SECONDS:-}" ]; then
   exit 1
 fi
 
+if [ -z "${DELTA_GIT_BASE_REF:-}" ]; then
+  echo "DELTA_GIT_BASE_REF is required"
+  exit 1
+fi
+
+if [ -z "${DELTA_GIT_TARGET_REF:-}" ]; then
+  echo "DELTA_GIT_TARGET_REF is required"
+  exit 1
+fi
+
+if [ -z "${DELTA_INCLUDE_RENAMES:-}" ]; then
+  echo "DELTA_INCLUDE_RENAMES is required"
+  exit 1
+fi
+
+if [ -z "${DELTA_ENABLE_FALLBACK:-}" ]; then
+  echo "DELTA_ENABLE_FALLBACK is required"
+  exit 1
+fi
+
+if [ -z "${DELTA_BOOTSTRAP_ON_START:-}" ]; then
+  echo "DELTA_BOOTSTRAP_ON_START is required"
+  exit 1
+fi
+
 if [ -z "${IDEMPOTENCY_HASH_ALGORITHM:-}" ]; then
   echo "IDEMPOTENCY_HASH_ALGORITHM is required"
   exit 1
@@ -141,6 +166,21 @@ fi
 
 if [ "${INGESTION_RETRY_BACKOFF_SECONDS#0}" = "." ] || [ "$INGESTION_RETRY_BACKOFF_SECONDS" = "0" ] || [ "$INGESTION_RETRY_BACKOFF_SECONDS" = "0.0" ]; then
   echo "INGESTION_RETRY_BACKOFF_SECONDS must be > 0"
+  exit 1
+fi
+
+if [ "$DELTA_INCLUDE_RENAMES" != "0" ] && [ "$DELTA_INCLUDE_RENAMES" != "1" ]; then
+  echo "DELTA_INCLUDE_RENAMES must be 0 or 1"
+  exit 1
+fi
+
+if [ "$DELTA_ENABLE_FALLBACK" != "0" ] && [ "$DELTA_ENABLE_FALLBACK" != "1" ]; then
+  echo "DELTA_ENABLE_FALLBACK must be 0 or 1"
+  exit 1
+fi
+
+if [ "$DELTA_BOOTSTRAP_ON_START" != "0" ] && [ "$DELTA_BOOTSTRAP_ON_START" != "1" ]; then
+  echo "DELTA_BOOTSTRAP_ON_START must be 0 or 1"
   exit 1
 fi
 

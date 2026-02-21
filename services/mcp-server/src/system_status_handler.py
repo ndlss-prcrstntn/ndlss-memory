@@ -8,6 +8,8 @@ from threading import Thread
 import yaml
 from flask import Flask, jsonify, request
 
+from delta_after_commit_errors import json_error as delta_json_error
+from delta_after_commit_state import STATE as DELTA_STATE
 from full_scan_errors import json_error as full_scan_json_error
 from full_scan_state import STATE as FULL_SCAN_STATE
 from idempotency_errors import json_error as idempotency_json_error
@@ -267,6 +269,66 @@ def _run_idempotency_job(run_id: str, workspace_path: str, payload: dict) -> Non
         IDEMPOTENCY_STATE.finish_run(run_id, summary=failure, status="failed")
 
 
+def _run_delta_after_commit_job(run_id: str, workspace_path: str, payload: dict) -> None:
+    run = DELTA_STATE.get_run(run_id)
+    if not run:
+        return
+
+    base_ref = str(payload.get("baseRef") or run.base_ref or os.getenv("DELTA_GIT_BASE_REF", "HEAD~1"))
+    target_ref = str(payload.get("targetRef") or run.target_ref or os.getenv("DELTA_GIT_TARGET_REF", "HEAD"))
+
+    def _progress_update(progress: dict[str, int | str | None]) -> None:
+        DELTA_STATE.update_run(
+            run_id,
+            effective_mode=str(progress.get("effectiveMode") or run.effective_mode),
+            fallback_reason_code=progress.get("fallbackReasonCode"),
+            added_files=int(progress.get("addedFiles") or run.added_files),
+            modified_files=int(progress.get("modifiedFiles") or run.modified_files),
+            deleted_files=int(progress.get("deletedFiles") or run.deleted_files),
+            renamed_files=int(progress.get("renamedFiles") or run.renamed_files),
+            indexed_files=int(progress.get("indexedFiles") or run.indexed_files),
+            removed_records=int(progress.get("removedRecords") or run.removed_records),
+            skipped_files=int(progress.get("skippedFiles") or run.skipped_files),
+            failed_files=int(progress.get("failedFiles") or run.failed_files),
+        )
+
+    try:
+        _ensure_file_indexer_src_path()
+        from delta_after_commit.delta_after_commit_service import run_delta_after_commit_pipeline
+
+        summary = run_delta_after_commit_pipeline(
+            run_id=run_id,
+            workspace_path=workspace_path,
+            base_ref=base_ref,
+            target_ref=target_ref,
+            progress_callback=_progress_update,
+        )
+        summary_payload = summary.to_dict()
+        DELTA_STATE.finish_run(run_id, summary=summary_payload, status=summary_payload.get("status", "completed"))
+    except Exception as exc:
+        failure = {
+            "runId": run_id,
+            "status": "failed",
+            "requestedMode": "delta-after-commit",
+            "effectiveMode": "delta-after-commit",
+            "baseRef": base_ref,
+            "targetRef": target_ref,
+            "addedFiles": run.added_files,
+            "modifiedFiles": run.modified_files,
+            "deletedFiles": run.deleted_files,
+            "renamedFiles": run.renamed_files,
+            "indexedFiles": run.indexed_files,
+            "removedRecords": run.removed_records,
+            "skippedFiles": run.skipped_files,
+            "failedFiles": run.failed_files + 1,
+            "startedAt": run.started_at or _now_iso(),
+            "finishedAt": _now_iso(),
+            "reasonBreakdown": [{"code": "DELTA_PIPELINE_FAILED", "count": 1}],
+        }
+        DELTA_STATE.update_run(run_id, error_code="DELTA_PIPELINE_FAILED", error_message=str(exc))
+        DELTA_STATE.finish_run(run_id, summary=failure, status="failed")
+
+
 def build_runtime_config() -> dict:
     policy = load_security_policy()
     timeout_value = os.getenv("COMMAND_TIMEOUT_SECONDS", str(policy.get("command_timeout_seconds", 20)))
@@ -290,6 +352,11 @@ def build_runtime_config() -> dict:
         "ingestionChunkOverlap": _parse_int_env("INGESTION_CHUNK_OVERLAP", 120),
         "ingestionRetryMaxAttempts": _parse_int_env("INGESTION_RETRY_MAX_ATTEMPTS", 3),
         "ingestionRetryBackoffSeconds": float(os.getenv("INGESTION_RETRY_BACKOFF_SECONDS", "1.0")),
+        "deltaGitBaseRef": os.getenv("DELTA_GIT_BASE_REF", "HEAD~1"),
+        "deltaGitTargetRef": os.getenv("DELTA_GIT_TARGET_REF", "HEAD"),
+        "deltaIncludeRenames": os.getenv("DELTA_INCLUDE_RENAMES", "1"),
+        "deltaEnableFallback": os.getenv("DELTA_ENABLE_FALLBACK", "1"),
+        "deltaBootstrapOnStart": os.getenv("DELTA_BOOTSTRAP_ON_START", "0"),
         "idempotencyHashAlgorithm": os.getenv("IDEMPOTENCY_HASH_ALGORITHM", "sha256"),
         "idempotencySkipUnchanged": os.getenv("IDEMPOTENCY_SKIP_UNCHANGED", "1"),
         "idempotencyEnableStaleCleanup": os.getenv("IDEMPOTENCY_ENABLE_STALE_CLEANUP", "1"),
@@ -471,6 +538,52 @@ def get_idempotency_job_summary(run_id: str):
         return idempotency_json_error("RUN_NOT_FINISHED", "Idempotency run is not finished yet", 409)
     if run.summary is None:
         return idempotency_json_error("RUN_SUMMARY_MISSING", "Run summary is not available", 404)
+    return jsonify(run.summary)
+
+
+@app.post("/v1/indexing/delta-after-commit/jobs")
+def start_delta_after_commit_job():
+    payload = request.get_json(silent=True) or {}
+    workspace_path = payload.get("workspacePath") or os.getenv("WORKSPACE_PATH", "/workspace")
+    base_ref = str(payload.get("baseRef") or os.getenv("DELTA_GIT_BASE_REF", "HEAD~1"))
+    target_ref = str(payload.get("targetRef") or os.getenv("DELTA_GIT_TARGET_REF", "HEAD"))
+
+    try:
+        run = DELTA_STATE.create_run(workspace_path=workspace_path, base_ref=base_ref, target_ref=target_ref)
+    except RuntimeError:
+        return delta_json_error("DELTA_ALREADY_RUNNING", "Delta-after-commit run is already running", 409)
+
+    Thread(target=_run_delta_after_commit_job, args=(run.run_id, workspace_path, payload), daemon=True).start()
+    return (
+        jsonify(
+            {
+                "runId": run.run_id,
+                "status": run.status,
+                "acceptedAt": run.accepted_at,
+                "requestedMode": run.requested_mode,
+            }
+        ),
+        202,
+    )
+
+
+@app.get("/v1/indexing/delta-after-commit/jobs/<run_id>")
+def get_delta_after_commit_job_status(run_id: str):
+    run = DELTA_STATE.get_run(run_id)
+    if not run:
+        return delta_json_error("RUN_NOT_FOUND", f"Delta-after-commit run '{run_id}' is not found", 404)
+    return jsonify(run.as_status())
+
+
+@app.get("/v1/indexing/delta-after-commit/jobs/<run_id>/summary")
+def get_delta_after_commit_job_summary(run_id: str):
+    run = DELTA_STATE.get_run(run_id)
+    if not run:
+        return delta_json_error("RUN_NOT_FOUND", f"Delta-after-commit run '{run_id}' is not found", 404)
+    if run.status in {"queued", "running"}:
+        return delta_json_error("RUN_NOT_FINISHED", "Delta-after-commit run is not finished yet", 409)
+    if run.summary is None:
+        return delta_json_error("RUN_SUMMARY_MISSING", "Run summary is not available", 404)
     return jsonify(run.summary)
 
 

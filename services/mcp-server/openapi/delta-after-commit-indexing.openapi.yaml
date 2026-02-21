@@ -1,0 +1,273 @@
+﻿openapi: 3.1.0
+info:
+  title: Delta-after-commit Indexing API
+  version: 0.1.0
+  description: >-
+    Контракт запуска и наблюдения режима delta-after-commit с автоматическим
+    fallback на full-scan при ошибке получения Git diff.
+servers:
+  - url: http://localhost:{mcp_port}
+    variables:
+      mcp_port:
+        default: "8080"
+paths:
+  /v1/indexing/delta-after-commit/jobs:
+    post:
+      summary: Запустить delta-after-commit индексацию
+      operationId: startDeltaAfterCommitJob
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartDeltaJobRequest"
+      responses:
+        "202":
+          description: Delta job accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartDeltaJobResponse"
+        "409":
+          description: Delta job already running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/indexing/delta-after-commit/jobs/{runId}:
+    get:
+      summary: Получить статус delta запуска
+      operationId: getDeltaAfterCommitJobStatus
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job status payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeltaJobStatus"
+        "404":
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/indexing/delta-after-commit/jobs/{runId}/summary:
+    get:
+      summary: Получить итоговую сводку delta запуска
+      operationId: getDeltaAfterCommitJobSummary
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Final summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeltaJobSummary"
+        "404":
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Run not finished
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    StartDeltaJobRequest:
+      type: object
+      properties:
+        workspacePath:
+          type: string
+          description: Optional workspace override for current run.
+        baseRef:
+          type: string
+          description: Optional git base ref for diff.
+        targetRef:
+          type: string
+          description: Optional git target ref for diff.
+    StartDeltaJobResponse:
+      type: object
+      required: [runId, status, acceptedAt, requestedMode]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running]
+        acceptedAt:
+          type: string
+          format: date-time
+        requestedMode:
+          type: string
+          enum: [delta-after-commit]
+    DeltaJobStatus:
+      type: object
+      required:
+        [
+          runId,
+          status,
+          requestedMode,
+          effectiveMode,
+          addedFiles,
+          modifiedFiles,
+          deletedFiles,
+          renamedFiles,
+          indexedFiles,
+          removedRecords,
+          skippedFiles,
+          failedFiles,
+          lastEventAt,
+        ]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, completed, partial, failed]
+        requestedMode:
+          type: string
+          enum: [delta-after-commit]
+        effectiveMode:
+          type: string
+          enum: [delta-after-commit, full-scan-fallback]
+        fallbackReasonCode:
+          type: string
+        baseRef:
+          type: string
+        targetRef:
+          type: string
+        addedFiles:
+          type: integer
+          minimum: 0
+        modifiedFiles:
+          type: integer
+          minimum: 0
+        deletedFiles:
+          type: integer
+          minimum: 0
+        renamedFiles:
+          type: integer
+          minimum: 0
+        indexedFiles:
+          type: integer
+          minimum: 0
+        removedRecords:
+          type: integer
+          minimum: 0
+        skippedFiles:
+          type: integer
+          minimum: 0
+        failedFiles:
+          type: integer
+          minimum: 0
+        lastEventAt:
+          type: string
+          format: date-time
+    DeltaJobSummary:
+      type: object
+      required:
+        [
+          runId,
+          status,
+          requestedMode,
+          effectiveMode,
+          baseRef,
+          targetRef,
+          addedFiles,
+          modifiedFiles,
+          deletedFiles,
+          renamedFiles,
+          indexedFiles,
+          removedRecords,
+          skippedFiles,
+          failedFiles,
+          startedAt,
+          finishedAt,
+          reasonBreakdown,
+        ]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [completed, partial, failed]
+        requestedMode:
+          type: string
+          enum: [delta-after-commit]
+        effectiveMode:
+          type: string
+          enum: [delta-after-commit, full-scan-fallback]
+        fallbackReasonCode:
+          type: string
+        baseRef:
+          type: string
+        targetRef:
+          type: string
+        addedFiles:
+          type: integer
+          minimum: 0
+        modifiedFiles:
+          type: integer
+          minimum: 0
+        deletedFiles:
+          type: integer
+          minimum: 0
+        renamedFiles:
+          type: integer
+          minimum: 0
+        indexedFiles:
+          type: integer
+          minimum: 0
+        removedRecords:
+          type: integer
+          minimum: 0
+        skippedFiles:
+          type: integer
+          minimum: 0
+        failedFiles:
+          type: integer
+          minimum: 0
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        reasonBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReasonCount"
+    ReasonCount:
+      type: object
+      required: [code, count]
+      properties:
+        code:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: string

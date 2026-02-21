@@ -41,6 +41,26 @@ if [ -z "${INGESTION_BOOTSTRAP_ON_START:-}" ]; then
   export INGESTION_BOOTSTRAP_ON_START="0"
 fi
 
+if [ -z "${DELTA_GIT_BASE_REF:-}" ]; then
+  export DELTA_GIT_BASE_REF="HEAD~1"
+fi
+
+if [ -z "${DELTA_GIT_TARGET_REF:-}" ]; then
+  export DELTA_GIT_TARGET_REF="HEAD"
+fi
+
+if [ -z "${DELTA_INCLUDE_RENAMES:-}" ]; then
+  export DELTA_INCLUDE_RENAMES="1"
+fi
+
+if [ -z "${DELTA_ENABLE_FALLBACK:-}" ]; then
+  export DELTA_ENABLE_FALLBACK="1"
+fi
+
+if [ -z "${DELTA_BOOTSTRAP_ON_START:-}" ]; then
+  export DELTA_BOOTSTRAP_ON_START="0"
+fi
+
 if [ -z "${IDEMPOTENCY_HASH_ALGORITHM:-}" ]; then
   export IDEMPOTENCY_HASH_ALGORITHM="sha256"
 fi
@@ -65,6 +85,10 @@ if [ "${INDEX_MODE}" = "full-scan" ]; then
 fi
 
 if [ "${INGESTION_BOOTSTRAP_ON_START}" = "1" ]; then
+  /app/scripts/ingestion-worker.sh &
+fi
+
+if [ "${INDEX_MODE}" = "delta-after-commit" ] && [ "${DELTA_BOOTSTRAP_ON_START}" = "1" ]; then
   /app/scripts/ingestion-worker.sh &
 fi
 
