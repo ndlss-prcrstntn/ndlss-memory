@@ -6,6 +6,8 @@
     "INDEX_MODE",
     "INDEX_FILE_TYPES",
     "INDEX_EXCLUDE_PATTERNS",
+    "INDEX_MAX_FILE_SIZE_BYTES",
+    "INDEX_PROGRESS_INTERVAL_SECONDS",
     "COMMAND_ALLOWLIST",
     "COMMAND_TIMEOUT_SECONDS"
   ],
@@ -20,6 +22,14 @@
     },
     "INDEX_EXCLUDE_PATTERNS": {
       "type": "string"
+    },
+    "INDEX_MAX_FILE_SIZE_BYTES": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "INDEX_PROGRESS_INTERVAL_SECONDS": {
+      "type": "integer",
+      "minimum": 1
     },
     "COMMAND_ALLOWLIST": {
       "type": "string"

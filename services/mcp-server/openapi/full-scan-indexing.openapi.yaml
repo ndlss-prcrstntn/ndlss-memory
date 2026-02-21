@@ -1,0 +1,207 @@
+openapi: 3.1.0
+info:
+  title: Full Scan Indexing API
+  version: 0.1.0
+  description: >-
+    Контракт управления задачами полной индексации workspace.
+servers:
+  - url: http://localhost:{mcp_port}
+    variables:
+      mcp_port:
+        default: "8080"
+paths:
+  /v1/indexing/full-scan/jobs:
+    post:
+      summary: Запустить новую задачу full-scan
+      operationId: startFullScanJob
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartFullScanRequest"
+      responses:
+        "202":
+          description: Задача принята в обработку
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartFullScanResponse"
+        "409":
+          description: Задача full-scan уже выполняется
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/indexing/full-scan/jobs/{jobId}:
+    get:
+      summary: Получить текущий прогресс задачи full-scan
+      operationId: getFullScanJobProgress
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Текущий статус и прогресс задачи
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanProgress"
+        "404":
+          description: Задача не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/indexing/full-scan/jobs/{jobId}/summary:
+    get:
+      summary: Получить итоговый отчет по задаче full-scan
+      operationId: getFullScanJobSummary
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Итоговый отчет завершенной задачи
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanSummary"
+        "404":
+          description: Задача не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Задача еще не завершена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    StartFullScanRequest:
+      type: object
+      properties:
+        workspacePath:
+          type: string
+          description: Необязательный путь workspace для текущего запуска
+        maxFileSizeBytes:
+          type: integer
+          minimum: 1
+          description: Необязательное переопределение лимита размера файла
+    StartFullScanResponse:
+      type: object
+      required: [jobId, status, acceptedAt]
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running]
+        acceptedAt:
+          type: string
+          format: date-time
+    ScanProgress:
+      type: object
+      required:
+        [
+          jobId,
+          status,
+          processedCount,
+          indexedCount,
+          skipCount,
+          errorCount,
+          lastEventAt,
+        ]
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, completed, failed, cancelled]
+        processedCount:
+          type: integer
+          minimum: 0
+        indexedCount:
+          type: integer
+          minimum: 0
+        skipCount:
+          type: integer
+          minimum: 0
+        errorCount:
+          type: integer
+          minimum: 0
+        percentComplete:
+          type: number
+          minimum: 0
+          maximum: 100
+        lastEventAt:
+          type: string
+          format: date-time
+    ScanSummary:
+      type: object
+      required: [jobId, result, durationSeconds, totals, skipBreakdown]
+      properties:
+        jobId:
+          type: string
+        result:
+          type: string
+          enum: [completed, failed, cancelled]
+        durationSeconds:
+          type: number
+          minimum: 0
+        totals:
+          type: object
+          required: [processedCount, indexedCount, skipCount, errorCount]
+          properties:
+            processedCount:
+              type: integer
+              minimum: 0
+            indexedCount:
+              type: integer
+              minimum: 0
+            skipCount:
+              type: integer
+              minimum: 0
+            errorCount:
+              type: integer
+              minimum: 0
+        skipBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkipReasonAggregate"
+    SkipReasonAggregate:
+      type: object
+      required: [code, count]
+      properties:
+        code:
+          type: string
+          enum:
+            [
+              UNSUPPORTED_TYPE,
+              EXCLUDED_BY_PATTERN,
+              FILE_TOO_LARGE,
+              READ_ERROR,
+              EMPTY_FILE,
+            ]
+        count:
+          type: integer
+          minimum: 0
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: string

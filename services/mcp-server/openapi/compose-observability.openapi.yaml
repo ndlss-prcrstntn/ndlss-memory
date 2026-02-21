@@ -122,6 +122,8 @@ components:
         - indexMode
         - indexFileTypes
         - indexExcludePatterns
+        - indexMaxFileSizeBytes
+        - indexProgressIntervalSeconds
         - commandAllowlist
         - commandTimeoutSeconds
       properties:
@@ -146,6 +148,12 @@ components:
           type: array
           items:
             type: string
+        indexMaxFileSizeBytes:
+          type: integer
+          minimum: 1
+        indexProgressIntervalSeconds:
+          type: integer
+          minimum: 1
         commandAllowlist:
           type: array
           items:

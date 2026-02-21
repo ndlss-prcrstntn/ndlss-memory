@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2026-02-21
 
 ## Active Technologies
+- Python 3.12 (mcp-server), POSIX shell (file-indexer runtime), Docker Compose v2 + Flask API (`mcp-server`), Qdrant HTTP API, Docker Compose CLI (002-full-scan)
+- Qdrant storage, workspace filesystem mount (read-only), runtime scan job reports (002-full-scan)
 
 - Docker Compose Specification (CLI v2), YAML 1.2 + Docker Engine, Docker Compose CLI, контейнерные образы `qdrant`, `file-indexer`, `mcp-server` (001-base-docker-compose)
 
@@ -22,6 +24,7 @@ tests/
 Docker Compose Specification (CLI v2), YAML 1.2: Follow standard conventions
 
 ## Recent Changes
+- 002-full-scan: Added Python 3.12 (mcp-server), POSIX shell (file-indexer runtime), Docker Compose v2 + Flask API (`mcp-server`), Qdrant HTTP API, Docker Compose CLI
 
 - 001-base-docker-compose: Added Docker Compose Specification (CLI v2), YAML 1.2 + Docker Engine, Docker Compose CLI, контейнерные образы `qdrant`, `file-indexer`, `mcp-server`
 

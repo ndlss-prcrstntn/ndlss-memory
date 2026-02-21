@@ -4,6 +4,8 @@ Dockerfile*
 .dockerignore
 node_modules/
 coverage/
+dist/
+build/
 *.log*
 .env
 .env.*
