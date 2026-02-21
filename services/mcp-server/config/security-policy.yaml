@@ -10,3 +10,8 @@ isolation:
   run_as_non_root: true
   network_access: constrained
   host_filesystem_access: denied_by_default
+limits:
+  cpu_time_limit_seconds: 20
+  memory_limit_bytes: 268435456
+audit:
+  retention_days: 7

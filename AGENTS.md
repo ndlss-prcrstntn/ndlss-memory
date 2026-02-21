@@ -13,6 +13,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-21
 - Qdrant коллекция `workspace_chunks`, in-memory runtime state для job status, workspace bind mount (005-delta-after-commit)
 - Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` runtime), Docker Compose v2 + Flask, PyYAML, Qdrant HTTP API, существующие ingestion/idempotency state-модули (006-mcp-search-tools)
 - Qdrant коллекция `workspace_chunks`, in-memory state для MCP job/request tracking, bind-mounted workspace (006-mcp-search-tools)
+- Python 3.12 (`mcp-server`), POSIX shell runtime в контейнере + Flask, PyYAML, стандартные средства управления процессами и таймаутами, Docker Compose policy (007-secure-mcp-commands)
+- in-memory state для статусов выполнения + append-only аудит в файловом хранилище контейнера (007-secure-mcp-commands)
 
 - Docker Compose Specification (CLI v2), YAML 1.2 + Docker Engine, Docker Compose CLI, контейнерные образы `qdrant`, `file-indexer`, `mcp-server` (001-base-docker-compose)
 
@@ -32,9 +34,9 @@ tests/
 Docker Compose Specification (CLI v2), YAML 1.2: Follow standard conventions
 
 ## Recent Changes
+- 007-secure-mcp-commands: Added Python 3.12 (`mcp-server`), POSIX shell runtime в контейнере + Flask, PyYAML, стандартные средства управления процессами и таймаутами, Docker Compose policy
 - 006-mcp-search-tools: Added Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` runtime), Docker Compose v2 + Flask, PyYAML, Qdrant HTTP API, существующие ingestion/idempotency state-модули
 - 005-delta-after-commit: Added Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` workers), Docker Compose v2 + Git CLI (`git diff --name-status --find-renames`), Flask, PyYAML, Qdrant HTTP API
-- 004-indexing-idempotency: Added Python 3.12 (`mcp-server`, модули ingestion), POSIX shell для runtime entrypoint + Flask API (`mcp-server`), встроенные Python-модули `hashlib`/`pathlib`, Qdrant HTTP API, Docker Compose v2
 
 
 <!-- MANUAL ADDITIONS START -->

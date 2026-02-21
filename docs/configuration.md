@@ -32,12 +32,19 @@
 - `IDEMPOTENCY_MAX_DELETE_BATCH`: максимальный batch удаления устаревших записей.
 - `COMMAND_ALLOWLIST`: разрешенные команды через MCP.
 - `COMMAND_TIMEOUT_SECONDS`: таймаут выполнения команд.
+- `COMMAND_CPU_TIME_LIMIT_SECONDS`: лимит CPU-time на выполнение команды.
+- `COMMAND_MEMORY_LIMIT_BYTES`: лимит памяти на выполнение команды (в байтах).
+- `COMMAND_RUN_AS_NON_ROOT`: запуск command runtime без root (`1`/`0`).
+- `COMMAND_AUDIT_LOG_PATH`: путь к файлу аудита вызовов команд.
+- `COMMAND_AUDIT_RETENTION_DAYS`: срок хранения записей аудита (в днях).
 - `HOST_WORKSPACE_PATH`: путь хоста для bind mount в индексатор.
 
 ## Безопасность
 
 - Не добавляйте в allowlist команды с доступом к неограниченному shell.
 - Устанавливайте разумный timeout (обычно 10-60 секунд).
+- Устанавливайте разумные лимиты `COMMAND_CPU_TIME_LIMIT_SECONDS` и
+  `COMMAND_MEMORY_LIMIT_BYTES` для предотвращения деградации сервиса.
 - Используйте `HOST_WORKSPACE_PATH` только для необходимых директорий.
 - Ограничивайте `INDEX_MAX_FILE_SIZE_BYTES`, чтобы исключить тяжелые файлы.
 - Не задавайте `INDEX_PROGRESS_INTERVAL_SECONDS` слишком большим значением
@@ -50,3 +57,7 @@
 - Для production включайте `INGESTION_ENABLE_QDRANT_HTTP=1` и задавайте отдельную коллекцию.
 - Для идемпотентного режима оставляйте `IDEMPOTENCY_HASH_ALGORITHM=sha256`.
 - Используйте `IDEMPOTENCY_ENABLE_STALE_CLEANUP=1`, чтобы индекс не накапливал устаревшие чанки.
+- Держите `COMMAND_RUN_AS_NON_ROOT=1` и не ослабляйте контейнерные security-параметры
+  без отдельного обоснования.
+- Храните аудит минимум `COMMAND_AUDIT_RETENTION_DAYS=7`, чтобы покрывать
+  операционные расследования.

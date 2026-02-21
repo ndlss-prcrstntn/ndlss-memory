@@ -8,6 +8,13 @@ from threading import Thread
 import yaml
 from flask import Flask, jsonify, request
 
+from command_audit_store import CommandAuditStore
+from command_execution_errors import CommandExecutionError, json_error_from_exception as command_json_error_from_exception
+from command_execution_models import CommandExecutionRequest
+from command_execution_service import CommandExecutionService
+from command_execution_state import STATE as COMMAND_EXECUTION_STATE
+from command_process_runner import CommandProcessRunner
+from command_security_policy import load_command_security_policy
 from delta_after_commit_errors import json_error as delta_json_error
 from delta_after_commit_state import STATE as DELTA_STATE
 from full_scan_errors import json_error as full_scan_json_error
@@ -30,6 +37,7 @@ STATUS_ENV_MAP = {
 
 app = Flask(__name__)
 SEARCH_SERVICE = SearchService(QdrantSearchRepository.from_env())
+COMMAND_EXECUTION_SERVICE: CommandExecutionService | None = None
 
 
 def _now_iso() -> str:
@@ -72,6 +80,29 @@ def load_security_policy() -> dict:
         return {}
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
+
+
+def get_command_execution_service() -> CommandExecutionService:
+    global COMMAND_EXECUTION_SERVICE
+    if COMMAND_EXECUTION_SERVICE is not None:
+        return COMMAND_EXECUTION_SERVICE
+
+    security_policy = load_security_policy()
+    command_policy = load_command_security_policy(security_policy=security_policy)
+    runner = CommandProcessRunner(
+        cpu_time_limit_seconds=command_policy.cpu_time_limit_seconds,
+        memory_limit_bytes=command_policy.memory_limit_bytes,
+    )
+    COMMAND_EXECUTION_SERVICE = CommandExecutionService(
+        policy=command_policy,
+        state=COMMAND_EXECUTION_STATE,
+        runner=runner,
+        audit_store=CommandAuditStore(
+            audit_log_path=command_policy.audit_log_path,
+            retention_days=command_policy.audit_retention_days,
+        ),
+    )
+    return COMMAND_EXECUTION_SERVICE
 
 
 def _is_excluded(path: Path, patterns: list[str]) -> bool:
@@ -336,6 +367,7 @@ def _run_delta_after_commit_job(run_id: str, workspace_path: str, payload: dict)
 
 def build_runtime_config() -> dict:
     policy = load_security_policy()
+    command_policy = load_command_security_policy(security_policy=policy)
     timeout_value = os.getenv("COMMAND_TIMEOUT_SECONDS", str(policy.get("command_timeout_seconds", 20)))
     allowlist_env = os.getenv("COMMAND_ALLOWLIST", "")
     allowlist_cfg = policy.get("command_allowlist", [])
@@ -372,6 +404,10 @@ def build_runtime_config() -> dict:
         },
         "commandAllowlist": allowlist,
         "commandTimeoutSeconds": int(timeout_value),
+        "commandRunAsNonRoot": command_policy.run_as_non_root,
+        "commandCpuTimeLimitSeconds": command_policy.cpu_time_limit_seconds,
+        "commandMemoryLimitBytes": command_policy.memory_limit_bytes,
+        "commandAuditRetentionDays": command_policy.audit_retention_days,
     }
 
 
@@ -461,6 +497,43 @@ def get_search_result_metadata(result_id: str):
         return jsonify(SEARCH_SERVICE.get_metadata(result_id))
     except SearchApiError as exc:
         return search_json_error_from_exception(exc)
+
+
+@app.post("/v1/commands/execute")
+def execute_command():
+    payload = request.get_json(silent=True) or {}
+    try:
+        command_request = CommandExecutionRequest.from_payload(payload)
+        result = get_command_execution_service().execute(command_request)
+        return jsonify(result.to_response_envelope())
+    except CommandExecutionError as exc:
+        return command_json_error_from_exception(exc)
+
+
+@app.get("/v1/commands/executions/<request_id>")
+def get_command_execution_result(request_id: str):
+    try:
+        result = get_command_execution_service().get_result(request_id)
+        return jsonify(result.to_response_envelope())
+    except CommandExecutionError as exc:
+        return command_json_error_from_exception(exc)
+
+
+@app.get("/v1/commands/audit")
+def get_command_audit():
+    raw_limit = request.args.get("limit", "50")
+    status = request.args.get("status")
+    if status:
+        status = status.strip()
+    try:
+        limit = int(raw_limit)
+    except (TypeError, ValueError):
+        return command_json_error_from_exception(CommandExecutionError("INVALID_REQUEST", "limit must be an integer", 400))
+    try:
+        response = get_command_execution_service().list_audit(limit=limit, status=status)
+        return jsonify(response)
+    except CommandExecutionError as exc:
+        return command_json_error_from_exception(exc)
 
 
 @app.post("/v1/indexing/full-scan/jobs")

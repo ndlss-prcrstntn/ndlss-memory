@@ -15,6 +15,11 @@
   - получение метаданных по `resultId`
   - фильтрация по `path` / `folder` / `fileType`
   - структурированные ответы и машиночитаемые ошибки
+- MCP secure command runtime:
+  - allowlist команд
+  - timeout/ресурсные ограничения
+  - изоляция рабочей директории
+  - аудит вызовов и structured errors
 
 ## Сервисы
 
@@ -118,6 +123,12 @@ MCP search tools:
 - `POST /v1/search/semantic`
 - `GET /v1/search/results/{resultId}/source`
 - `GET /v1/search/results/{resultId}/metadata`
+
+MCP command security:
+
+- `POST /v1/commands/execute`
+- `GET /v1/commands/executions/{requestId}`
+- `GET /v1/commands/audit`
 
 ## Тестирование
 
@@ -234,13 +245,13 @@ powershell -File scripts/tests/delta_after_commit_compose_regression.ps1
 
 ### 8. Безопасный запуск команд через MCP
 
-- [ ] Allowlist разрешенных команд
-- [ ] Ограничение прав контейнера (non-root)
-- [ ] Ограничение CPU/Memory
-- [ ] Таймауты выполнения команд
-- [ ] Структурированные ошибки
-- [ ] Логирование вызовов
-- [ ] Изоляция рабочих директорий
+- [x] Allowlist разрешенных команд
+- [x] Ограничение прав контейнера (non-root)
+- [x] Ограничение CPU/Memory
+- [x] Таймауты выполнения команд
+- [x] Структурированные ошибки
+- [x] Логирование вызовов
+- [x] Изоляция рабочих директорий
 
 ### 9. Качество и стабильность
 

@@ -1,0 +1,220 @@
+﻿openapi: 3.1.0
+info:
+  title: MCP Command Security API
+  version: 0.1.0
+  description: >-
+    Контракт безопасного запуска команд через MCP: allowlist, timeout,
+    resource/isolation policy, structured errors, audit records.
+servers:
+  - url: http://localhost:{mcp_port}
+    variables:
+      mcp_port:
+        default: "8080"
+paths:
+  /v1/commands/execute:
+    post:
+      summary: Запустить команду через безопасный MCP runtime
+      operationId: executeCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommandExecutionRequest"
+      responses:
+        "200":
+          description: Command execution result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandExecutionResultResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Command rejected by policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "408":
+          description: Command timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/commands/executions/{requestId}:
+    get:
+      summary: Получить результат выполнения команды по requestId
+      operationId: getCommandExecutionResult
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Execution result by requestId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandExecutionResultResponse"
+        "404":
+          description: Request ID not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/commands/audit:
+    get:
+      summary: Получить последние записи аудита команд
+      operationId: listCommandAuditRecords
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ok, rejected, timeout, failed]
+      responses:
+        "200":
+          description: Audit records list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandAuditListResponse"
+
+components:
+  schemas:
+    CommandExecutionRequest:
+      type: object
+      required: [command, workingDirectory]
+      properties:
+        command:
+          type: string
+          minLength: 1
+        args:
+          type: array
+          items:
+            type: string
+        workingDirectory:
+          type: string
+          minLength: 1
+        timeoutSeconds:
+          type: integer
+          minimum: 1
+
+    CommandExecutionResultResponse:
+      type: object
+      required: [status, result, meta]
+      properties:
+        status:
+          type: string
+          enum: [ok, rejected, timeout, failed]
+        result:
+          $ref: "#/components/schemas/CommandExecutionResult"
+        meta:
+          type: object
+          required: [requestId, requestedAt, finishedAt, durationMs]
+          properties:
+            requestId:
+              type: string
+            requestedAt:
+              type: string
+              format: date-time
+            finishedAt:
+              type: string
+              format: date-time
+            durationMs:
+              type: integer
+              minimum: 0
+
+    CommandExecutionResult:
+      type: object
+      required: [requestId, status]
+      properties:
+        requestId:
+          type: string
+        status:
+          type: string
+          enum: [ok, rejected, timeout, failed]
+        exitCode:
+          type: integer
+        stdout:
+          type: string
+        stderr:
+          type: string
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+
+    CommandAuditListResponse:
+      type: object
+      required: [status, records, meta]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommandAuditRecord"
+        meta:
+          type: object
+          required: [count, returnedAt]
+          properties:
+            count:
+              type: integer
+              minimum: 0
+            returnedAt:
+              type: string
+              format: date-time
+
+    CommandAuditRecord:
+      type: object
+      required: [requestId, timestamp, command, status]
+      properties:
+        requestId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        command:
+          type: string
+        args:
+          type: array
+          items:
+            type: string
+        workingDirectory:
+          type: string
+        status:
+          type: string
+          enum: [ok, rejected, timeout, failed]
+        errorCode:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: string

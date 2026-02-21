@@ -13,6 +13,14 @@ COPY src/idempotency_state.py /app/src/idempotency_state.py
 COPY src/idempotency_errors.py /app/src/idempotency_errors.py
 COPY src/delta_after_commit_state.py /app/src/delta_after_commit_state.py
 COPY src/delta_after_commit_errors.py /app/src/delta_after_commit_errors.py
+COPY src/command_security_policy.py /app/src/command_security_policy.py
+COPY src/command_execution_errors.py /app/src/command_execution_errors.py
+COPY src/command_execution_models.py /app/src/command_execution_models.py
+COPY src/command_execution_state.py /app/src/command_execution_state.py
+COPY src/command_process_runner.py /app/src/command_process_runner.py
+COPY src/command_workspace_guard.py /app/src/command_workspace_guard.py
+COPY src/command_audit_store.py /app/src/command_audit_store.py
+COPY src/command_execution_service.py /app/src/command_execution_service.py
 COPY src/search_models.py /app/src/search_models.py
 COPY src/search_errors.py /app/src/search_errors.py
 COPY src/search_result_ref.py /app/src/search_result_ref.py
@@ -26,8 +34,11 @@ COPY openapi/chunking-embeddings.openapi.yaml /app/openapi/chunking-embeddings.o
 COPY openapi/idempotency-indexing.openapi.yaml /app/openapi/idempotency-indexing.openapi.yaml
 COPY openapi/delta-after-commit-indexing.openapi.yaml /app/openapi/delta-after-commit-indexing.openapi.yaml
 COPY openapi/mcp-search-tools.openapi.yaml /app/openapi/mcp-search-tools.openapi.yaml
+COPY openapi/mcp-command-security.openapi.yaml /app/openapi/mcp-command-security.openapi.yaml
 
 RUN chmod +x /app/scripts/entrypoint.sh
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
 EXPOSE 8080
 
