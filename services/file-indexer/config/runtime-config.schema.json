@@ -8,6 +8,10 @@
     "INDEX_EXCLUDE_PATTERNS",
     "INDEX_MAX_FILE_SIZE_BYTES",
     "INDEX_PROGRESS_INTERVAL_SECONDS",
+    "INGESTION_CHUNK_SIZE",
+    "INGESTION_CHUNK_OVERLAP",
+    "INGESTION_RETRY_MAX_ATTEMPTS",
+    "INGESTION_RETRY_BACKOFF_SECONDS",
     "COMMAND_ALLOWLIST",
     "COMMAND_TIMEOUT_SECONDS"
   ],
@@ -28,6 +32,26 @@
       "minimum": 1
     },
     "INDEX_PROGRESS_INTERVAL_SECONDS": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "INGESTION_CHUNK_SIZE": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "INGESTION_CHUNK_OVERLAP": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "INGESTION_RETRY_MAX_ATTEMPTS": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "INGESTION_RETRY_BACKOFF_SECONDS": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "INGESTION_MAX_CHUNKS_PER_FILE": {
       "type": "integer",
       "minimum": 1
     },

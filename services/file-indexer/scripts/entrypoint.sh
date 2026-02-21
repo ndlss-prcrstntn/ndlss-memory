@@ -21,6 +21,26 @@ if [ -z "${INDEX_PROGRESS_INTERVAL_SECONDS:-}" ]; then
   export INDEX_PROGRESS_INTERVAL_SECONDS="15"
 fi
 
+if [ -z "${INGESTION_CHUNK_SIZE:-}" ]; then
+  export INGESTION_CHUNK_SIZE="800"
+fi
+
+if [ -z "${INGESTION_CHUNK_OVERLAP:-}" ]; then
+  export INGESTION_CHUNK_OVERLAP="120"
+fi
+
+if [ -z "${INGESTION_RETRY_MAX_ATTEMPTS:-}" ]; then
+  export INGESTION_RETRY_MAX_ATTEMPTS="3"
+fi
+
+if [ -z "${INGESTION_RETRY_BACKOFF_SECONDS:-}" ]; then
+  export INGESTION_RETRY_BACKOFF_SECONDS="1.0"
+fi
+
+if [ -z "${INGESTION_BOOTSTRAP_ON_START:-}" ]; then
+  export INGESTION_BOOTSTRAP_ON_START="0"
+fi
+
 /app/scripts/validate-config.sh
 
 touch /tmp/indexer_ready
@@ -30,6 +50,10 @@ echo "file-indexer watching workspace: ${WORKSPACE_PATH:-/workspace}"
 
 if [ "${INDEX_MODE}" = "full-scan" ]; then
   /app/scripts/full-scan-worker.sh &
+fi
+
+if [ "${INGESTION_BOOTSTRAP_ON_START}" = "1" ]; then
+  /app/scripts/ingestion-worker.sh &
 fi
 
 while true; do

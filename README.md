@@ -77,6 +77,16 @@ pwsh scripts/dev/down.ps1
 - Нулевой прогресс: проверьте `WORKSPACE_PATH` и наличие файлов в
   смонтированной директории.
 
+### Ingestion troubleshooting
+
+- `INGESTION_ALREADY_RUNNING`: дождитесь завершения активного ingestion run.
+- `RUN_NOT_FINISHED`: дождитесь терминального статуса перед запросом summary.
+- Высокий `retryCount`: проверьте стабильность embedding provider.
+- Высокий `failedChunks`: проверьте `INGESTION_RETRY_MAX_ATTEMPTS` и
+  `INGESTION_RETRY_BACKOFF_SECONDS`.
+- Низкий `metadataCoverage`: проверьте `workspacePath` и маппинг обязательных
+  полей (`path`, `fileName`, `fileType`, `contentHash`, `timestamp`).
+
 ## Документация фичи
 
 - Спецификация: `specs/001-base-docker-compose/spec.md`
@@ -129,17 +139,17 @@ pwsh scripts/dev/down.ps1
 
 ### 4. Пайплайн чанкинга и эмбеддингов
 
-- [ ] Реализовать разбивку файлов на чанки
-- [ ] Настроить размер чанка и overlap
-- [ ] Интегрировать генерацию эмбеддингов
-- [ ] Добавить retry-механику для эмбеддингов
-- [ ] Запись в Qdrant (upsert)
-- [ ] Сохранение метаданных:
-  - [ ] путь
-  - [ ] имя файла
-  - [ ] тип файла
-  - [ ] hash контента
-  - [ ] timestamp
+- [x] Реализовать разбивку файлов на чанки
+- [x] Настроить размер чанка и overlap
+- [x] Интегрировать генерацию эмбеддингов
+- [x] Добавить retry-механику для эмбеддингов
+- [x] Запись в Qdrant (upsert)
+- [x] Сохранение метаданных:
+  - [x] путь
+  - [x] имя файла
+  - [x] тип файла
+  - [x] hash контента
+  - [x] timestamp
 
 ### 5. Идемпотентность индексации
 

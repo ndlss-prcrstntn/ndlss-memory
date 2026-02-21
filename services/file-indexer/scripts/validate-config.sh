@@ -34,6 +34,26 @@ if [ -z "${INDEX_PROGRESS_INTERVAL_SECONDS:-}" ]; then
   exit 1
 fi
 
+if [ -z "${INGESTION_CHUNK_SIZE:-}" ]; then
+  echo "INGESTION_CHUNK_SIZE is required"
+  exit 1
+fi
+
+if [ -z "${INGESTION_CHUNK_OVERLAP:-}" ]; then
+  echo "INGESTION_CHUNK_OVERLAP is required"
+  exit 1
+fi
+
+if [ -z "${INGESTION_RETRY_MAX_ATTEMPTS:-}" ]; then
+  echo "INGESTION_RETRY_MAX_ATTEMPTS is required"
+  exit 1
+fi
+
+if [ -z "${INGESTION_RETRY_BACKOFF_SECONDS:-}" ]; then
+  echo "INGESTION_RETRY_BACKOFF_SECONDS is required"
+  exit 1
+fi
+
 if ! echo "$COMMAND_TIMEOUT_SECONDS" | grep -Eq '^[0-9]+$'; then
   echo "COMMAND_TIMEOUT_SECONDS must be a positive integer"
   exit 1
@@ -62,6 +82,62 @@ fi
 if [ "$INDEX_PROGRESS_INTERVAL_SECONDS" -lt 1 ]; then
   echo "INDEX_PROGRESS_INTERVAL_SECONDS must be >= 1"
   exit 1
+fi
+
+if ! echo "$INGESTION_CHUNK_SIZE" | grep -Eq '^[0-9]+$'; then
+  echo "INGESTION_CHUNK_SIZE must be a positive integer"
+  exit 1
+fi
+
+if [ "$INGESTION_CHUNK_SIZE" -lt 1 ]; then
+  echo "INGESTION_CHUNK_SIZE must be >= 1"
+  exit 1
+fi
+
+if ! echo "$INGESTION_CHUNK_OVERLAP" | grep -Eq '^[0-9]+$'; then
+  echo "INGESTION_CHUNK_OVERLAP must be a non-negative integer"
+  exit 1
+fi
+
+if [ "$INGESTION_CHUNK_OVERLAP" -lt 0 ]; then
+  echo "INGESTION_CHUNK_OVERLAP must be >= 0"
+  exit 1
+fi
+
+if [ "$INGESTION_CHUNK_OVERLAP" -ge "$INGESTION_CHUNK_SIZE" ]; then
+  echo "INGESTION_CHUNK_OVERLAP must be < INGESTION_CHUNK_SIZE"
+  exit 1
+fi
+
+if ! echo "$INGESTION_RETRY_MAX_ATTEMPTS" | grep -Eq '^[0-9]+$'; then
+  echo "INGESTION_RETRY_MAX_ATTEMPTS must be a positive integer"
+  exit 1
+fi
+
+if [ "$INGESTION_RETRY_MAX_ATTEMPTS" -lt 1 ]; then
+  echo "INGESTION_RETRY_MAX_ATTEMPTS must be >= 1"
+  exit 1
+fi
+
+if ! echo "$INGESTION_RETRY_BACKOFF_SECONDS" | grep -Eq '^[0-9]+([.][0-9]+)?$'; then
+  echo "INGESTION_RETRY_BACKOFF_SECONDS must be > 0"
+  exit 1
+fi
+
+if [ "${INGESTION_RETRY_BACKOFF_SECONDS#0}" = "." ] || [ "$INGESTION_RETRY_BACKOFF_SECONDS" = "0" ] || [ "$INGESTION_RETRY_BACKOFF_SECONDS" = "0.0" ]; then
+  echo "INGESTION_RETRY_BACKOFF_SECONDS must be > 0"
+  exit 1
+fi
+
+if [ -n "${INGESTION_MAX_CHUNKS_PER_FILE:-}" ]; then
+  if ! echo "$INGESTION_MAX_CHUNKS_PER_FILE" | grep -Eq '^[0-9]+$'; then
+    echo "INGESTION_MAX_CHUNKS_PER_FILE must be a positive integer"
+    exit 1
+  fi
+  if [ "$INGESTION_MAX_CHUNKS_PER_FILE" -lt 1 ]; then
+    echo "INGESTION_MAX_CHUNKS_PER_FILE must be >= 1"
+    exit 1
+  fi
 fi
 
 echo "Configuration validation passed"

@@ -1,0 +1,218 @@
+﻿openapi: 3.1.0
+info:
+  title: Chunking and Embeddings Ingestion API
+  version: 0.1.0
+  description: >-
+    Контракт управления ingestion-задачами chunking + embeddings + upsert.
+    Синхронизирован с runtime API в services/mcp-server/openapi.
+servers:
+  - url: http://localhost:{mcp_port}
+    variables:
+      mcp_port:
+        default: "8080"
+paths:
+  /v1/indexing/ingestion/jobs:
+    post:
+      summary: Запустить ingestion job
+      operationId: startIngestionJob
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartIngestionRequest"
+      responses:
+        "202":
+          description: Job accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartIngestionResponse"
+        "409":
+          description: Another ingestion job is running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/indexing/ingestion/jobs/{runId}:
+    get:
+      summary: Получить прогресс ingestion job
+      operationId: getIngestionStatus
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Run status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestionRunStatus"
+        "404":
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/indexing/ingestion/jobs/{runId}/summary:
+    get:
+      summary: Получить итог run summary
+      operationId: getIngestionRunSummary
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Summary payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestionRunSummary"
+        "404":
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Run is still active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    StartIngestionRequest:
+      type: object
+      properties:
+        workspacePath:
+          type: string
+        chunkSize:
+          type: integer
+          minimum: 1
+        chunkOverlap:
+          type: integer
+          minimum: 0
+        retryMaxAttempts:
+          type: integer
+          minimum: 1
+    StartIngestionResponse:
+      type: object
+      required: [runId, status, acceptedAt]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running]
+        acceptedAt:
+          type: string
+          format: date-time
+    IngestionRunStatus:
+      type: object
+      required:
+        [
+          runId,
+          status,
+          totalFiles,
+          totalChunks,
+          embeddedChunks,
+          failedChunks,
+          retryCount,
+          lastEventAt,
+        ]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, completed, failed, partial]
+        totalFiles:
+          type: integer
+          minimum: 0
+        totalChunks:
+          type: integer
+          minimum: 0
+        embeddedChunks:
+          type: integer
+          minimum: 0
+        failedChunks:
+          type: integer
+          minimum: 0
+        retryCount:
+          type: integer
+          minimum: 0
+        lastEventAt:
+          type: string
+          format: date-time
+    IngestionRunSummary:
+      type: object
+      required:
+        [
+          runId,
+          status,
+          totalFiles,
+          totalChunks,
+          embeddedChunks,
+          failedChunks,
+          retryCount,
+          startedAt,
+          finishedAt,
+        ]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [completed, failed, partial]
+        totalFiles:
+          type: integer
+          minimum: 0
+        totalChunks:
+          type: integer
+          minimum: 0
+        embeddedChunks:
+          type: integer
+          minimum: 0
+        failedChunks:
+          type: integer
+          minimum: 0
+        retryCount:
+          type: integer
+          minimum: 0
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        metadataCoverage:
+          type: object
+          required: [path, fileName, fileType, contentHash, timestamp]
+          properties:
+            path:
+              type: number
+            fileName:
+              type: number
+            fileType:
+              type: number
+            contentHash:
+              type: number
+            timestamp:
+              type: number
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: string

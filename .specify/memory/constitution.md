@@ -1,8 +1,8 @@
 ﻿<!--
 Sync Impact Report
-- Version change: 1.0.0 -> 1.1.0
+- Version change: 1.1.0 -> 1.2.0
 - Modified principles:
-  - Development Workflow and Delivery Gates (добавлено обязательное обновление статусов roadmap/checklist после implementation)
+  - Development Workflow and Delivery Gates (добавлены правила глобальной нумерации feature/spec и обязательного UTF-8 для Markdown)
 - Added sections:
   - Architecture and Operational Constraints
   - Development Workflow and Delivery Gates
@@ -96,6 +96,12 @@ Sync Impact Report
 5. После завершения implementation ДОЛЖНЫ быть явно отмечены выполненные пункты
 в пользовательских roadmap/checklist-артефактах (например, в `README.md`,
 `tasks.md`, release-checklist), если они затронуты изменением.
+6. Новые feature-ветки и директории в `specs/` ДОЛЖНЫ использовать глобальную
+возрастающую трехзначную нумерацию по репозиторию (`001`, `002`, `003`, ...),
+без повторного старта с `001` для нового short-name.
+7. Все Markdown-файлы (`*.md`) ДОЛЖНЫ сохраняться в кодировке UTF-8.
+Файлы в UTF-16/ANSI считаются нарушением quality gates и подлежат исправлению в
+том же изменении.
 
 ## Governance
 
@@ -112,6 +118,6 @@ quality gates;
 - отсутствие подтверждения compliance блокирует merge;
 - обнаруженные нарушения фиксируются как отдельные задачи с дедлайном.
 
-**Version**: 1.1.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-21
+**Version**: 1.2.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-21
 
 
