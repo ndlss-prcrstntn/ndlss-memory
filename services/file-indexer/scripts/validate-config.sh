@@ -54,6 +54,21 @@ if [ -z "${INGESTION_RETRY_BACKOFF_SECONDS:-}" ]; then
   exit 1
 fi
 
+if [ -z "${IDEMPOTENCY_HASH_ALGORITHM:-}" ]; then
+  echo "IDEMPOTENCY_HASH_ALGORITHM is required"
+  exit 1
+fi
+
+if [ -z "${IDEMPOTENCY_SKIP_UNCHANGED:-}" ]; then
+  echo "IDEMPOTENCY_SKIP_UNCHANGED is required"
+  exit 1
+fi
+
+if [ -z "${IDEMPOTENCY_ENABLE_STALE_CLEANUP:-}" ]; then
+  echo "IDEMPOTENCY_ENABLE_STALE_CLEANUP is required"
+  exit 1
+fi
+
 if ! echo "$COMMAND_TIMEOUT_SECONDS" | grep -Eq '^[0-9]+$'; then
   echo "COMMAND_TIMEOUT_SECONDS must be a positive integer"
   exit 1
@@ -136,6 +151,32 @@ if [ -n "${INGESTION_MAX_CHUNKS_PER_FILE:-}" ]; then
   fi
   if [ "$INGESTION_MAX_CHUNKS_PER_FILE" -lt 1 ]; then
     echo "INGESTION_MAX_CHUNKS_PER_FILE must be >= 1"
+    exit 1
+  fi
+fi
+
+if [ "$IDEMPOTENCY_HASH_ALGORITHM" != "sha256" ]; then
+  echo "IDEMPOTENCY_HASH_ALGORITHM must be sha256"
+  exit 1
+fi
+
+if [ "$IDEMPOTENCY_SKIP_UNCHANGED" != "0" ] && [ "$IDEMPOTENCY_SKIP_UNCHANGED" != "1" ]; then
+  echo "IDEMPOTENCY_SKIP_UNCHANGED must be 0 or 1"
+  exit 1
+fi
+
+if [ "$IDEMPOTENCY_ENABLE_STALE_CLEANUP" != "0" ] && [ "$IDEMPOTENCY_ENABLE_STALE_CLEANUP" != "1" ]; then
+  echo "IDEMPOTENCY_ENABLE_STALE_CLEANUP must be 0 or 1"
+  exit 1
+fi
+
+if [ -n "${IDEMPOTENCY_MAX_DELETE_BATCH:-}" ]; then
+  if ! echo "$IDEMPOTENCY_MAX_DELETE_BATCH" | grep -Eq '^[0-9]+$'; then
+    echo "IDEMPOTENCY_MAX_DELETE_BATCH must be a positive integer"
+    exit 1
+  fi
+  if [ "$IDEMPOTENCY_MAX_DELETE_BATCH" -lt 1 ]; then
+    echo "IDEMPOTENCY_MAX_DELETE_BATCH must be >= 1"
     exit 1
   fi
 fi

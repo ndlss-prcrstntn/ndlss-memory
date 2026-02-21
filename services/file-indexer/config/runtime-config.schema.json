@@ -12,6 +12,9 @@
     "INGESTION_CHUNK_OVERLAP",
     "INGESTION_RETRY_MAX_ATTEMPTS",
     "INGESTION_RETRY_BACKOFF_SECONDS",
+    "IDEMPOTENCY_HASH_ALGORITHM",
+    "IDEMPOTENCY_SKIP_UNCHANGED",
+    "IDEMPOTENCY_ENABLE_STALE_CLEANUP",
     "COMMAND_ALLOWLIST",
     "COMMAND_TIMEOUT_SECONDS"
   ],
@@ -52,6 +55,22 @@
       "exclusiveMinimum": 0
     },
     "INGESTION_MAX_CHUNKS_PER_FILE": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "IDEMPOTENCY_HASH_ALGORITHM": {
+      "type": "string",
+      "enum": ["sha256"]
+    },
+    "IDEMPOTENCY_SKIP_UNCHANGED": {
+      "type": "string",
+      "enum": ["0", "1"]
+    },
+    "IDEMPOTENCY_ENABLE_STALE_CLEANUP": {
+      "type": "string",
+      "enum": ["0", "1"]
+    },
+    "IDEMPOTENCY_MAX_DELETE_BATCH": {
       "type": "integer",
       "minimum": 1
     },

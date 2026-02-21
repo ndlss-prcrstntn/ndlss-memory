@@ -21,6 +21,10 @@
 - `INGESTION_UPSERT_TIMEOUT_SECONDS`: таймаут upsert-запроса в Qdrant.
 - `INGESTION_BOOTSTRAP_ON_START`: `1` запускает ingestion при старте индексатора.
 - `QDRANT_COLLECTION_NAME`: имя коллекции векторных данных.
+- `IDEMPOTENCY_HASH_ALGORITHM`: алгоритм fingerprint (должен быть `sha256`).
+- `IDEMPOTENCY_SKIP_UNCHANGED`: `1` пропускает неизмененные файлы до upsert.
+- `IDEMPOTENCY_ENABLE_STALE_CLEANUP`: `1` удаляет устаревшие чанки после синхронизации.
+- `IDEMPOTENCY_MAX_DELETE_BATCH`: максимальный batch удаления устаревших записей.
 - `COMMAND_ALLOWLIST`: разрешенные команды через MCP.
 - `COMMAND_TIMEOUT_SECONDS`: таймаут выполнения команд.
 - `HOST_WORKSPACE_PATH`: путь хоста для bind mount в индексатор.
@@ -35,3 +39,5 @@
   (рекомендуется 5-60 секунд).
 - Держите `INGESTION_CHUNK_OVERLAP` меньше `INGESTION_CHUNK_SIZE`.
 - Для production включайте `INGESTION_ENABLE_QDRANT_HTTP=1` и задавайте отдельную коллекцию.
+- Для идемпотентного режима оставляйте `IDEMPOTENCY_HASH_ALGORITHM=sha256`.
+- Используйте `IDEMPOTENCY_ENABLE_STALE_CLEANUP=1`, чтобы индекс не накапливал устаревшие чанки.

@@ -1,0 +1,190 @@
+openapi: 3.1.0
+info:
+  title: Idempotency Indexing API
+  version: 0.1.0
+  description: Runtime contract for idempotent indexing synchronization jobs.
+servers:
+  - url: http://localhost:{mcp_port}
+    variables:
+      mcp_port:
+        default: "8080"
+paths:
+  /v1/indexing/idempotency/jobs:
+    post:
+      summary: Start idempotency sync run
+      operationId: startIdempotencySync
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartSyncRequest"
+      responses:
+        "202":
+          description: Sync run accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartSyncResponse"
+        "409":
+          description: Another sync run is active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/indexing/idempotency/jobs/{runId}:
+    get:
+      summary: Get sync run status
+      operationId: getIdempotencySyncStatus
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sync run status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdempotencyRunStatus"
+        "404":
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/indexing/idempotency/jobs/{runId}/summary:
+    get:
+      summary: Get sync run summary
+      operationId: getIdempotencySyncSummary
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sync run summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdempotencyRunSummary"
+        "404":
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Run not finished
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    StartSyncRequest:
+      type: object
+      properties:
+        workspacePath:
+          type: string
+        maxFileSizeBytes:
+          type: integer
+          minimum: 1
+    StartSyncResponse:
+      type: object
+      required: [runId, status, acceptedAt]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running]
+        acceptedAt:
+          type: string
+          format: date-time
+    IdempotencyRunStatus:
+      type: object
+      required: [runId, status, totalFiles, updatedChunks, skippedChunks, deletedChunks, failedChunks, lastEventAt]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, completed, partial, failed]
+        totalFiles:
+          type: integer
+          minimum: 0
+        updatedChunks:
+          type: integer
+          minimum: 0
+        skippedChunks:
+          type: integer
+          minimum: 0
+        deletedChunks:
+          type: integer
+          minimum: 0
+        failedChunks:
+          type: integer
+          minimum: 0
+        lastEventAt:
+          type: string
+          format: date-time
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+    IdempotencyRunSummary:
+      type: object
+      required: [runId, status, totalFiles, updatedChunks, skippedChunks, deletedChunks, failedChunks, startedAt, finishedAt, reasonBreakdown]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [completed, partial, failed]
+        totalFiles:
+          type: integer
+          minimum: 0
+        updatedChunks:
+          type: integer
+          minimum: 0
+        skippedChunks:
+          type: integer
+          minimum: 0
+        deletedChunks:
+          type: integer
+          minimum: 0
+        failedChunks:
+          type: integer
+          minimum: 0
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        reasonBreakdown:
+          type: array
+          items:
+            type: object
+            required: [code, count]
+            properties:
+              code:
+                type: string
+              count:
+                type: integer
+                minimum: 0
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: string

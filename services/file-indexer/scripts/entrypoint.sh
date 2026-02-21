@@ -41,6 +41,18 @@ if [ -z "${INGESTION_BOOTSTRAP_ON_START:-}" ]; then
   export INGESTION_BOOTSTRAP_ON_START="0"
 fi
 
+if [ -z "${IDEMPOTENCY_HASH_ALGORITHM:-}" ]; then
+  export IDEMPOTENCY_HASH_ALGORITHM="sha256"
+fi
+
+if [ -z "${IDEMPOTENCY_SKIP_UNCHANGED:-}" ]; then
+  export IDEMPOTENCY_SKIP_UNCHANGED="1"
+fi
+
+if [ -z "${IDEMPOTENCY_ENABLE_STALE_CLEANUP:-}" ]; then
+  export IDEMPOTENCY_ENABLE_STALE_CLEANUP="1"
+fi
+
 /app/scripts/validate-config.sh
 
 touch /tmp/indexer_ready

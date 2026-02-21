@@ -1,9 +1,8 @@
 from __future__ import annotations
-
-import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ingestion_pipeline.chunk_identity import build_chunk_identity
 from ingestion_pipeline.chunk_models import ChunkRecord, ChunkingConfig
 from ingestion_pipeline.chunker import chunk_text
 from ingestion_pipeline.content_hash import build_text_hash
@@ -11,11 +10,6 @@ from ingestion_pipeline.content_hash import build_text_hash
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _build_chunk_id(file_path: str, content_hash: str, chunk_index: int) -> str:
-    raw = f"{file_path}:{content_hash}:{chunk_index}".encode("utf-8")
-    return hashlib.sha256(raw).hexdigest()
 
 
 def build_chunk_records(
@@ -42,9 +36,10 @@ def build_chunk_records(
 
     records: list[ChunkRecord] = []
     for idx, chunk in enumerate(chunks):
+        identity = build_chunk_identity(file_path=relative_path, chunk_index=idx, chunk_text=chunk)
         records.append(
             ChunkRecord(
-                chunk_id=_build_chunk_id(relative_path, content_hash, idx),
+                chunk_id=identity.chunk_id,
                 file_path=relative_path,
                 file_name=file_name,
                 file_type=file_type,

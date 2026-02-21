@@ -1,4 +1,4 @@
-import fnmatch
+﻿import fnmatch
 import os
 import sys
 from datetime import datetime, timezone
@@ -10,6 +10,8 @@ from flask import Flask, jsonify, request
 
 from full_scan_errors import json_error as full_scan_json_error
 from full_scan_state import STATE as FULL_SCAN_STATE
+from idempotency_errors import json_error as idempotency_json_error
+from idempotency_state import STATE as IDEMPOTENCY_STATE
 from ingestion_errors import json_error as ingestion_json_error
 from ingestion_state import STATE as INGESTION_STATE
 
@@ -212,6 +214,59 @@ def _run_ingestion_job(run_id: str, workspace_path: str, payload: dict) -> None:
         INGESTION_STATE.finish_run(run_id, summary=failure, status="failed")
 
 
+def _run_idempotency_job(run_id: str, workspace_path: str, payload: dict) -> None:
+    run = IDEMPOTENCY_STATE.get_run(run_id)
+    if not run:
+        return
+
+    def _progress_update(progress: dict[str, int]) -> None:
+        IDEMPOTENCY_STATE.update_run(
+            run_id,
+            total_files=progress.get("totalFiles", run.total_files),
+            updated_chunks=progress.get("updatedChunks", run.updated_chunks),
+            skipped_chunks=progress.get("skippedChunks", run.skipped_chunks),
+            deleted_chunks=progress.get("deletedChunks", run.deleted_chunks),
+            failed_chunks=progress.get("failedChunks", run.failed_chunks),
+        )
+
+    try:
+        _ensure_file_indexer_src_path()
+        from ingestion_pipeline.chunk_models import ChunkingConfig
+        from ingestion_pipeline.ingestion_service import IngestionService
+
+        effective_chunk_size = int(payload.get("chunkSize") or os.getenv("INGESTION_CHUNK_SIZE", "800"))
+        effective_overlap = int(payload.get("chunkOverlap") or os.getenv("INGESTION_CHUNK_OVERLAP", "120"))
+        effective_attempts = int(payload.get("retryMaxAttempts") or os.getenv("INGESTION_RETRY_MAX_ATTEMPTS", "3"))
+        effective_backoff = float(os.getenv("INGESTION_RETRY_BACKOFF_SECONDS", "1.0"))
+
+        config = ChunkingConfig(
+            chunk_size=effective_chunk_size,
+            chunk_overlap=effective_overlap,
+            retry_max_attempts=effective_attempts,
+            retry_backoff_seconds=effective_backoff,
+        )
+        config.validate()
+        service = IngestionService(config=config)
+        summary = service.run_idempotency_sync(run_id=run_id, workspace_path=workspace_path, progress_callback=_progress_update)
+        summary_payload = summary.to_dict()
+        IDEMPOTENCY_STATE.finish_run(run_id, summary=summary_payload, status=summary_payload.get("status", "completed"))
+    except Exception as exc:
+        failure = {
+            "runId": run_id,
+            "status": "failed",
+            "totalFiles": run.total_files,
+            "updatedChunks": run.updated_chunks,
+            "skippedChunks": run.skipped_chunks,
+            "deletedChunks": run.deleted_chunks,
+            "failedChunks": run.failed_chunks + 1,
+            "startedAt": run.started_at or _now_iso(),
+            "finishedAt": _now_iso(),
+            "reasonBreakdown": [{"code": "IDEMPOTENCY_PIPELINE_FAILED", "count": 1}],
+        }
+        IDEMPOTENCY_STATE.update_run(run_id, error_code="IDEMPOTENCY_PIPELINE_FAILED", error_message=str(exc))
+        IDEMPOTENCY_STATE.finish_run(run_id, summary=failure, status="failed")
+
+
 def build_runtime_config() -> dict:
     policy = load_security_policy()
     timeout_value = os.getenv("COMMAND_TIMEOUT_SECONDS", str(policy.get("command_timeout_seconds", 20)))
@@ -235,6 +290,9 @@ def build_runtime_config() -> dict:
         "ingestionChunkOverlap": _parse_int_env("INGESTION_CHUNK_OVERLAP", 120),
         "ingestionRetryMaxAttempts": _parse_int_env("INGESTION_RETRY_MAX_ATTEMPTS", 3),
         "ingestionRetryBackoffSeconds": float(os.getenv("INGESTION_RETRY_BACKOFF_SECONDS", "1.0")),
+        "idempotencyHashAlgorithm": os.getenv("IDEMPOTENCY_HASH_ALGORITHM", "sha256"),
+        "idempotencySkipUnchanged": os.getenv("IDEMPOTENCY_SKIP_UNCHANGED", "1"),
+        "idempotencyEnableStaleCleanup": os.getenv("IDEMPOTENCY_ENABLE_STALE_CLEANUP", "1"),
         "fullScanFilters": {
             "supportedTypes": index_file_types,
             "excludePatterns": index_exclude_patterns,
@@ -380,6 +438,39 @@ def get_ingestion_job_summary(run_id: str):
         return ingestion_json_error("RUN_NOT_FINISHED", "Ingestion run is not finished yet", 409)
     if run.summary is None:
         return ingestion_json_error("RUN_SUMMARY_MISSING", "Run summary is not available", 404)
+    return jsonify(run.summary)
+
+
+@app.post("/v1/indexing/idempotency/jobs")
+def start_idempotency_job():
+    payload = request.get_json(silent=True) or {}
+    workspace_path = payload.get("workspacePath") or os.getenv("WORKSPACE_PATH", "/workspace")
+    try:
+        run = IDEMPOTENCY_STATE.create_run(workspace_path=workspace_path)
+    except RuntimeError:
+        return idempotency_json_error("IDEMPOTENCY_ALREADY_RUNNING", "Idempotency sync run is already running", 409)
+
+    Thread(target=_run_idempotency_job, args=(run.run_id, workspace_path, payload), daemon=True).start()
+    return jsonify({"runId": run.run_id, "status": run.status, "acceptedAt": run.accepted_at}), 202
+
+
+@app.get("/v1/indexing/idempotency/jobs/<run_id>")
+def get_idempotency_job_status(run_id: str):
+    run = IDEMPOTENCY_STATE.get_run(run_id)
+    if not run:
+        return idempotency_json_error("RUN_NOT_FOUND", f"Idempotency run '{run_id}' is not found", 404)
+    return jsonify(run.as_status())
+
+
+@app.get("/v1/indexing/idempotency/jobs/<run_id>/summary")
+def get_idempotency_job_summary(run_id: str):
+    run = IDEMPOTENCY_STATE.get_run(run_id)
+    if not run:
+        return idempotency_json_error("RUN_NOT_FOUND", f"Idempotency run '{run_id}' is not found", 404)
+    if run.status in {"queued", "running"}:
+        return idempotency_json_error("RUN_NOT_FINISHED", "Idempotency run is not finished yet", 409)
+    if run.summary is None:
+        return idempotency_json_error("RUN_SUMMARY_MISSING", "Run summary is not available", 404)
     return jsonify(run.summary)
 
 

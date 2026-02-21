@@ -50,6 +50,9 @@ pwsh scripts/dev/down.ps1
 - `INDEX_EXCLUDE_PATTERNS=.git,node_modules,...`
 - `INDEX_MAX_FILE_SIZE_BYTES=...`
 - `INDEX_PROGRESS_INTERVAL_SECONDS=...`
+- `IDEMPOTENCY_HASH_ALGORITHM=sha256`
+- `IDEMPOTENCY_SKIP_UNCHANGED=0|1`
+- `IDEMPOTENCY_ENABLE_STALE_CLEANUP=0|1`
 - `COMMAND_ALLOWLIST=...`
 - `COMMAND_TIMEOUT_SECONDS=...`
 
@@ -86,6 +89,14 @@ pwsh scripts/dev/down.ps1
   `INGESTION_RETRY_BACKOFF_SECONDS`.
 - Низкий `metadataCoverage`: проверьте `workspacePath` и маппинг обязательных
   полей (`path`, `fileName`, `fileType`, `contentHash`, `timestamp`).
+
+### Idempotency troubleshooting
+
+- `IDEMPOTENCY_ALREADY_RUNNING`: дождитесь завершения активного idempotency run.
+- `RUN_NOT_FINISHED` при запросе summary: дождитесь финального статуса run.
+- `failedChunks > 0`: проверьте логи `mcp-server`/`file-indexer` и reason codes в summary.
+- Отсутствует `skippedChunks` на повторном запуске: проверьте `IDEMPOTENCY_SKIP_UNCHANGED=1`.
+- Отсутствует `deletedChunks` после удаления файла: проверьте `IDEMPOTENCY_ENABLE_STALE_CLEANUP=1`.
 
 ## Документация фичи
 
@@ -153,11 +164,11 @@ pwsh scripts/dev/down.ps1
 
 ### 5. Идемпотентность индексации
 
-- [ ] Генерация hash контента (SHA256)
-- [ ] Проверка существования хеша перед upsert
-- [ ] Использование deterministic ID для чанков
-- [ ] Обновление записи при изменении файла
-- [ ] Удаление устаревших чанков
+- [x] Генерация hash контента (SHA256)
+- [x] Проверка существования хеша перед upsert
+- [x] Использование deterministic ID для чанков
+- [x] Обновление записи при изменении файла
+- [x] Удаление устаревших чанков
 
 ### 6. Режим Delta-after-commit
 
