@@ -1,19 +1,40 @@
 # Release Checklist
 
-## Metadata
+## Versioning and metadata
 
-- [x] Определена версия релиза (`VERSION`)
-- [x] Подготовлен changelog (`CHANGELOG.md`)
-- [x] Подготовлен git tag (рекомендуемый формат: `vX.Y.Z`)
+- [ ] Update `VERSION`
+- [ ] Update `CHANGELOG.md`
+- [ ] Create release tag (`0.1.1` and/or `v0.1.1`)
 
-## Build and validation
+## Validation
 
-- [x] Проверена сборка compose-стека
-- [x] Прогнаны quality/stability сценарии
-- [x] Проверены примеры из `README.md` и `docs/quickstart.md`
+- [ ] Validate compose files (`docker compose config`)
+- [ ] Run quality/stability suite
+- [ ] Verify examples in `README.md` and `docs/quickstart.md`
 
-## Artifacts
+## Docker Hub publishing
 
-- [x] `README.md` актуализирован
-- [x] `CONTRIBUTING.md` добавлен и актуален
-- [x] Roadmap статусы синхронизированы с текущей реализацией
+Repository prerequisites:
+
+- [ ] Docker Hub repositories exist:
+  - `ndlss-memory-file-indexer`
+  - `ndlss-memory-mcp-server`
+- [ ] GitHub secrets are configured:
+  - `DOCKERHUB_USERNAME`
+  - `DOCKERHUB_TOKEN`
+
+Release flow:
+
+- [ ] Push release tag
+- [ ] Verify workflow `.github/workflows/docker-release.yml` passed
+- [ ] Verify images were pushed:
+  - `<namespace>/ndlss-memory-file-indexer:<tag>`
+  - `<namespace>/ndlss-memory-mcp-server:<tag>`
+  - optional `latest`
+
+## Artifacts and docs
+
+- [ ] `README.md` is up to date
+- [ ] `CONTRIBUTING.md` is up to date
+- [ ] `docs/compose-presets.md` lists all presets
+- [ ] `docs/quickstart.md` matches current startup flow

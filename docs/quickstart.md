@@ -13,19 +13,19 @@ This guide starts `ndlss-memory` inside your current project folder with a singl
 ### PowerShell
 
 ```powershell
-$preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose/$preset.yml" -OutFile ndlss-compose.yml; $env:NDLSS_WORKSPACE=(Get-Location).Path; docker compose -f ndlss-compose.yml up -d --build
+$preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose-images/$preset.yml" -OutFile ndlss-compose.yml; $env:NDLSS_WORKSPACE=(Get-Location).Path; docker compose -f ndlss-compose.yml up -d
 ```
 
 ### bash
 
 ```bash
-preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose/${preset}.yml" -o ndlss-compose.yml && NDLSS_WORKSPACE="$PWD" docker compose -f ndlss-compose.yml up -d --build
+preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose-images/${preset}.yml" -o ndlss-compose.yml && NDLSS_WORKSPACE="$PWD" docker compose -f ndlss-compose.yml up -d
 ```
 
-Optional: pin service source to a release tag or commit:
+Optional: pin image tag and namespace:
 
 ```bash
-NDLSS_GIT_REF=v1.0.0 docker compose -f ndlss-compose.yml up -d --build
+NDLSS_DOCKERHUB_NAMESPACE=your-dockerhub-user NDLSS_IMAGE_TAG=0.1.1 docker compose -f ndlss-compose.yml up -d
 ```
 
 Available presets:

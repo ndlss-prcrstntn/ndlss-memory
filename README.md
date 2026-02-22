@@ -12,17 +12,19 @@ Run inside any project directory.
 ### PowerShell
 
 ```powershell
-$preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose/$preset.yml" -OutFile ndlss-compose.yml; $env:NDLSS_WORKSPACE=(Get-Location).Path; docker compose -f ndlss-compose.yml up -d --build
+$preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose-images/$preset.yml" -OutFile ndlss-compose.yml; $env:NDLSS_WORKSPACE=(Get-Location).Path; docker compose -f ndlss-compose.yml up -d
 ```
 
 ### bash
 
 ```bash
-preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose/${preset}.yml" -o ndlss-compose.yml && NDLSS_WORKSPACE="$PWD" docker compose -f ndlss-compose.yml up -d --build
+preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose-images/${preset}.yml" -o ndlss-compose.yml && NDLSS_WORKSPACE="$PWD" docker compose -f ndlss-compose.yml up -d
 ```
 
 - Replace `generic` with `python`, `typescript`, `javascript`, `java-kotlin`, `csharp`, or `go`.
-- Optional: pin remote source with `NDLSS_GIT_REF` (for example `v1.0.0`).
+- Optional: pin image version with `NDLSS_IMAGE_TAG` (for example `0.1.1`).
+- Optional: change Docker Hub namespace with `NDLSS_DOCKERHUB_NAMESPACE`.
+- Source-build presets are still available in `deploy/compose/` when you explicitly want to build from source.
 - Full guide: `docs/quickstart.md`
 - Preset details: `docs/compose-presets.md`
 
