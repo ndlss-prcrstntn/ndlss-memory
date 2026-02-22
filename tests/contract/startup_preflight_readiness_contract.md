@@ -3,7 +3,7 @@
 ## Scope
 
 Контракт фиксирует поведение startup preflight и readiness API для фичи
-`001-startup-preflight-summary`.
+`011-startup-preflight-summary`.
 
 ## Endpoints
 

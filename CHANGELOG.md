@@ -30,7 +30,7 @@
   - [Configuration](docs/configuration.md)
   - [Compose presets](docs/compose-presets.md)
   - `services/mcp-server/openapi/compose-observability.openapi.yaml`
-  - `specs/001-startup-preflight-summary/contracts/startup-preflight-readiness.openapi.yaml`
+  - `specs/011-startup-preflight-summary/contracts/startup-preflight-readiness.openapi.yaml`
 - Stabilized integration regression orchestration:
   - fixed env-ordering race in `scripts/tests/ingestion_compose_regression.ps1`
   - added resilient compose startup retries for flaky Docker health timing

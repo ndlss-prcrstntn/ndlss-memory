@@ -1,4 +1,4 @@
-п»ї# ndlss-memory Development Guidelines
+# ndlss-memory Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2026-02-21
 
@@ -7,24 +7,24 @@ Auto-generated from all feature plans. Last updated: 2026-02-21
 - Qdrant storage, workspace filesystem mount (read-only), runtime scan job reports (002-full-scan)
 - Python 3.12 for service runtime, Docker Compose v2 for orchestration + Flask API service, Qdrant HTTP API, embedding provider adapter, file-indexing pipeline modules (003-chunking-embeddings-pipeline)
 - Qdrant vector collections, workspace file mount, ingestion run state in service memory with summary persistence (003-chunking-embeddings-pipeline)
-- Python 3.12 (`mcp-server`, РјРѕРґСѓР»Рё ingestion), POSIX shell РґР»СЏ runtime entrypoint + Flask API (`mcp-server`), РІСЃС‚СЂРѕРµРЅРЅС‹Рµ Python-РјРѕРґСѓР»Рё `hashlib`/`pathlib`, Qdrant HTTP API, Docker Compose v2 (004-indexing-idempotency)
-- Qdrant РєРѕР»Р»РµРєС†РёРё С‡Р°РЅРєРѕРІ, runtime in-memory state РґР»СЏ Р·Р°РїСѓСЃРєРѕРІ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё, workspace bind mount (004-indexing-idempotency)
+- Python 3.12 (`mcp-server`, модули ingestion), POSIX shell для runtime entrypoint + Flask API (`mcp-server`), встроенные Python-модули `hashlib`/`pathlib`, Qdrant HTTP API, Docker Compose v2 (004-indexing-idempotency)
+- Qdrant коллекции чанков, runtime in-memory state для запусков синхронизации, workspace bind mount (004-indexing-idempotency)
 - Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` workers), Docker Compose v2 + Git CLI (`git diff --name-status --find-renames`), Flask, PyYAML, Qdrant HTTP API (005-delta-after-commit)
-- Qdrant РєРѕР»Р»РµРєС†РёСЏ `workspace_chunks`, in-memory runtime state РґР»СЏ job status, workspace bind mount (005-delta-after-commit)
-- Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` runtime), Docker Compose v2 + Flask, PyYAML, Qdrant HTTP API, СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёРµ ingestion/idempotency state-РјРѕРґСѓР»Рё (006-mcp-search-tools)
-- Qdrant РєРѕР»Р»РµРєС†РёСЏ `workspace_chunks`, in-memory state РґР»СЏ MCP job/request tracking, bind-mounted workspace (006-mcp-search-tools)
-- Python 3.12 (`mcp-server`), POSIX shell runtime РІ РєРѕРЅС‚РµР№РЅРµСЂРµ + Flask, PyYAML, СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ СЃСЂРµРґСЃС‚РІР° СѓРїСЂР°РІР»РµРЅРёСЏ РїСЂРѕС†РµСЃСЃР°РјРё Рё С‚Р°Р№РјР°СѓС‚Р°РјРё, Docker Compose policy (007-secure-mcp-commands)
-- in-memory state РґР»СЏ СЃС‚Р°С‚СѓСЃРѕРІ РІС‹РїРѕР»РЅРµРЅРёСЏ + append-only Р°СѓРґРёС‚ РІ С„Р°Р№Р»РѕРІРѕРј С…СЂР°РЅРёР»РёС‰Рµ РєРѕРЅС‚РµР№РЅРµСЂР° (007-secure-mcp-commands)
-- Python 3.12 (СЃРµСЂРІРёСЃС‹ Рё unit-РїСЂРѕРІРµСЂРєРё), PowerShell 7+ (compose/e2e orchestration) + pytest, Flask, PyYAML, Docker Compose CLI v2 (008-quality-stability-tests)
-- Qdrant (`qdrant_data` volume), С„Р°Р№Р»РѕРІС‹Рµ fixtures Рё markdown-РѕС‚С‡РµС‚С‹ РІ `tests/` (008-quality-stability-tests)
-- Python 3.12 (`mcp-server` runtime) + Flask, PyYAML, СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ Python JSON/HTTP РїСЂРёРјРёС‚РёРІС‹, Docker Compose v2 (009-mcp-transport)
-- Qdrant РєРѕР»Р»РµРєС†РёСЏ `workspace_chunks`; in-memory СЃРѕСЃС‚РѕСЏРЅРёРµ MCP-СЃРµСЃСЃРёР№/Р·Р°РїСЂРѕСЃРѕРІ; СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёРµ runtime state-РјРѕРґСѓР»Рё (009-mcp-transport)
-- Python 3.12 (runtime Рё С‚РµСЃС‚РѕРІС‹Рµ СЃРєСЂРёРїС‚С‹), PowerShell 7+ (orchestration/СЂРµРіСЂРµСЃСЃРёРё), Docker Compose Specification v2 + Flask, PyYAML, РІСЃС‚СЂРѕРµРЅРЅС‹Рµ Python urllib/json/hashlib, Docker Compose CLI, Qdrant HTTP API (010-mcp-transport)
-- Qdrant РєРѕР»Р»РµРєС†РёСЏ `workspace_chunks`, Р»РѕРєР°Р»СЊРЅС‹Рµ workspace С„Р°Р№Р»С‹ С‡РµСЂРµР· bind mount, in-memory runtime state РґР»СЏ job tracking (010-mcp-transport)
-- Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` entrypoint/runtime), Docker Compose v2 + Flask, PyYAML, РІСЃС‚СЂРѕРµРЅРЅС‹Рµ Python-РјРѕРґСѓР»Рё (`pathlib`, `subprocess`, `urllib`/HTTP-РєР»РёРµРЅС‚), Docker Compose runtime env (001-startup-preflight-summary)
-- Qdrant (`workspace_chunks`), bind mount workspace (`/workspace`), in-memory runtime state РґР»СЏ job/status (001-startup-preflight-summary)
+- Qdrant коллекция `workspace_chunks`, in-memory runtime state для job status, workspace bind mount (005-delta-after-commit)
+- Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` runtime), Docker Compose v2 + Flask, PyYAML, Qdrant HTTP API, существующие ingestion/idempotency state-модули (006-mcp-search-tools)
+- Qdrant коллекция `workspace_chunks`, in-memory state для MCP job/request tracking, bind-mounted workspace (006-mcp-search-tools)
+- Python 3.12 (`mcp-server`), POSIX shell runtime в контейнере + Flask, PyYAML, стандартные средства управления процессами и таймаутами, Docker Compose policy (007-secure-mcp-commands)
+- in-memory state для статусов выполнения + append-only аудит в файловом хранилище контейнера (007-secure-mcp-commands)
+- Python 3.12 (сервисы и unit-проверки), PowerShell 7+ (compose/e2e orchestration) + pytest, Flask, PyYAML, Docker Compose CLI v2 (008-quality-stability-tests)
+- Qdrant (`qdrant_data` volume), файловые fixtures и markdown-отчеты в `tests/` (008-quality-stability-tests)
+- Python 3.12 (`mcp-server` runtime) + Flask, PyYAML, стандартные Python JSON/HTTP примитивы, Docker Compose v2 (009-mcp-transport)
+- Qdrant коллекция `workspace_chunks`; in-memory состояние MCP-сессий/запросов; существующие runtime state-модули (009-mcp-transport)
+- Python 3.12 (runtime и тестовые скрипты), PowerShell 7+ (orchestration/регрессии), Docker Compose Specification v2 + Flask, PyYAML, встроенные Python urllib/json/hashlib, Docker Compose CLI, Qdrant HTTP API (010-mcp-transport)
+- Qdrant коллекция `workspace_chunks`, локальные workspace файлы через bind mount, in-memory runtime state для job tracking (010-mcp-transport)
+- Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` entrypoint/runtime), Docker Compose v2 + Flask, PyYAML, встроенные Python-модули (`pathlib`, `subprocess`, `urllib`/HTTP-клиент), Docker Compose runtime env (011-startup-preflight-summary)
+- Qdrant (`workspace_chunks`), bind mount workspace (`/workspace`), in-memory runtime state для job/status (011-startup-preflight-summary)
 
-- Docker Compose Specification (CLI v2), YAML 1.2 + Docker Engine, Docker Compose CLI, РєРѕРЅС‚РµР№РЅРµСЂРЅС‹Рµ РѕР±СЂР°Р·С‹ `qdrant`, `file-indexer`, `mcp-server` (001-base-docker-compose)
+- Docker Compose Specification (CLI v2), YAML 1.2 + Docker Engine, Docker Compose CLI, контейнерные образы `qdrant`, `file-indexer`, `mcp-server` (001-base-docker-compose)
 
 ## Project Structure
 
@@ -42,9 +42,9 @@ tests/
 Docker Compose Specification (CLI v2), YAML 1.2: Follow standard conventions
 
 ## Recent Changes
-- 001-startup-preflight-summary: Added Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` entrypoint/runtime), Docker Compose v2 + Flask, PyYAML, РІСЃС‚СЂРѕРµРЅРЅС‹Рµ Python-РјРѕРґСѓР»Рё (`pathlib`, `subprocess`, `urllib`/HTTP-РєР»РёРµРЅС‚), Docker Compose runtime env
-- 010-mcp-transport: Added Python 3.12 (runtime Рё С‚РµСЃС‚РѕРІС‹Рµ СЃРєСЂРёРїС‚С‹), PowerShell 7+ (orchestration/СЂРµРіСЂРµСЃСЃРёРё), Docker Compose Specification v2 + Flask, PyYAML, РІСЃС‚СЂРѕРµРЅРЅС‹Рµ Python urllib/json/hashlib, Docker Compose CLI, Qdrant HTTP API
-- 009-mcp-transport: Added Python 3.12 (`mcp-server` runtime) + Flask, PyYAML, СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ Python JSON/HTTP РїСЂРёРјРёС‚РёРІС‹, Docker Compose v2
+- 011-startup-preflight-summary: Added Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` entrypoint/runtime), Docker Compose v2 + Flask, PyYAML, встроенные Python-модули (`pathlib`, `subprocess`, `urllib`/HTTP-клиент), Docker Compose runtime env
+- 010-mcp-transport: Added Python 3.12 (runtime и тестовые скрипты), PowerShell 7+ (orchestration/регрессии), Docker Compose Specification v2 + Flask, PyYAML, встроенные Python urllib/json/hashlib, Docker Compose CLI, Qdrant HTTP API
+- 009-mcp-transport: Added Python 3.12 (`mcp-server` runtime) + Flask, PyYAML, стандартные Python JSON/HTTP примитивы, Docker Compose v2
 
 
 <!-- MANUAL ADDITIONS START -->
