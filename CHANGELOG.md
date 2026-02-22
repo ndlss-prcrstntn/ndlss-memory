@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.2 - 2026-02-22
+
+- Added first-run bootstrap indexing for fresh workspaces:
+  - auto-creates collection when missing;
+  - auto-starts initial ingestion on startup;
+  - persists bootstrap markers and skips expensive re-bootstrap on restart.
+- Extended startup/readiness observability with bootstrap diagnostics:
+  - `bootstrap`, `collection`, and `bootstrapFailure` blocks in readiness/status payloads;
+  - structured bootstrap lifecycle logs (`started`, `skipped`, `failed`, `finished`).
+- Added bootstrap regression coverage and tooling:
+  - unit tests for orchestrator skip/retry/concurrency behavior;
+  - integration/contract tests for readiness bootstrap payloads and fail-fast diagnostics;
+  - `scripts/tests/startup_bootstrap_smoke.ps1`;
+  - UTF-8 validation utility `scripts/tests/verify_utf8_encoding.ps1`;
+  - quality gate stage `startup_bootstrap`.
+
 ## 0.2.1 - 2026-02-22
 
 - Added startup preflight checks for `mcp-server` and `file-indexer`:

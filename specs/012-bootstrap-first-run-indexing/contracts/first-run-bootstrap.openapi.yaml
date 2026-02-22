@@ -1,10 +1,9 @@
 ﻿openapi: 3.1.0
 info:
-  title: Compose Stack Observability API
+  title: First-Run Bootstrap Indexing API
   version: 0.2.1
   description: >-
-    Контракт операционного статуса для startup preflight, bootstrap первого
-    запуска и runtime-наблюдаемости compose-стека.
+    Контракт для авто-bootstrap индексации на первом запуске с сохранением существующих ручных endpoint ingestion.
 servers:
   - url: http://localhost:{mcp_port}
     variables:
@@ -507,3 +506,4 @@ components:
         details:
           type: object
           additionalProperties: true
+

@@ -34,3 +34,6 @@ build/
 # Docker runtime artifacts
 docker-data/
 /.codex
+tests/artifacts/
+tests/fixtures/idempotency-runtime-*/
+tests/fixtures/delta-after-commit-runtime-*/

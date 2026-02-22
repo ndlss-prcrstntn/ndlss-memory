@@ -85,6 +85,21 @@ Relevant environment flags:
 - `STARTUP_READY_SUMMARY_LOG_ENABLED` (default `1`)
 - `MCP_ENDPOINT_PATH` (default `/mcp`)
 
+## First-run bootstrap indexing
+
+By default, startup also runs one-time bootstrap indexing for a fresh workspace:
+
+- auto-creates the target Qdrant collection if missing;
+- auto-starts initial ingestion (`BOOTSTRAP_AUTO_INGEST_ON_START=1`);
+- skips expensive re-bootstrap on restart when workspace is already initialized;
+- keeps manual ingestion endpoints available (`POST /v1/indexing/ingestion/jobs`).
+
+Bootstrap state is visible in:
+
+- `GET /v1/system/startup/readiness` (`bootstrap`, `collection`, `bootstrapFailure`);
+- `GET /v1/indexing/ingestion/jobs/{runId}`;
+- `GET /v1/indexing/ingestion/jobs/{runId}/summary`.
+
 ## Preset matrix
 
 | Preset | Best for | Main indexed types |

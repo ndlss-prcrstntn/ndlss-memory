@@ -54,3 +54,25 @@ def build_startup_failure_report(
         payload["recommendedActions"] = recommended_actions
     return payload
 
+
+def build_bootstrap_failure_report(
+    *,
+    workspace_path: str,
+    collection_name: str,
+    error_code: str,
+    message: str,
+) -> dict[str, Any]:
+    return {
+        "errorCode": error_code,
+        "message": message,
+        "details": {
+            "workspacePath": workspace_path,
+            "collectionName": collection_name,
+        },
+        "recommendedActions": [
+            "Проверьте доступность Qdrant и сетевое соединение между сервисами",
+            "Проверьте readiness endpoint и повторите запуск после устранения причины",
+            "При необходимости запустите ручной ingestion через POST /v1/indexing/ingestion/jobs",
+        ],
+    }
+
