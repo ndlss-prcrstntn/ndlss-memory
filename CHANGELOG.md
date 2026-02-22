@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5 - 2026-02-22
+
+- Added `GET /` root endpoint in `mcp-server` that returns a structured catalog of all available API commands.
+- Added unit tests for the root command catalog endpoint to prevent regressions.
+
 ## 0.1.4 - 2026-02-22
 
 - Fixed ingestion runtime in containerized `mcp-server` images:

@@ -39,6 +39,141 @@ app = Flask(__name__)
 SEARCH_SERVICE = SearchService(QdrantSearchRepository.from_env())
 COMMAND_EXECUTION_SERVICE: CommandExecutionService | None = None
 
+API_COMMANDS = [
+    {
+        "category": "system",
+        "method": "GET",
+        "path": "/health",
+        "description": "Service health check",
+    },
+    {
+        "category": "system",
+        "method": "GET",
+        "path": "/v1/system/status",
+        "description": "Overall system and service statuses",
+    },
+    {
+        "category": "system",
+        "method": "GET",
+        "path": "/v1/system/config",
+        "description": "Effective runtime configuration",
+    },
+    {
+        "category": "system",
+        "method": "GET",
+        "path": "/v1/system/services/{serviceName}",
+        "description": "Status for a specific service",
+    },
+    {
+        "category": "search",
+        "method": "POST",
+        "path": "/v1/search/semantic",
+        "description": "Run semantic search over indexed chunks",
+    },
+    {
+        "category": "search",
+        "method": "GET",
+        "path": "/v1/search/results/{resultId}/source",
+        "description": "Resolve source text for a search result",
+    },
+    {
+        "category": "search",
+        "method": "GET",
+        "path": "/v1/search/results/{resultId}/metadata",
+        "description": "Resolve metadata for a search result",
+    },
+    {
+        "category": "commands",
+        "method": "POST",
+        "path": "/v1/commands/execute",
+        "description": "Execute an allowed command in workspace",
+    },
+    {
+        "category": "commands",
+        "method": "GET",
+        "path": "/v1/commands/executions/{requestId}",
+        "description": "Get command execution result by request id",
+    },
+    {
+        "category": "commands",
+        "method": "GET",
+        "path": "/v1/commands/audit",
+        "description": "List command audit records",
+    },
+    {
+        "category": "indexing",
+        "method": "POST",
+        "path": "/v1/indexing/full-scan/jobs",
+        "description": "Start full-scan job",
+    },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/full-scan/jobs/{jobId}",
+        "description": "Get full-scan job progress",
+    },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/full-scan/jobs/{jobId}/summary",
+        "description": "Get full-scan job summary",
+    },
+    {
+        "category": "indexing",
+        "method": "POST",
+        "path": "/v1/indexing/ingestion/jobs",
+        "description": "Start ingestion job",
+    },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/ingestion/jobs/{runId}",
+        "description": "Get ingestion job progress",
+    },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/ingestion/jobs/{runId}/summary",
+        "description": "Get ingestion job summary",
+    },
+    {
+        "category": "indexing",
+        "method": "POST",
+        "path": "/v1/indexing/idempotency/jobs",
+        "description": "Start idempotency sync job",
+    },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/idempotency/jobs/{runId}",
+        "description": "Get idempotency sync progress",
+    },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/idempotency/jobs/{runId}/summary",
+        "description": "Get idempotency sync summary",
+    },
+    {
+        "category": "indexing",
+        "method": "POST",
+        "path": "/v1/indexing/delta-after-commit/jobs",
+        "description": "Start delta-after-commit job",
+    },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/delta-after-commit/jobs/{runId}",
+        "description": "Get delta-after-commit job progress",
+    },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/delta-after-commit/jobs/{runId}/summary",
+        "description": "Get delta-after-commit job summary",
+    },
+]
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -445,6 +580,18 @@ def build_system_status() -> dict:
 @app.get("/health")
 def get_health():
     return jsonify({"status": "ok", "timestamp": _now_iso()})
+
+
+@app.get("/")
+def get_root_commands():
+    return jsonify(
+        {
+            "service": "ndlss-memory-mcp-server",
+            "status": "ok",
+            "timestamp": _now_iso(),
+            "commands": API_COMMANDS,
+        }
+    )
 
 
 @app.get("/v1/system/status")
