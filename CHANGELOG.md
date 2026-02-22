@@ -35,8 +35,7 @@
   - fixed env-ordering race in `scripts/tests/ingestion_compose_regression.ps1`
   - added resilient compose startup retries for flaky Docker health timing
   - ensured `quality_gate_runner` completes with all stages passed
-- Added roadmap snapshot for this release:
-  - [Roadmap 0.2.1](docs/roadmaps/0.2.1.md)
+- Updated [Roadmap 0.3.0](docs/roadmaps/0.3.0.md) to mark completed startup preflight/readiness items.
 
 ## 0.2.0 - 2026-02-22
 

@@ -139,7 +139,6 @@ Indexing:
 - [Configuration](docs/configuration.md)
 - [Release checklist](docs/release-checklist.md)
 - [Roadmaps index](docs/roadmaps/README.md)
-- [Roadmap 0.2.1](docs/roadmaps/0.2.1.md)
 - [Roadmap 0.2.0](docs/roadmaps/0.2.0.md)
 - [Contributing](CONTRIBUTING.md)
 
@@ -161,5 +160,5 @@ powershell -File scripts/tests/run_quality_stability_suite.ps1
 ## Roadmap status
 
 Roadmap snapshots are versioned in [docs/roadmaps](docs/roadmaps/README.md).
-Current baseline release roadmap: [0.2.1](docs/roadmaps/0.2.1.md).
+Current baseline release roadmap: [0.2.0](docs/roadmaps/0.2.0.md).
 Next planned roadmap: [0.3.0](docs/roadmaps/0.3.0.md).
