@@ -36,3 +36,11 @@ def result_not_found(result_id: str) -> SearchApiError:
 
 def backend_error(message: str, details: str | None = None) -> SearchApiError:
     return SearchApiError("SEARCH_BACKEND_ERROR", message, 502, details)
+
+
+def collection_not_found(collection_name: str) -> SearchApiError:
+    return SearchApiError(
+        "SEARCH_COLLECTION_NOT_FOUND",
+        f"Collection '{collection_name}' is not found",
+        404,
+    )

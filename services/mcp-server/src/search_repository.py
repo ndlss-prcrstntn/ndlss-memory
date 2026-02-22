@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
-from search_errors import backend_error
+from search_errors import SearchApiError, backend_error, collection_not_found
 from search_models import SearchFilters
 from search_result_ref import build_result_id, parse_result_id
 
@@ -48,11 +48,17 @@ class QdrantSearchRepository:
         if qdrant_filter:
             payload["filter"] = qdrant_filter
 
-        response = self._request_json(
-            method="POST",
-            path=f"/collections/{self.collection_name}/points/search",
-            payload=payload,
-        )
+        try:
+            response = self._request_json(
+                method="POST",
+                path=f"/collections/{self.collection_name}/points/search",
+                payload=payload,
+            )
+        except SearchApiError as exc:
+            # Fresh workspace without ingestion should behave as "no matches", not as backend failure.
+            if exc.code == "SEARCH_COLLECTION_NOT_FOUND":
+                return []
+            raise
         points = response.get("result", [])
         if not isinstance(points, list):
             return []
@@ -115,11 +121,16 @@ class QdrantSearchRepository:
 
     def _get_point(self, result_id: str) -> dict[str, Any] | None:
         point_id = parse_result_id(result_id)
-        response = self._request_json(
-            method="POST",
-            path=f"/collections/{self.collection_name}/points",
-            payload={"ids": [point_id], "with_payload": True, "with_vector": False},
-        )
+        try:
+            response = self._request_json(
+                method="POST",
+                path=f"/collections/{self.collection_name}/points",
+                payload={"ids": [point_id], "with_payload": True, "with_vector": False},
+            )
+        except SearchApiError as exc:
+            if exc.code == "SEARCH_COLLECTION_NOT_FOUND":
+                return None
+            raise
         points = response.get("result", [])
         if not isinstance(points, list) or not points:
             return None
@@ -168,11 +179,35 @@ class QdrantSearchRepository:
                     return {}
                 return json.loads(raw)
         except error.HTTPError as exc:
-            raise backend_error(f"Qdrant request failed with HTTP {exc.code}") from exc
+            response_text = self._read_http_error_body(exc)
+            if exc.code == 404 and self._is_missing_collection_error(path=path, response_text=response_text):
+                raise collection_not_found(self.collection_name) from exc
+            raise backend_error(
+                f"Qdrant request failed with HTTP {exc.code}",
+                details=response_text.strip() or None,
+            ) from exc
         except error.URLError as exc:
             raise backend_error(f"Qdrant connection error: {exc.reason}") from exc
         except json.JSONDecodeError as exc:
             raise backend_error("Qdrant response is not valid JSON") from exc
+
+    @staticmethod
+    def _read_http_error_body(exc: error.HTTPError) -> str:
+        try:
+            return exc.read().decode("utf-8", errors="replace")
+        except Exception:
+            return ""
+
+    def _is_missing_collection_error(self, *, path: str, response_text: str) -> bool:
+        normalized = response_text.lower()
+        collection_marker = self.collection_name.lower()
+        # Qdrant returns 404 with body like:
+        # {"status":{"error":"Not found: Collection `workspace_chunks` doesn't exist!"}, ...}
+        if "collection" in normalized and ("doesn't exist" in normalized or "not found" in normalized):
+            if collection_marker in normalized:
+                return True
+        # Fallback: the request is scoped to the configured collection path.
+        return f"/collections/{self.collection_name}/" in path
 
     def _build_query_embedding(self, query: str) -> list[float]:
         digest = hashlib.sha256(query.encode("utf-8")).hexdigest()
