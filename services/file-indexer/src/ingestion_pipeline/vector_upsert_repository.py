@@ -22,11 +22,13 @@ _QDRANT_POINT_NAMESPACE = uuid.UUID("c6a7f5f3-2f2d-4f4a-92c2-8f313f2fd63c")
 class VectorUpsertRepository:
     collection_name: str
     qdrant_url: str
+    vector_size: int = 16
     request_timeout_seconds: float = 5.0
     enable_http_upsert: bool = False
     _points: dict[str, dict[str, Any]] = field(default_factory=dict)
     _file_hash_index: dict[str, str] = field(default_factory=dict)
     _file_chunk_index: dict[str, set[str]] = field(default_factory=dict)
+    _collection_initialized: bool = False
 
     def upsert(self, record: VectorRecord) -> None:
         point = record.to_qdrant_point()
@@ -74,6 +76,7 @@ class VectorUpsertRepository:
         return deleted
 
     def _upsert_via_http(self, point: dict[str, Any]) -> None:
+        self._ensure_collection_exists()
         payload = json.dumps({"points": [point]}).encode("utf-8")
         endpoint = f"{self.qdrant_url.rstrip('/')}/collections/{self.collection_name}/points?wait=true"
         req = request.Request(endpoint, method="PUT", data=payload, headers={"Content-Type": "application/json"})
@@ -87,6 +90,7 @@ class VectorUpsertRepository:
             raise UpsertError(f"Qdrant upsert connection error: {exc.reason}") from exc
 
     def _delete_via_http(self, point_ids: set[str]) -> None:
+        self._ensure_collection_exists()
         payload = json.dumps({"points": [self._qdrant_point_id(point_id) for point_id in point_ids]}).encode("utf-8")
         endpoint = f"{self.qdrant_url.rstrip('/')}/collections/{self.collection_name}/points/delete?wait=true"
         req = request.Request(endpoint, method="POST", data=payload, headers={"Content-Type": "application/json"})
@@ -106,6 +110,44 @@ class VectorUpsertRepository:
         except (ValueError, TypeError, AttributeError):
             return str(uuid.uuid5(_QDRANT_POINT_NAMESPACE, str(point_id)))
 
+    def _ensure_collection_exists(self) -> None:
+        if self._collection_initialized:
+            return
+
+        base = self.qdrant_url.rstrip("/")
+        endpoint = f"{base}/collections/{self.collection_name}"
+        req = request.Request(endpoint, method="GET")
+        try:
+            with request.urlopen(req, timeout=self.request_timeout_seconds) as resp:
+                if resp.status < 300:
+                    self._collection_initialized = True
+                    return
+        except error.HTTPError as exc:
+            if exc.code != 404:
+                raise UpsertError(f"Qdrant collection check failed with HTTP {exc.code}") from exc
+        except error.URLError as exc:
+            raise UpsertError(f"Qdrant collection check connection error: {exc.reason}") from exc
+
+        payload = json.dumps(
+            {"vectors": {"size": self.vector_size, "distance": "Cosine"}}
+        ).encode("utf-8")
+        create_req = request.Request(
+            endpoint,
+            method="PUT",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with request.urlopen(create_req, timeout=self.request_timeout_seconds) as resp:
+                if resp.status >= 300:
+                    raise UpsertError(f"Qdrant collection create failed with HTTP {resp.status}")
+        except error.HTTPError as exc:
+            raise UpsertError(f"Qdrant collection create failed with HTTP {exc.code}") from exc
+        except error.URLError as exc:
+            raise UpsertError(f"Qdrant collection create connection error: {exc.reason}") from exc
+
+        self._collection_initialized = True
+
 
 def repository_from_env() -> VectorUpsertRepository:
     host = os.getenv("QDRANT_HOST", "qdrant")
@@ -117,6 +159,7 @@ def repository_from_env() -> VectorUpsertRepository:
         _REPOSITORY_CACHE[cache_key] = VectorUpsertRepository(
             collection_name=collection_name,
             qdrant_url=qdrant_url,
+            vector_size=int(os.getenv("INGESTION_EMBEDDING_VECTOR_SIZE", "16")),
             request_timeout_seconds=float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
             enable_http_upsert=os.getenv("INGESTION_ENABLE_QDRANT_HTTP", "0") == "1",
         )

@@ -67,6 +67,8 @@ curl http://localhost:8080/health
 powershell -File scripts/dev/down.ps1
 ```
 
+Полный сценарий "5-10 минут до первого поиска": `docs/quickstart.md`.
+
 ## Первый поисковый запрос
 
 ```bash
@@ -167,18 +169,23 @@ powershell -File scripts/tests/validate_markdown_encoding.ps1
 - `specs/006-mcp-search-tools/`
 - `specs/007-secure-mcp-commands/`
 - `specs/008-quality-stability-tests/`
+
+## Contribution
+
+- `CONTRIBUTING.md` - правила contribution и PR-процесса.
+- `docs/release-checklist.md` - проверка перед публикацией релиза.
 ## Roadmap
 
 ### 0. Zero-Friction Setup (DX-first)
 
-- [ ] Возможность запустить стек, просто поместив `docker-compose.yml` в папку проекта
+- [x] Возможность запустить стек, просто поместив `docker-compose.yml` в папку проекта
 - [x] Автоматический mount текущей директории проекта
-- [ ] Минимальная конфигурация через `.env` (только необходимые переменные)
-- [ ] Автоматическое создание коллекции в Qdrant при старте
-- [ ] Автоматический запуск full-scan при первом запуске
+- [x] Минимальная конфигурация через `.env` (только необходимые переменные)
+- [x] Автоматическое создание коллекции в Qdrant при старте
+- [x] Автоматический запуск full-scan при первом запуске
 - [x] Понятные логи статуса индексации
-- [ ] Документация: "3 минуты до первого запроса"
-- [ ] Подключение к MCP-агенту без дополнительной ручной настройки
+- [x] Документация: "3 минуты до первого запроса"
+- [x] Подключение к MCP-агенту без дополнительной ручной настройки
 
 ### 1. Базовая инфраструктура
 
@@ -284,19 +291,19 @@ powershell -File scripts/tests/validate_markdown_encoding.ps1
 ### 10. Open-source упаковка
 
 - [x] Подробный README
-- [ ] Quickstart (5-10 минут до первого поиска)
+- [x] Quickstart (5-10 минут до первого поиска)
 - [x] Примеры `.env`
 - [x] Пример docker-compose
 - [x] Описание MCP-инструментов
 - [x] Архитектурная схема
-- [ ] CONTRIBUTING.md
+- [x] CONTRIBUTING.md
 - [x] LICENSE
-- [ ] Release checklist:
-  - [ ] версия
-  - [ ] changelog
-  - [ ] теги
-  - [ ] проверка Docker image
-  - [ ] проверка примеров
+- [x] Release checklist:
+  - [x] версия
+  - [x] changelog
+  - [x] теги
+  - [x] проверка Docker image
+  - [x] проверка примеров
 
 
 
