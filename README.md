@@ -59,6 +59,7 @@ The indexer behavior is preset-driven and still fully configurable:
 - `INDEX_EXCLUDE_PATTERNS`: directories/files to skip.
 - `INDEX_MODE=full-scan`: indexes the current workspace.
 - `INDEX_MODE=delta-after-commit`: for git repos, indexes only changed files.
+- `INDEX_MODE=watch`: continuously tracks create/update/delete and incrementally refreshes index.
 
 Practical model:
 
@@ -145,6 +146,8 @@ Indexing:
 - `POST /v1/indexing/ingestion/jobs`
 - `POST /v1/indexing/idempotency/jobs`
 - `POST /v1/indexing/delta-after-commit/jobs`
+- `GET /v1/indexing/watch/status`
+- `GET /v1/indexing/watch/summary`
 
 ## User documentation
 

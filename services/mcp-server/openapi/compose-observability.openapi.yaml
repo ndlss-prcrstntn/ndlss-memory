@@ -143,6 +143,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /v1/indexing/watch/status:
+    get:
+      summary: Получить текущее состояние watch-режима
+      operationId: getWatchStatus
+      responses:
+        "200":
+          description: Актуальный статус watch-loop
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchStatusResponse"
+        "503":
+          description: Watch режим недоступен или не запущен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/indexing/watch/summary:
+    get:
+      summary: Получить сводку последнего окна обработки watch-событий
+      operationId: getWatchSummary
+      responses:
+        "200":
+          description: Сводка последней обработки watch-событий
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchSummaryResponse"
+        "404":
+          description: Сводка пока недоступна
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Watch режим недоступен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     ServiceName:
@@ -289,7 +331,7 @@ components:
           type: string
         indexMode:
           type: string
-          enum: [full-scan, delta-after-commit]
+          enum: [full-scan, delta-after-commit, watch]
         mcpEndpoint:
           type: string
         collectionName:
@@ -444,6 +486,111 @@ components:
         collection:
           $ref: "#/components/schemas/CollectionReadinessSnapshot"
 
+    WatchStatusResponse:
+      type: object
+      required:
+        - mode
+        - state
+        - workspacePath
+        - startedAt
+        - lastHeartbeatAt
+        - queueDepth
+        - processedEvents
+        - failedEvents
+        - retryCount
+      properties:
+        mode:
+          type: string
+          enum: [watch]
+        state:
+          type: string
+          enum: [starting, running, recovering, failed, stopped]
+        workspacePath:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        lastHeartbeatAt:
+          type: string
+          format: date-time
+        lastEventAt:
+          type: string
+          format: date-time
+        queueDepth:
+          type: integer
+          minimum: 0
+        processedEvents:
+          type: integer
+          minimum: 0
+        failedEvents:
+          type: integer
+          minimum: 0
+        retryCount:
+          type: integer
+          minimum: 0
+        lastErrorCode:
+          type: string
+        lastErrorMessage:
+          type: string
+        backoffSeconds:
+          type: number
+          minimum: 0
+
+    WatchSummaryResponse:
+      type: object
+      required:
+        - summaryId
+        - status
+        - windowStartedAt
+        - windowFinishedAt
+        - affectedFiles
+        - indexedFiles
+        - deletedRecords
+        - skippedFiles
+        - failedFiles
+      properties:
+        summaryId:
+          type: string
+        status:
+          type: string
+          enum: [completed, partial, failed]
+        windowStartedAt:
+          type: string
+          format: date-time
+        windowFinishedAt:
+          type: string
+          format: date-time
+        affectedFiles:
+          type: array
+          items:
+            type: string
+        indexedFiles:
+          type: integer
+          minimum: 0
+        deletedRecords:
+          type: integer
+          minimum: 0
+        skippedFiles:
+          type: integer
+          minimum: 0
+        failedFiles:
+          type: integer
+          minimum: 0
+        reasonBreakdown:
+          type: array
+          items:
+            type: object
+            required: [code, count]
+            properties:
+              code:
+                type: string
+              count:
+                type: integer
+                minimum: 1
+        generatedAt:
+          type: string
+          format: date-time
+
     RuntimeConfig:
       type: object
       required:
@@ -466,7 +613,35 @@ components:
           type: integer
         indexMode:
           type: string
-          enum: [full-scan, delta-after-commit]
+          enum: [full-scan, delta-after-commit, watch]
+        watchPollIntervalSeconds:
+          type: integer
+          minimum: 1
+        watchCoalesceWindowSeconds:
+          type: integer
+          minimum: 1
+        watchReconcileIntervalSeconds:
+          type: integer
+          minimum: 1
+        watchRetryMaxAttempts:
+          type: integer
+          minimum: 1
+        watchRetryBaseDelaySeconds:
+          type: number
+          minimum: 0
+        watchRetryMaxDelaySeconds:
+          type: number
+          minimum: 0
+        watchHeartbeatIntervalSeconds:
+          type: integer
+          minimum: 1
+        watchMaxEventsPerCycle:
+          type: integer
+          minimum: 1
+        watchStatus:
+          $ref: "#/components/schemas/WatchStatusResponse"
+        watchSummary:
+          $ref: "#/components/schemas/WatchSummaryResponse"
         startupPreflightEnabled:
           type: string
         startupPreflightTimeoutSeconds:

@@ -11,6 +11,8 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
 $composeFile = Join-Path $root "infra\\docker\\docker-compose.yml"
 $envFile = Join-Path $root ".env.example"
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
 $manageComposeLifecycle = -not $SkipComposeLifecycle
 
 function Invoke-Compose {
@@ -53,10 +55,7 @@ function Wait-Health {
     throw "MCP server health did not become ok in time"
 }
 
-$baseUrl = "http://localhost:8080"
-if ($env:MCP_PORT) {
-    $baseUrl = "http://localhost:$($env:MCP_PORT)"
-}
+$baseUrl = Get-TestBaseUrl
 
 $artifactDir = Join-Path $root "tests/artifacts/quality-stability"
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null

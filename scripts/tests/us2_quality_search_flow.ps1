@@ -9,12 +9,11 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 }
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
 & (Join-Path $root "scripts\tests\ingestion_test_env.ps1") -WorkspacePath "tests/fixtures/idempotency" | Out-Null
 
-$baseUrl = "http://localhost:8080"
-if ($env:MCP_PORT) {
-    $baseUrl = "http://localhost:$($env:MCP_PORT)"
-}
+$baseUrl = Get-TestBaseUrl
 $composeFile = Join-Path $root "infra\docker\docker-compose.yml"
 $envFile = Join-Path $root ".env.example"
 $tempEnvFile = Join-Path $env:TEMP "ndlss-memory-us2-quality.env"
@@ -25,7 +24,7 @@ $artifactDir = Join-Path $root "tests/artifacts/quality-stability"
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 $artifactPath = Join-Path $artifactDir "us2-integration-summary.json"
 $workspacePathContainer = "/workspace/tests/fixtures/idempotency"
-$qdrantPort = if ($env:QDRANT_PORT) { $env:QDRANT_PORT } else { "6333" }
+$qdrantPort = Get-TestQdrantPort
 $qdrantBaseUrl = "http://localhost:$qdrantPort"
 $qdrantCollection = if ($env:QDRANT_COLLECTION_NAME) { $env:QDRANT_COLLECTION_NAME } else { "workspace_chunks" }
 $embeddingVectorSize = if ($env:INGESTION_EMBEDDING_VECTOR_SIZE) { [int]$env:INGESTION_EMBEDDING_VECTOR_SIZE } else { 16 }

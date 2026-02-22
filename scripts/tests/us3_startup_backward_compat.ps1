@@ -2,6 +2,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
+$baseUrl = Get-TestBaseUrl
 
 function Wait-HealthOk {
     param(
@@ -28,11 +31,11 @@ Push-Location $root
 try {
     docker compose up -d --build | Out-Null
 
-    Wait-HealthOk -Url "http://localhost:8080" -TimeoutSeconds 60
+    Wait-HealthOk -Url $baseUrl -TimeoutSeconds 60
 
-    $null = Invoke-RestMethod -Method Get -Uri "http://localhost:8080/v1/system/status"
-    $config = Invoke-RestMethod -Method Get -Uri "http://localhost:8080/v1/system/config"
-    $null = Invoke-RestMethod -Method Post -Uri "http://localhost:8080/v1/search/semantic" -ContentType "application/json" -Body '{"query":"healthcheck","limit":1}'
+    $null = Invoke-RestMethod -Method Get -Uri "$baseUrl/v1/system/status"
+    $config = Invoke-RestMethod -Method Get -Uri "$baseUrl/v1/system/config"
+    $null = Invoke-RestMethod -Method Post -Uri "$baseUrl/v1/search/semantic" -ContentType "application/json" -Body '{"query":"healthcheck","limit":1}'
 
     if (-not $config.startupReadiness) {
         throw "startupReadiness is missing from /v1/system/config response"

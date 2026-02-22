@@ -29,6 +29,7 @@ class IngestionRunRecord:
     error_message: str | None = None
     summary: dict[str, Any] | None = None
     bootstrap: dict[str, Any] | None = None
+    watch_activity: dict[str, Any] | None = None
 
     def as_status(self) -> dict[str, Any]:
         payload = {
@@ -45,6 +46,8 @@ class IngestionRunRecord:
         }
         if self.bootstrap is not None:
             payload["bootstrap"] = self.bootstrap
+        if self.watch_activity is not None:
+            payload["watch"] = self.watch_activity
         return payload
 
 
@@ -99,6 +102,8 @@ class IngestionState:
             record.retry_count = int(summary.get("retryCount", record.retry_count))
             if record.bootstrap is not None and isinstance(record.summary, dict):
                 record.summary.setdefault("bootstrap", record.bootstrap)
+            if record.watch_activity is not None and isinstance(record.summary, dict):
+                record.summary.setdefault("watch", record.watch_activity)
             if self._active_run_id == run_id:
                 self._active_run_id = None
             return record

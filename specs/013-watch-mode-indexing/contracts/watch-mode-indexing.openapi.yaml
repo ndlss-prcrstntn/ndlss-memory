@@ -1,0 +1,172 @@
+﻿openapi: 3.1.0
+info:
+  title: Watch Mode Indexing Observability API
+  version: 0.2.2
+  description: >-
+    Контракт наблюдаемости и состояния непрерывного режима INDEX_MODE=watch.
+servers:
+  - url: http://localhost:{mcp_port}
+    variables:
+      mcp_port:
+        default: "8080"
+paths:
+  /v1/indexing/watch/status:
+    get:
+      summary: Получить текущее состояние watch-режима
+      operationId: getWatchStatus
+      responses:
+        "200":
+          description: Актуальное состояние watcher-а
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchStatusResponse"
+        "503":
+          description: Watch-режим недоступен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/indexing/watch/summary:
+    get:
+      summary: Получить сводку последнего окна инкрементальной обработки
+      operationId: getWatchSummary
+      responses:
+        "200":
+          description: Сводка последней обработки событий watch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WatchSummaryResponse"
+        "404":
+          description: Сводка еще недоступна
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Watch-режим недоступен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    WatchStatusResponse:
+      type: object
+      required:
+        - mode
+        - state
+        - workspacePath
+        - startedAt
+        - lastHeartbeatAt
+        - queueDepth
+        - processedEvents
+        - failedEvents
+        - retryCount
+      properties:
+        mode:
+          type: string
+          enum: [watch]
+        state:
+          type: string
+          enum: [starting, running, recovering, failed, stopped]
+        workspacePath:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        lastHeartbeatAt:
+          type: string
+          format: date-time
+        lastEventAt:
+          type: string
+          format: date-time
+        queueDepth:
+          type: integer
+          minimum: 0
+        processedEvents:
+          type: integer
+          minimum: 0
+        failedEvents:
+          type: integer
+          minimum: 0
+        retryCount:
+          type: integer
+          minimum: 0
+        lastErrorCode:
+          type: string
+        lastErrorMessage:
+          type: string
+        backoffSeconds:
+          type: number
+          minimum: 0
+
+    WatchSummaryResponse:
+      type: object
+      required:
+        - summaryId
+        - status
+        - windowStartedAt
+        - windowFinishedAt
+        - affectedFiles
+        - indexedFiles
+        - deletedRecords
+        - skippedFiles
+        - failedFiles
+      properties:
+        summaryId:
+          type: string
+        status:
+          type: string
+          enum: [completed, partial, failed]
+        windowStartedAt:
+          type: string
+          format: date-time
+        windowFinishedAt:
+          type: string
+          format: date-time
+        affectedFiles:
+          type: array
+          items:
+            type: string
+        indexedFiles:
+          type: integer
+          minimum: 0
+        deletedRecords:
+          type: integer
+          minimum: 0
+        skippedFiles:
+          type: integer
+          minimum: 0
+        failedFiles:
+          type: integer
+          minimum: 0
+        reasonBreakdown:
+          type: array
+          items:
+            type: object
+            required: [code, count]
+            properties:
+              code:
+                type: string
+              count:
+                type: integer
+                minimum: 1
+        generatedAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true

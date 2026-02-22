@@ -1,5 +1,8 @@
 ﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
 
 function New-QualityRunReport {
     param(
@@ -86,7 +89,7 @@ function Add-QualityFailure {
 }
 
 function Resolve-QdrantRuntimeConfig {
-    $externalPort = if ($env:QDRANT_PORT) { [int]$env:QDRANT_PORT } else { 6333 }
+    $externalPort = [int](Get-TestQdrantPort)
     $internalPort = if ($env:QDRANT_API_PORT) { [int]$env:QDRANT_API_PORT } else { 6333 }
     $host = if ($env:QDRANT_HOST) { $env:QDRANT_HOST } else { "qdrant" }
     return [ordered]@{
@@ -97,3 +100,4 @@ function Resolve-QdrantRuntimeConfig {
         internalBaseUrl = "http://$host`:$internalPort"
     }
 }
+

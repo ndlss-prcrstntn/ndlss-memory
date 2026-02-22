@@ -8,6 +8,8 @@ $ErrorActionPreference = "Stop"
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
     $PSNativeCommandUseErrorActionPreference = $false
 }
+. (Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..\\..")) "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
 
 function Invoke-Compose {
     param([string[]]$ComposeArgs)
@@ -55,7 +57,7 @@ try {
     }
 
     try {
-        $health = Invoke-RestMethod -Uri "http://localhost:8080/health" -Method Get -TimeoutSec 10
+        $health = Invoke-RestMethod -Uri "$(Get-TestBaseUrl)/health" -Method Get -TimeoutSec 10
         if ($health.status -ne "ok") {
             throw "Unexpected health status"
         }

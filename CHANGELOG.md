@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.3 - 2026-02-22
+
+- Added continuous watch indexing mode (`INDEX_MODE=watch`) with incremental create/update/delete processing:
+  - watcher runtime models/state/coalescing/orchestration in `mcp-server`;
+  - runtime validation and compose/env support for watch-specific settings;
+  - compatibility preserved for `full-scan` and `delta-after-commit` modes.
+- Added watch-mode observability APIs and contract updates:
+  - `GET /v1/indexing/watch/status` and `GET /v1/indexing/watch/summary`;
+  - expanded readiness/status summaries with watch activity fields;
+  - synchronized OpenAPI docs for service and feature contracts.
+- Added watch-mode quality coverage:
+  - unit tests for watch state and retry policy;
+  - integration tests for incremental updates, deletes, burst handling, recovery, observability, and regression compatibility;
+  - contract tests for watch status/summary endpoints.
+- Stabilized compose-based quality runs by isolating test ports and hardening startup smoke scripts:
+  - centralized test port defaults (`TEST_MCP_PORT=18080`, `TEST_QDRANT_PORT=16333`);
+  - removed hardcoded `localhost:8080/6333` usage in quality scripts;
+  - improved `startup_preflight_smoke` compose invocation handling to prevent false failures.
+
 ## 0.2.2 - 2026-02-22
 
 - Added first-run bootstrap indexing for fresh workspaces:

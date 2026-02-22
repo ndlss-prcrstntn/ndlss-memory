@@ -1,10 +1,15 @@
-param(
-    [string]$BaseUrl = "http://localhost:8080",
+﻿param(
+    [string]$BaseUrl = "",
     [string]$WorkspacePath = "/workspace/tests/fixtures/full-scan",
     [int]$TimeoutSeconds = 60
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..\\..")) "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
+if (-not $BaseUrl) {
+    $BaseUrl = Get-TestBaseUrl
+}
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "scripts/tests/full_scan_test_env.ps1"
 
@@ -31,4 +36,5 @@ if (-not ($codes -contains "EXCLUDED_BY_PATTERN")) {
 }
 
 Write-Host "US2 full scan filtering check passed"
+
 

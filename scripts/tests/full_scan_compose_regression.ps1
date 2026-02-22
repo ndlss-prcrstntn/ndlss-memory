@@ -8,11 +8,15 @@ $ErrorActionPreference = "Stop"
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
     $PSNativeCommandUseErrorActionPreference = $false
 }
+$root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
 
 function Run-Checks {
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts/tests/us1_full_scan_recursive_indexing.ps1"
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts/tests/us2_full_scan_filtering.ps1"
-    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts/tests/us3_full_scan_resilience.ps1"
+    $baseUrl = Get-TestBaseUrl
+    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts/tests/us1_full_scan_recursive_indexing.ps1" -BaseUrl $baseUrl
+    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts/tests/us2_full_scan_filtering.ps1" -BaseUrl $baseUrl
+    powershell -NoProfile -ExecutionPolicy Bypass -File "scripts/tests/us3_full_scan_resilience.ps1" -BaseUrl $baseUrl
 }
 
 function Invoke-Compose {
@@ -62,7 +66,7 @@ try {
     Invoke-Compose -ComposeArgs @('-f', $ComposeFile, '--env-file', $tempEnv, 'up', '-d', '--build')
     Start-Sleep -Seconds $WaitSeconds
 
-    $cfg = Invoke-RestMethod -Uri "http://localhost:8080/v1/system/config" -Method Get -TimeoutSec 10
+    $cfg = Invoke-RestMethod -Uri "$(Get-TestBaseUrl)/v1/system/config" -Method Get -TimeoutSec 10
     if ($cfg.indexMode -ne "delta-after-commit") {
         throw "Expected delta-after-commit mode after env override"
     }

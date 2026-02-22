@@ -15,6 +15,8 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 }
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
 $composeFile = Join-Path $root "infra\\docker\\docker-compose.yml"
 $envFile = Join-Path $root ".env.example"
 $tempEnvFile = Join-Path $env:TEMP "ndlss-memory-startup-bootstrap.env"
@@ -22,6 +24,12 @@ $artifactDir = Join-Path $root "tests/artifacts/quality-stability"
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 if (-not $ArtifactPath) {
     $ArtifactPath = Join-Path $artifactDir "startup-bootstrap-smoke.json"
+}
+if (-not $PSBoundParameters.ContainsKey("McpPort")) {
+    $McpPort = [int](Get-TestMcpPort)
+}
+if (-not $PSBoundParameters.ContainsKey("QdrantPort")) {
+    $QdrantPort = [int](Get-TestQdrantPort)
 }
 
 $startedByScript = $false
@@ -163,3 +171,5 @@ finally {
         Remove-Item -LiteralPath $tempEnvFile -Force -ErrorAction SilentlyContinue
     }
 }
+
+$global:LASTEXITCODE = 0

@@ -39,6 +39,8 @@ from startup_preflight_errors import (
 )
 from startup_readiness_summary import build_startup_readiness_summary
 from startup_preflight_state import STATE as STARTUP_PREFLIGHT_STATE
+from watch_mode_orchestrator import WatchModeOrchestrator
+from watch_mode_state import STATE as WATCH_STATE
 
 SERVICE_NAMES = ("qdrant", "file-indexer", "mcp-server")
 STATUS_ENV_MAP = {
@@ -54,6 +56,7 @@ MCP_DISPATCHER = register_mcp_transport_routes(app)
 BOOTSTRAP_ORCHESTRATOR = BootstrapOrchestrator()
 STARTUP_PREFLIGHT_CONTEXT: dict | None = None
 STARTUP_PREFLIGHT_CHECKS: list = []
+WATCH_ORCHESTRATOR: WatchModeOrchestrator | None = None
 
 API_COMMANDS = [
     {
@@ -218,6 +221,18 @@ API_COMMANDS = [
         "path": "/v1/indexing/delta-after-commit/jobs/{runId}/summary",
         "description": "Get delta-after-commit job summary",
     },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/watch/status",
+        "description": "Get watch mode runtime status",
+    },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/watch/summary",
+        "description": "Get watch mode last batch summary",
+    },
 ]
 
 
@@ -284,6 +299,29 @@ def get_command_execution_service() -> CommandExecutionService:
         ),
     )
     return COMMAND_EXECUTION_SERVICE
+
+
+def _is_watch_mode_enabled() -> bool:
+    return os.getenv("INDEX_MODE", "full-scan") == "watch"
+
+
+def get_watch_orchestrator() -> WatchModeOrchestrator:
+    global WATCH_ORCHESTRATOR
+    if WATCH_ORCHESTRATOR is None:
+        WATCH_ORCHESTRATOR = WatchModeOrchestrator(
+            workspace_path=os.getenv("WORKSPACE_PATH", "/workspace"),
+            state=WATCH_STATE,
+        )
+    return WATCH_ORCHESTRATOR
+
+
+def _start_watch_mode_if_needed() -> None:
+    if not _is_watch_mode_enabled():
+        return
+    orchestrator = get_watch_orchestrator()
+    started = orchestrator.start()
+    if started:
+        print(json.dumps({"event": "watch-loop-started", "workspacePath": os.getenv("WORKSPACE_PATH", "/workspace")}, ensure_ascii=False))
 
 
 def _is_excluded(path: Path, patterns: list[str]) -> bool:
@@ -612,6 +650,8 @@ def _start_ingestion_run(
     bootstrap_context: dict | None = None,
 ):
     run = INGESTION_STATE.create_run(workspace_path=workspace_path, bootstrap=bootstrap_context)
+    if _is_watch_mode_enabled():
+        INGESTION_STATE.update_run(run.run_id, watch_activity=WATCH_STATE.get_status())
     Thread(target=_run_ingestion_job, args=(run.run_id, workspace_path, payload), daemon=True).start()
     return run
 
@@ -650,6 +690,16 @@ def build_runtime_config() -> dict:
         "deltaIncludeRenames": os.getenv("DELTA_INCLUDE_RENAMES", "1"),
         "deltaEnableFallback": os.getenv("DELTA_ENABLE_FALLBACK", "1"),
         "deltaBootstrapOnStart": os.getenv("DELTA_BOOTSTRAP_ON_START", "0"),
+        "watchPollIntervalSeconds": _parse_int_env("WATCH_POLL_INTERVAL_SECONDS", 5),
+        "watchCoalesceWindowSeconds": _parse_int_env("WATCH_COALESCE_WINDOW_SECONDS", 2),
+        "watchReconcileIntervalSeconds": _parse_int_env("WATCH_RECONCILE_INTERVAL_SECONDS", 60),
+        "watchRetryMaxAttempts": _parse_int_env("WATCH_RETRY_MAX_ATTEMPTS", 5),
+        "watchRetryBaseDelaySeconds": float(os.getenv("WATCH_RETRY_BASE_DELAY_SECONDS", "1")),
+        "watchRetryMaxDelaySeconds": float(os.getenv("WATCH_RETRY_MAX_DELAY_SECONDS", "30")),
+        "watchHeartbeatIntervalSeconds": _parse_int_env("WATCH_HEARTBEAT_INTERVAL_SECONDS", 30),
+        "watchMaxEventsPerCycle": _parse_int_env("WATCH_MAX_EVENTS_PER_CYCLE", 200),
+        "watchStatus": WATCH_STATE.get_status(),
+        "watchSummary": WATCH_STATE.get_last_summary(),
         "idempotencyHashAlgorithm": os.getenv("IDEMPOTENCY_HASH_ALGORITHM", "sha256"),
         "idempotencySkipUnchanged": os.getenv("IDEMPOTENCY_SKIP_UNCHANGED", "1"),
         "idempotencyEnableStaleCleanup": os.getenv("IDEMPOTENCY_ENABLE_STALE_CLEANUP", "1"),
@@ -988,6 +1038,8 @@ def get_ingestion_job_status(run_id: str):
     payload["persistence"] = build_ingestion_persistence_diagnostics()
     if "bootstrap" not in payload:
         payload["bootstrap"] = BOOTSTRAP_ORCHESTRATOR.get_bootstrap_payload(run.workspace_path)
+    if _is_watch_mode_enabled():
+        payload.setdefault("watch", WATCH_STATE.get_status())
     payload["collection"] = BOOTSTRAP_ORCHESTRATOR.get_collection_payload()
     return jsonify(payload)
 
@@ -1004,6 +1056,8 @@ def get_ingestion_job_summary(run_id: str):
     payload = dict(run.summary)
     payload["persistence"] = build_ingestion_persistence_diagnostics()
     payload.setdefault("bootstrap", run.bootstrap or BOOTSTRAP_ORCHESTRATOR.get_bootstrap_payload(run.workspace_path))
+    if _is_watch_mode_enabled():
+        payload.setdefault("watch", WATCH_STATE.get_status())
     payload["collection"] = BOOTSTRAP_ORCHESTRATOR.get_collection_payload()
     return jsonify(payload)
 
@@ -1087,8 +1141,63 @@ def get_delta_after_commit_job_summary(run_id: str):
     return jsonify(run.summary)
 
 
+@app.get("/v1/indexing/watch/status")
+def get_watch_mode_status():
+    if not _is_watch_mode_enabled():
+        return (
+            jsonify(
+                {
+                    "errorCode": "WATCH_MODE_DISABLED",
+                    "message": "Watch mode is available only when INDEX_MODE=watch",
+                }
+            ),
+            503,
+        )
+
+    payload = WATCH_STATE.get_status()
+    if payload.get("state") == "stopped" and not get_watch_orchestrator().is_running:
+        return (
+            jsonify(
+                {
+                    "errorCode": "WATCH_NOT_RUNNING",
+                    "message": "Watch loop is not running",
+                    "details": payload,
+                }
+            ),
+            503,
+        )
+    return jsonify(payload)
+
+
+@app.get("/v1/indexing/watch/summary")
+def get_watch_mode_summary():
+    if not _is_watch_mode_enabled():
+        return (
+            jsonify(
+                {
+                    "errorCode": "WATCH_MODE_DISABLED",
+                    "message": "Watch mode is available only when INDEX_MODE=watch",
+                }
+            ),
+            503,
+        )
+    summary = WATCH_STATE.get_last_summary()
+    if summary is None:
+        return (
+            jsonify(
+                {
+                    "errorCode": "WATCH_SUMMARY_NOT_FOUND",
+                    "message": "Watch summary is not available yet",
+                }
+            ),
+            404,
+        )
+    return jsonify(summary)
+
+
 if __name__ == "__main__":
     _run_startup_preflight_or_exit()
+    _start_watch_mode_if_needed()
     port = int(os.getenv("MCP_PORT", "8080"))
     app.run(host="0.0.0.0", port=port)
 

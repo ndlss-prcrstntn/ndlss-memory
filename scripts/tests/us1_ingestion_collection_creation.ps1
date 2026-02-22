@@ -9,6 +9,8 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 }
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
 & (Join-Path $root "scripts/tests/ingestion_test_env.ps1") -WorkspacePath "tests/fixtures/idempotency" | Out-Null
 
 $composeFile = Join-Path $root "infra\\docker\\docker-compose.yml"
@@ -20,8 +22,8 @@ $artifactDir = Join-Path $root "tests/artifacts/quality-stability"
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 $artifactPath = Join-Path $artifactDir "us1-ingestion-collection-summary.json"
 
-$mcpPort = if ($env:MCP_PORT) { $env:MCP_PORT } else { "8080" }
-$qdrantPort = if ($env:QDRANT_PORT) { $env:QDRANT_PORT } else { "6333" }
+$mcpPort = Get-TestMcpPort
+$qdrantPort = Get-TestQdrantPort
 $baseUrl = "http://localhost:$mcpPort"
 $qdrantBaseUrl = "http://localhost:$qdrantPort"
 $workspacePathContainer = "/workspace/tests/fixtures/idempotency"

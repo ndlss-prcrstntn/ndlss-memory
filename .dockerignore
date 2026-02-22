@@ -12,5 +12,7 @@ build/
 !.env.example
 __pycache__/
 *.pyc
+.venv/
+venv/
 .vscode/
 .idea/

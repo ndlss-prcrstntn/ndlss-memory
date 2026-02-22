@@ -7,6 +7,8 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
 $composeFile = Join-Path $root "infra\\docker\\docker-compose.yml"
 $envFile = Join-Path $root ".env.example"
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
 
 function Invoke-Compose {
     param([string[]]$ComposeArgs)

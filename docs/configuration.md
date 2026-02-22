@@ -7,7 +7,7 @@
 - `QDRANT_PORT`: внешний host-порт Qdrant (только публикация на localhost).
 - `QDRANT_API_PORT`: внутренний порт Qdrant для связи сервисов внутри docker-сети (`mcp-server`/`file-indexer` -> `qdrant`).
 - `MCP_PORT`: внешний порт mcp-server.
-- `INDEX_MODE`: `full-scan` или `delta-after-commit`.
+- `INDEX_MODE`: `full-scan`, `delta-after-commit` или `watch`.
 - `INDEX_FILE_TYPES`: расширения индексируемых файлов через запятую.
 - `INDEX_EXCLUDE_PATTERNS`: исключаемые каталоги/паттерны.
 - `INDEX_MAX_FILE_SIZE_BYTES`: лимит размера файла для Full Scan.
@@ -26,6 +26,14 @@
 - `DELTA_INCLUDE_RENAMES`: `1` включает обработку rename как remove old + index new.
 - `DELTA_ENABLE_FALLBACK`: `1` включает автоматический фоллбек на full-scan при ошибке git diff.
 - `DELTA_BOOTSTRAP_ON_START`: `1` выполняет bootstrap delta-run при старте контейнера в режиме `delta-after-commit`.
+- `WATCH_POLL_INTERVAL_SECONDS`: частота polling-цикла watcher.
+- `WATCH_COALESCE_WINDOW_SECONDS`: окно коалесценции burst-событий.
+- `WATCH_RECONCILE_INTERVAL_SECONDS`: период fallback reconcile-сверки индекса с workspace.
+- `WATCH_RETRY_MAX_ATTEMPTS`: максимум retry при ошибках watcher loop.
+- `WATCH_RETRY_BASE_DELAY_SECONDS`: базовый backoff для retry.
+- `WATCH_RETRY_MAX_DELAY_SECONDS`: верхняя граница backoff.
+- `WATCH_HEARTBEAT_INTERVAL_SECONDS`: интервал heartbeat в статусе watch-runtime.
+- `WATCH_MAX_EVENTS_PER_CYCLE`: лимит событий в одном цикле обработки.
 - `QDRANT_COLLECTION_NAME`: имя коллекции векторных данных.
 - `IDEMPOTENCY_HASH_ALGORITHM`: алгоритм fingerprint (должен быть `sha256`).
 - `IDEMPOTENCY_SKIP_UNCHANGED`: `1` пропускает неизмененные файлы до upsert.
@@ -61,6 +69,8 @@
 - Держите `INGESTION_CHUNK_OVERLAP` меньше `INGESTION_CHUNK_SIZE`.
 - Для `delta-after-commit` задавайте валидные `DELTA_GIT_BASE_REF`/`DELTA_GIT_TARGET_REF`
   относительно mounted workspace.
+- Для `watch` держите `WATCH_RECONCILE_INTERVAL_SECONDS` включенным (>= 30) для автоматической
+  компенсации пропущенных FS-событий.
 - Держите `DELTA_ENABLE_FALLBACK=1`, если требуется автоматическое восстановление
   при ошибках Git-диффа.
 - Для реальной индексации через MCP обязательно держите `INGESTION_ENABLE_QDRANT_HTTP=1`.
@@ -92,6 +102,13 @@
 - `GET /v1/indexing/ingestion/jobs/{runId}` и `/summary` включают:
   - `bootstrap` контекст запуска;
   - `collection` snapshot для верификации готовности индекса.
+- `GET /v1/indexing/watch/status` возвращает:
+  - текущее состояние (`starting/running/recovering/failed/stopped`);
+  - глубину очереди, счетчики обработанных/ошибочных событий;
+  - последнюю ошибку и backoff.
+- `GET /v1/indexing/watch/summary` возвращает:
+  - итоги последнего окна обработки (`indexedFiles/deletedRecords/skippedFiles/failedFiles`);
+  - затронутые файлы и reason breakdown.
 
 ## MCP transport troubleshooting
 

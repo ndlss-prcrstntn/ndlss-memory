@@ -15,6 +15,8 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
 $runner = Join-Path $root "scripts/tests/quality_gate_runner.ps1"
 $regressionLog = Join-Path $root "$ArtifactsDir/final-regression-log.md"
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
 New-Item -ItemType Directory -Path (Split-Path -Parent $regressionLog) -Force | Out-Null
 
 $runnerParams = @{
@@ -38,6 +40,7 @@ $header | Set-Content -Path $regressionLog -Encoding utf8
 
 Write-Host "[suite] started at $($start.ToString('o'))"
 Write-Host "[suite] args: $argText"
+Write-Host "[suite] using ports: MCP_PORT=$($env:MCP_PORT), QDRANT_PORT=$($env:QDRANT_PORT)"
 Write-Host "[suite] includes us1_persistence, us2_custom_port, startup_preflight, startup_bootstrap, and mcp_transport stages via quality_gate_runner.ps1"
 $runnerOutput = & $runner @runnerParams *>&1 | ForEach-Object {
     $line = if ($_ -is [System.Management.Automation.ErrorRecord]) {

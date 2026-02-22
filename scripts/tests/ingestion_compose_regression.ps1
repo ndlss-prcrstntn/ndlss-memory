@@ -7,6 +7,7 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
 $compose = Join-Path $root "infra\\docker\\docker-compose.yml"
 $envFile = Join-Path $root ".env.example"
+. (Join-Path $root "scripts/tests/test_ports.ps1")
 $debugLog = Join-Path $root "tests\\artifacts\\quality-stability\\ingestion-compose-debug.log"
 $previousEnableHttp = [Environment]::GetEnvironmentVariable("INGESTION_ENABLE_QDRANT_HTTP", "Process")
 
@@ -85,6 +86,7 @@ function Invoke-ComposeUpWithRetry {
 }
 
 try {
+    Set-DefaultTestPorts
     & (Join-Path $root "scripts\\tests\\ingestion_test_env.ps1") | Out-Null
     $env:INGESTION_ENABLE_QDRANT_HTTP = "1"
     Invoke-ComposeUpWithRetry -MaxAttempts 3 -RetryDelaySeconds 4
@@ -95,10 +97,7 @@ try {
     & (Join-Path $root "scripts\\tests\\us2_quality_search_flow.ps1") -SkipComposeLifecycle
     & (Join-Path $root "scripts\\tests\\us3_metadata_traceability.ps1")
 
-    $baseUrl = "http://localhost:8080"
-    if ($env:MCP_PORT) {
-        $baseUrl = "http://localhost:$($env:MCP_PORT)"
-    }
+    $baseUrl = Get-TestBaseUrl
     $search = Invoke-RestMethod -Method Post -Uri "$baseUrl/v1/search/semantic" -ContentType "application/json" -Body '{"query":"readme","limit":3}'
     if (-not ($search.PSObject.Properties.Name -contains "results")) {
         throw "Ingestion regression search response has no results field"

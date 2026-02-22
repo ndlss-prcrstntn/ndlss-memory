@@ -61,6 +61,38 @@ if [ -z "${DELTA_BOOTSTRAP_ON_START:-}" ]; then
   export DELTA_BOOTSTRAP_ON_START="0"
 fi
 
+if [ -z "${WATCH_POLL_INTERVAL_SECONDS:-}" ]; then
+  export WATCH_POLL_INTERVAL_SECONDS="5"
+fi
+
+if [ -z "${WATCH_COALESCE_WINDOW_SECONDS:-}" ]; then
+  export WATCH_COALESCE_WINDOW_SECONDS="2"
+fi
+
+if [ -z "${WATCH_RECONCILE_INTERVAL_SECONDS:-}" ]; then
+  export WATCH_RECONCILE_INTERVAL_SECONDS="60"
+fi
+
+if [ -z "${WATCH_RETRY_MAX_ATTEMPTS:-}" ]; then
+  export WATCH_RETRY_MAX_ATTEMPTS="5"
+fi
+
+if [ -z "${WATCH_RETRY_BASE_DELAY_SECONDS:-}" ]; then
+  export WATCH_RETRY_BASE_DELAY_SECONDS="1"
+fi
+
+if [ -z "${WATCH_RETRY_MAX_DELAY_SECONDS:-}" ]; then
+  export WATCH_RETRY_MAX_DELAY_SECONDS="30"
+fi
+
+if [ -z "${WATCH_HEARTBEAT_INTERVAL_SECONDS:-}" ]; then
+  export WATCH_HEARTBEAT_INTERVAL_SECONDS="30"
+fi
+
+if [ -z "${WATCH_MAX_EVENTS_PER_CYCLE:-}" ]; then
+  export WATCH_MAX_EVENTS_PER_CYCLE="200"
+fi
+
 if [ -z "${IDEMPOTENCY_HASH_ALGORITHM:-}" ]; then
   export IDEMPOTENCY_HASH_ALGORITHM="sha256"
 fi
@@ -100,6 +132,9 @@ touch /tmp/indexer_ready
 
 echo "file-indexer started in mode: ${INDEX_MODE}"
 echo "file-indexer watching workspace: ${WORKSPACE_PATH:-/workspace}"
+if [ "${INDEX_MODE}" = "watch" ]; then
+  echo "watch mode config poll=${WATCH_POLL_INTERVAL_SECONDS}s coalesce=${WATCH_COALESCE_WINDOW_SECONDS}s reconcile=${WATCH_RECONCILE_INTERVAL_SECONDS}s retryMax=${WATCH_RETRY_MAX_ATTEMPTS} retryBase=${WATCH_RETRY_BASE_DELAY_SECONDS}s retryMaxDelay=${WATCH_RETRY_MAX_DELAY_SECONDS}s maxEvents=${WATCH_MAX_EVENTS_PER_CYCLE}"
+fi
 if [ "${STARTUP_READY_SUMMARY_LOG_ENABLED}" = "1" ]; then
   echo "startup-ready summary service=file-indexer workspace=${WORKSPACE_PATH:-/workspace} mode=${INDEX_MODE} mcpEndpoint=${MCP_ENDPOINT_PATH} collection=${QDRANT_COLLECTION_NAME:-workspace_chunks}"
 fi
@@ -117,6 +152,6 @@ if [ "${INDEX_MODE}" = "delta-after-commit" ] && [ "${DELTA_BOOTSTRAP_ON_START}"
 fi
 
 while true; do
-  date -u +"%Y-%m-%dT%H:%M:%SZ file-indexer heartbeat mode=${INDEX_MODE}"
+  date -u +"%Y-%m-%dT%H:%M:%SZ file-indexer heartbeat mode=${INDEX_MODE} watchPoll=${WATCH_POLL_INTERVAL_SECONDS} watchQueueMax=${WATCH_MAX_EVENTS_PER_CYCLE}"
   sleep 30
 done

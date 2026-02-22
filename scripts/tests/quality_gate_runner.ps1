@@ -14,6 +14,8 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
 . (Join-Path $root "scripts/tests/quality_stage_helpers.ps1")
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
 
 $artifactRoot = Join-Path $root $ArtifactsDir
 New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null

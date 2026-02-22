@@ -18,7 +18,7 @@ if ($Help) {
     Write-Host "Options:"
     Write-Host "  -Json               Output in JSON format"
     Write-Host "  -ShortName <name>   Provide a custom short name (2-4 words) for the branch"
-    Write-Host "  -Number N           Specify branch number manually (overrides auto-detection)"
+    Write-Host "  -Number N           Preferred branch number; adjusted upward if already used"
     Write-Host "  -Help               Show this help message"
     Write-Host ""
     Write-Host "Examples:"
@@ -207,14 +207,20 @@ if ($ShortName) {
 }
 
 # Determine branch number
+if ($hasGit) {
+    # Global next number across all feature branches and specs
+    $nextAvailableNumber = Get-NextBranchNumber -SpecsDir $specsDir
+} else {
+    # Fall back to local directory check
+    $nextAvailableNumber = (Get-HighestNumberFromSpecs -SpecsDir $specsDir) + 1
+}
+
 if ($Number -eq 0) {
-    if ($hasGit) {
-        # Check existing branches on remotes
-        $Number = Get-NextBranchNumber -SpecsDir $specsDir
-    } else {
-        # Fall back to local directory check
-        $Number = (Get-HighestNumberFromSpecs -SpecsDir $specsDir) + 1
-    }
+    $Number = $nextAvailableNumber
+} elseif ($Number -lt $nextAvailableNumber) {
+    Write-Warning "[specify] Requested -Number $Number is already behind existing features."
+    Write-Warning "[specify] Auto-adjusting feature number to next available: $nextAvailableNumber"
+    $Number = $nextAvailableNumber
 }
 
 $featureNum = ('{0:000}' -f $Number)
@@ -280,4 +286,3 @@ if ($Json) {
     Write-Output "HAS_GIT: $hasGit"
     Write-Output "SPECIFY_FEATURE environment variable set to: $branchName"
 }
-

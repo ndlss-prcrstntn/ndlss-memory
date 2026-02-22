@@ -1,9 +1,9 @@
 ﻿{
-    "runId":  "e86de3c20dd94191b3e91cea498a23dd",
+    "runId":  "eaffb2fce6724d049e557091e3d8f2ac",
     "stageName":  "us1-ingestion-collection-creation",
     "status":  "passed",
-    "generatedAt":  "2026-02-22T17:51:28.9802231+03:00",
-    "ingestionRunId":  "6f47165c3f0a4cacaf14b0ec8344fc31",
+    "generatedAt":  "2026-02-22T22:39:59.6460007+03:00",
+    "ingestionRunId":  "0c4e34bb3979464db83a3a69f6afd310",
     "collectionName":  "workspace_chunks",
     "collectionMissingBefore":  true,
     "pointsCount":  7,
@@ -12,7 +12,7 @@
                         "ingestionEnableQdrantHttp":  "1",
                         "ingestionUpsertTimeoutSeconds":  5.0,
                         "qdrantApiPort":  6333,
-                        "qdrantExternalPort":  6333,
+                        "qdrantExternalPort":  16333,
                         "qdrantHost":  "qdrant"
                     }
 }

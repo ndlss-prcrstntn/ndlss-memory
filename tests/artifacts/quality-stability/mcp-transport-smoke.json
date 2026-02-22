@@ -1,7 +1,7 @@
 ﻿{
-    "runId":  "3993bbea415d42f4a3edd4e682378096",
+    "runId":  "6a51f2a45eb0488cbd675e91d3c43964",
     "status":  "passed",
-    "generatedAt":  "2026-02-22T17:51:04.2735874+03:00",
-    "baseUrl":  "http://localhost:8080",
+    "generatedAt":  "2026-02-22T22:39:31.9173824+03:00",
+    "baseUrl":  "http://localhost:18080",
     "discoveryTransportCount":  2
 }

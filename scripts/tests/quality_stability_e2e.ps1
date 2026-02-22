@@ -7,10 +7,14 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
 $compose = Join-Path $root "infra\\docker\\docker-compose.yml"
 $envFile = Join-Path $root ".env.example"
+. (Join-Path $root "scripts/tests/test_ports.ps1")
 $artifactDir = Join-Path $root "tests/artifacts/quality-stability"
 $artifactPath = Join-Path $artifactDir "us3-e2e-summary.json"
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 $previousEnableHttp = [Environment]::GetEnvironmentVariable("INGESTION_ENABLE_QDRANT_HTTP", "Process")
+$previousHostWorkspace = [Environment]::GetEnvironmentVariable("HOST_WORKSPACE_PATH", "Process")
+$previousMcpPort = [Environment]::GetEnvironmentVariable("MCP_PORT", "Process")
+$previousQdrantPort = [Environment]::GetEnvironmentVariable("QDRANT_PORT", "Process")
 
 function Invoke-Compose {
     param([string[]]$ComposeArgs)
@@ -38,13 +42,16 @@ function Invoke-Compose {
 }
 
 try {
+    Set-DefaultTestPorts
+    $baseUrl = Get-TestBaseUrl
     $env:INGESTION_ENABLE_QDRANT_HTTP = "1"
+    $env:HOST_WORKSPACE_PATH = "../.."
     Invoke-Compose -ComposeArgs @('-f', $compose, '--env-file', $envFile, 'up', '-d', '--build')
 
     $healthOk = $false
     for ($i = 0; $i -lt 120; $i++) {
         try {
-            $health = Invoke-RestMethod -Method Get -Uri "http://localhost:8080/health" -TimeoutSec 2
+            $health = Invoke-RestMethod -Method Get -Uri "$baseUrl/health" -TimeoutSec 2
             if ($health.status -eq "ok") {
                 $healthOk = $true
                 break
@@ -98,6 +105,21 @@ finally {
         Remove-Item Env:INGESTION_ENABLE_QDRANT_HTTP -ErrorAction SilentlyContinue
     } else {
         $env:INGESTION_ENABLE_QDRANT_HTTP = $previousEnableHttp
+    }
+    if ($null -eq $previousHostWorkspace) {
+        Remove-Item Env:HOST_WORKSPACE_PATH -ErrorAction SilentlyContinue
+    } else {
+        $env:HOST_WORKSPACE_PATH = $previousHostWorkspace
+    }
+    if ($null -eq $previousMcpPort) {
+        Remove-Item Env:MCP_PORT -ErrorAction SilentlyContinue
+    } else {
+        $env:MCP_PORT = $previousMcpPort
+    }
+    if ($null -eq $previousQdrantPort) {
+        Remove-Item Env:QDRANT_PORT -ErrorAction SilentlyContinue
+    } else {
+        $env:QDRANT_PORT = $previousQdrantPort
     }
     Invoke-Compose -ComposeArgs @('-f', $compose, '--env-file', $envFile, 'down')
 }

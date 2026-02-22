@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = "http://localhost:8080",
+    [string]$BaseUrl = "",
     [int]$ReadyTimeoutSeconds = 60,
     [ValidateSet("ready", "failfast-qdrant")]
     [string]$Mode = "ready",
@@ -14,6 +14,43 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 }
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
+. (Join-Path $root "scripts/tests/test_ports.ps1")
+Set-DefaultTestPorts
+if (-not $BaseUrl) {
+    $BaseUrl = Get-TestBaseUrl
+}
+
+function Invoke-Compose {
+    param(
+        [string[]]$ComposeArgs,
+        [switch]$ReturnOutput
+    )
+
+    $stdoutFile = [System.IO.Path]::GetTempFileName()
+    $stderrFile = [System.IO.Path]::GetTempFileName()
+    try {
+        $process = Start-Process -FilePath "docker" -ArgumentList (@("compose") + $ComposeArgs) -NoNewWindow -PassThru -Wait -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile
+        $stdout = if (Test-Path $stdoutFile) { Get-Content -LiteralPath $stdoutFile } else { @() }
+        $stderr = if (Test-Path $stderrFile) { Get-Content -LiteralPath $stderrFile } else { @() }
+        $combined = @($stdout + $stderr)
+
+        foreach ($line in $combined) {
+            if ($line -ne $null -and $line -ne "") {
+                Write-Host $line
+            }
+        }
+
+        if ($process.ExitCode -ne 0) {
+            throw "docker compose failed with exit code $($process.ExitCode) (args: $($ComposeArgs -join ' '))"
+        }
+
+        if ($ReturnOutput) {
+            return $combined
+        }
+    } finally {
+        Remove-Item -LiteralPath $stdoutFile, $stderrFile -Force -ErrorAction SilentlyContinue
+    }
+}
 
 function Save-StartupPreflightArtifact {
     param(
@@ -79,10 +116,10 @@ if ($Mode -eq "failfast-qdrant") {
     $previousQdrantHost = $env:QDRANT_HOST
     try {
         $env:QDRANT_HOST = "qdrant-unreachable"
-        docker compose up -d mcp-server | Out-Null
+        Invoke-Compose -ComposeArgs @("up", "-d", "mcp-server")
         Start-Sleep -Seconds 6
 
-        $logs = docker compose logs mcp-server --tail 200
+        $logs = Invoke-Compose -ComposeArgs @("logs", "mcp-server", "--tail", "200") -ReturnOutput
         if ($logs -notmatch "STARTUP_PREFLIGHT_FAILED") {
             throw "mcp-server logs do not contain STARTUP_PREFLIGHT_FAILED"
         }
@@ -99,7 +136,7 @@ if ($Mode -eq "failfast-qdrant") {
         } else {
             $env:QDRANT_HOST = $previousQdrantHost
         }
-        docker compose rm -fsv mcp-server | Out-Null
+        Invoke-Compose -ComposeArgs @("rm", "-fsv", "mcp-server")
         Pop-Location
     }
 }
@@ -108,7 +145,7 @@ $startedByScript = $false
 if (-not $SkipComposeStart) {
     Push-Location $root
     try {
-        docker compose up -d --build | Out-Null
+        Invoke-Compose -ComposeArgs @("up", "-d", "--build")
         $startedByScript = $true
     } finally {
         Pop-Location
@@ -137,9 +174,10 @@ try {
     if ($startedByScript) {
         Push-Location $root
         try {
-            docker compose down | Out-Null
+            Invoke-Compose -ComposeArgs @("down")
         } finally {
             Pop-Location
         }
     }
 }
+$global:LASTEXITCODE = 0

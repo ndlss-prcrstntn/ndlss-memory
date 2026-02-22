@@ -7,9 +7,9 @@ if [ -z "${INDEX_MODE:-}" ]; then
 fi
 
 case "$INDEX_MODE" in
-  full-scan|delta-after-commit) ;;
+  full-scan|delta-after-commit|watch) ;;
   *)
-    echo "INDEX_MODE must be full-scan or delta-after-commit"
+    echo "INDEX_MODE must be full-scan, delta-after-commit, or watch"
     exit 1
     ;;
 esac
@@ -76,6 +76,46 @@ fi
 
 if [ -z "${DELTA_BOOTSTRAP_ON_START:-}" ]; then
   echo "DELTA_BOOTSTRAP_ON_START is required"
+  exit 1
+fi
+
+if [ -z "${WATCH_POLL_INTERVAL_SECONDS:-}" ]; then
+  echo "WATCH_POLL_INTERVAL_SECONDS is required"
+  exit 1
+fi
+
+if [ -z "${WATCH_COALESCE_WINDOW_SECONDS:-}" ]; then
+  echo "WATCH_COALESCE_WINDOW_SECONDS is required"
+  exit 1
+fi
+
+if [ -z "${WATCH_RECONCILE_INTERVAL_SECONDS:-}" ]; then
+  echo "WATCH_RECONCILE_INTERVAL_SECONDS is required"
+  exit 1
+fi
+
+if [ -z "${WATCH_RETRY_MAX_ATTEMPTS:-}" ]; then
+  echo "WATCH_RETRY_MAX_ATTEMPTS is required"
+  exit 1
+fi
+
+if [ -z "${WATCH_RETRY_BASE_DELAY_SECONDS:-}" ]; then
+  echo "WATCH_RETRY_BASE_DELAY_SECONDS is required"
+  exit 1
+fi
+
+if [ -z "${WATCH_RETRY_MAX_DELAY_SECONDS:-}" ]; then
+  echo "WATCH_RETRY_MAX_DELAY_SECONDS is required"
+  exit 1
+fi
+
+if [ -z "${WATCH_HEARTBEAT_INTERVAL_SECONDS:-}" ]; then
+  echo "WATCH_HEARTBEAT_INTERVAL_SECONDS is required"
+  exit 1
+fi
+
+if [ -z "${WATCH_MAX_EVENTS_PER_CYCLE:-}" ]; then
+  echo "WATCH_MAX_EVENTS_PER_CYCLE is required"
   exit 1
 fi
 
@@ -181,6 +221,86 @@ fi
 
 if [ "$DELTA_BOOTSTRAP_ON_START" != "0" ] && [ "$DELTA_BOOTSTRAP_ON_START" != "1" ]; then
   echo "DELTA_BOOTSTRAP_ON_START must be 0 or 1"
+  exit 1
+fi
+
+if ! echo "$WATCH_POLL_INTERVAL_SECONDS" | grep -Eq '^[0-9]+$'; then
+  echo "WATCH_POLL_INTERVAL_SECONDS must be a positive integer"
+  exit 1
+fi
+
+if [ "$WATCH_POLL_INTERVAL_SECONDS" -lt 1 ]; then
+  echo "WATCH_POLL_INTERVAL_SECONDS must be >= 1"
+  exit 1
+fi
+
+if ! echo "$WATCH_COALESCE_WINDOW_SECONDS" | grep -Eq '^[0-9]+$'; then
+  echo "WATCH_COALESCE_WINDOW_SECONDS must be a positive integer"
+  exit 1
+fi
+
+if [ "$WATCH_COALESCE_WINDOW_SECONDS" -lt 1 ]; then
+  echo "WATCH_COALESCE_WINDOW_SECONDS must be >= 1"
+  exit 1
+fi
+
+if ! echo "$WATCH_RECONCILE_INTERVAL_SECONDS" | grep -Eq '^[0-9]+$'; then
+  echo "WATCH_RECONCILE_INTERVAL_SECONDS must be a positive integer"
+  exit 1
+fi
+
+if [ "$WATCH_RECONCILE_INTERVAL_SECONDS" -lt 1 ]; then
+  echo "WATCH_RECONCILE_INTERVAL_SECONDS must be >= 1"
+  exit 1
+fi
+
+if ! echo "$WATCH_RETRY_MAX_ATTEMPTS" | grep -Eq '^[0-9]+$'; then
+  echo "WATCH_RETRY_MAX_ATTEMPTS must be a positive integer"
+  exit 1
+fi
+
+if [ "$WATCH_RETRY_MAX_ATTEMPTS" -lt 1 ]; then
+  echo "WATCH_RETRY_MAX_ATTEMPTS must be >= 1"
+  exit 1
+fi
+
+if ! echo "$WATCH_RETRY_BASE_DELAY_SECONDS" | grep -Eq '^[0-9]+([.][0-9]+)?$'; then
+  echo "WATCH_RETRY_BASE_DELAY_SECONDS must be > 0"
+  exit 1
+fi
+
+if [ "$WATCH_RETRY_BASE_DELAY_SECONDS" = "0" ] || [ "$WATCH_RETRY_BASE_DELAY_SECONDS" = "0.0" ]; then
+  echo "WATCH_RETRY_BASE_DELAY_SECONDS must be > 0"
+  exit 1
+fi
+
+if ! echo "$WATCH_RETRY_MAX_DELAY_SECONDS" | grep -Eq '^[0-9]+([.][0-9]+)?$'; then
+  echo "WATCH_RETRY_MAX_DELAY_SECONDS must be > 0"
+  exit 1
+fi
+
+if [ "$WATCH_RETRY_MAX_DELAY_SECONDS" = "0" ] || [ "$WATCH_RETRY_MAX_DELAY_SECONDS" = "0.0" ]; then
+  echo "WATCH_RETRY_MAX_DELAY_SECONDS must be > 0"
+  exit 1
+fi
+
+if ! echo "$WATCH_HEARTBEAT_INTERVAL_SECONDS" | grep -Eq '^[0-9]+$'; then
+  echo "WATCH_HEARTBEAT_INTERVAL_SECONDS must be a positive integer"
+  exit 1
+fi
+
+if [ "$WATCH_HEARTBEAT_INTERVAL_SECONDS" -lt 1 ]; then
+  echo "WATCH_HEARTBEAT_INTERVAL_SECONDS must be >= 1"
+  exit 1
+fi
+
+if ! echo "$WATCH_MAX_EVENTS_PER_CYCLE" | grep -Eq '^[0-9]+$'; then
+  echo "WATCH_MAX_EVENTS_PER_CYCLE must be a positive integer"
+  exit 1
+fi
+
+if [ "$WATCH_MAX_EVENTS_PER_CYCLE" -lt 1 ]; then
+  echo "WATCH_MAX_EVENTS_PER_CYCLE must be >= 1"
   exit 1
 fi
 
