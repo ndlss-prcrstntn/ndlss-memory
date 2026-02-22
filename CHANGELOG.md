@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0 - 2026-02-22
+
+- Promoted `ndlss-memory` baseline to `0.2.0`.
+- Added versioned roadmap documentation:
+  - `docs/roadmaps/README.md`
+  - `docs/roadmaps/0.2.0.md`
+- Formalized roadmap `0..10` completion snapshot for the `0.2.0` release line.
+- Consolidated production-ready stack capabilities from `0.1.x`:
+  - no-clone startup with image presets (`generic`, `python`, `typescript`, `javascript`, `java-kotlin`, `csharp`, `go`)
+  - indexing pipelines (`full-scan`, `ingestion`, `idempotency`, `delta-after-commit`)
+  - MCP transport (`/mcp`, `/.well-known/mcp`, legacy SSE fallback)
+  - secure MCP command execution runtime
+  - Qdrant persistence reliability (`QDRANT_API_PORT`, ingestion HTTP upsert defaults)
+  - quality/stability coverage (unit, integration, contract, E2E smoke flows)
+- Updated README links to include roadmap docs for release tracking.
+
 ## 0.1.7 - 2026-02-22
 
 - Fixed MCP ingestion persistence reliability:

@@ -121,6 +121,8 @@ Indexing:
 - `docs/mcp-client-config.example.json`
 - `docs/configuration.md`
 - `docs/release-checklist.md`
+- `docs/roadmaps/README.md`
+- `docs/roadmaps/0.2.0.md`
 - `CONTRIBUTING.md`
 
 ## Local development (clone-based)
@@ -140,4 +142,5 @@ powershell -File scripts/tests/run_quality_stability_suite.ps1
 
 ## Roadmap status
 
-All milestones `0` through `10` are currently implemented.
+Roadmap snapshots are versioned in `docs/roadmaps/`.
+Current baseline release roadmap: `docs/roadmaps/0.2.0.md`.

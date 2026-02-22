@@ -69,7 +69,7 @@ Image override example:
 
 ```powershell
 $env:NDLSS_DOCKERHUB_NAMESPACE="ndlss"
-$env:NDLSS_IMAGE_TAG="0.1.7"
+$env:NDLSS_IMAGE_TAG="0.2.0"
 docker compose -f ndlss-compose.yml up -d
 ```
 
