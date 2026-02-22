@@ -6,7 +6,7 @@ Image presets:
 - Pull prebuilt images from Docker Hub.
 - Mount your current folder as `/workspace` (read-only).
 - Start `qdrant`, `file-indexer`, and `mcp-server`.
-- Support image pinning via `NDLSS_IMAGE_TAG`.
+- Support image pinning via `NDLSS_IMAGE_TAG` (default: `latest`).
 
 Source-build presets:
 - Build services directly from remote git contexts.

@@ -22,11 +22,13 @@ $preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndls
 preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose-images/${preset}.yml" -o ndlss-compose.yml && NDLSS_WORKSPACE="$PWD" docker compose -f ndlss-compose.yml up -d
 ```
 
-Optional: pin image tag and namespace:
+Optional: pin image tag and namespace (default tag is `latest`):
 
 ```bash
 NDLSS_DOCKERHUB_NAMESPACE=your-dockerhub-user NDLSS_IMAGE_TAG=0.1.1 docker compose -f ndlss-compose.yml up -d
 ```
+
+If a specific tag is not published yet, keep `NDLSS_IMAGE_TAG` unset and use `latest`.
 
 Available presets:
 
