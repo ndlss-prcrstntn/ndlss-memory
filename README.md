@@ -28,6 +28,26 @@ preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/nd
 - Full guide: `docs/quickstart.md`
 - Preset details: `docs/compose-presets.md`
 
+### Run multiple stacks in parallel (different projects)
+
+Use a unique compose project name and unique host ports per project:
+
+```powershell
+$env:MCP_PORT="18080"
+$env:QDRANT_PORT="16333"
+docker compose -p ndlss-project-a -f ndlss-compose.yml up -d
+```
+
+For another project:
+
+```powershell
+$env:MCP_PORT="28080"
+$env:QDRANT_PORT="26333"
+docker compose -p ndlss-project-b -f ndlss-compose.yml up -d
+```
+
+This keeps containers, networks, and volumes isolated between projects.
+
 ## How indexing works across different projects
 
 The indexer behavior is preset-driven and still fully configurable:

@@ -42,6 +42,32 @@ Available presets:
 
 Details: `docs/compose-presets.md`.
 
+## Run multiple projects at the same time
+
+Use a unique compose project name (`-p`) and unique host ports for each project.
+
+Project A:
+
+```powershell
+$env:MCP_PORT="18080"
+$env:QDRANT_PORT="16333"
+docker compose -p ndlss-project-a -f ndlss-compose.yml up -d
+```
+
+Project B:
+
+```powershell
+$env:MCP_PORT="28080"
+$env:QDRANT_PORT="26333"
+docker compose -p ndlss-project-b -f ndlss-compose.yml up -d
+```
+
+Stop one stack without affecting another:
+
+```powershell
+docker compose -p ndlss-project-a -f ndlss-compose.yml down
+```
+
 ## 2) Check health
 
 ```bash

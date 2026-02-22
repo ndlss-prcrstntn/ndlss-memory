@@ -7,6 +7,7 @@ Image presets:
 - Mount your current folder as `/workspace` (read-only).
 - Start `qdrant`, `file-indexer`, and `mcp-server`.
 - Support image pinning via `NDLSS_IMAGE_TAG` (default: `latest`).
+- Do not hardcode compose project name (supports running many stacks in parallel).
 
 Source-build presets:
 - Build services directly from remote git contexts.
@@ -42,6 +43,15 @@ $preset = "python"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss
 
 ```bash
 preset=python; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose-images/${preset}.yml" -o ndlss-compose.yml && NDLSS_WORKSPACE="$PWD" docker compose -f ndlss-compose.yml up -d
+```
+
+## Parallel stacks for multiple projects
+
+Use unique `-p` values and unique host ports:
+
+```powershell
+$env:MCP_PORT="18080"; $env:QDRANT_PORT="16333"; docker compose -p ndlss-project-a -f ndlss-compose.yml up -d
+$env:MCP_PORT="28080"; $env:QDRANT_PORT="26333"; docker compose -p ndlss-project-b -f ndlss-compose.yml up -d
 ```
 
 ## Configuration overrides

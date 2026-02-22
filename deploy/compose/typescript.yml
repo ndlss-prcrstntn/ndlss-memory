@@ -1,6 +1,4 @@
-﻿name: ndlss-memory
-
-services:
+﻿services:
   qdrant:
     image: qdrant/qdrant:v1.9.5
     restart: unless-stopped
