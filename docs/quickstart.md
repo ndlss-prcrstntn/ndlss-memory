@@ -1,62 +1,70 @@
-# Quickstart: 5-10 минут до первого поиска
+﻿# Quickstart (No Clone): 3-5 minutes to first search
 
-## 1. Подготовка
+This guide starts `ndlss-memory` inside your current project folder with a single command, without cloning this repository.
 
-Требования:
+## Requirements
 
-- Docker Engine + Docker Compose v2
-- PowerShell (Windows PowerShell или PowerShell 7+)
+- Docker Engine
+- Docker Compose v2
+- Internet access to pull source/images
 
-В корне проекта создайте `.env` из минимального шаблона:
+## 1) Pick a preset and start
+
+### PowerShell
 
 ```powershell
-Copy-Item .env.minimal.example .env
+$preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose/$preset.yml" -OutFile ndlss-compose.yml; $env:NDLSS_WORKSPACE=(Get-Location).Path; docker compose -f ndlss-compose.yml up -d --build
 ```
 
-## 2. Запуск стека
+### bash
 
-Вариант A (zero-friction, из корня):
-
-```powershell
-docker compose up -d --build
+```bash
+preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose/${preset}.yml" -o ndlss-compose.yml && NDLSS_WORKSPACE="$PWD" docker compose -f ndlss-compose.yml up -d --build
 ```
 
-Вариант B (через проектный скрипт):
+Optional: pin service source to a release tag or commit:
 
-```powershell
-powershell -File scripts/dev/up.ps1
+```bash
+NDLSS_GIT_REF=v1.0.0 docker compose -f ndlss-compose.yml up -d --build
 ```
 
-Проверка:
+Available presets:
 
-```powershell
-docker compose ps
+- `generic`
+- `python`
+- `javascript`
+- `java-kotlin`
+- `go`
+
+Details: `docs/compose-presets.md`.
+
+## 2) Check health
+
+```bash
 curl http://localhost:8080/health
 ```
 
-Ожидаемый результат: сервис `mcp-server` отвечает `200` на `/health`.
+Expected: HTTP 200.
 
-## 3. Первый semantic search запрос
+## 3) Run first semantic search
 
-```powershell
-curl -X POST http://localhost:8080/v1/search/semantic `
-  -H "Content-Type: application/json" `
-  -d "{\"query\":\"docker compose healthcheck\",\"limit\":5}"
+```bash
+curl -X POST http://localhost:8080/v1/search/semantic \
+  -H "Content-Type: application/json" \
+  -d '{"query":"docker compose healthcheck","limit":5}'
 ```
 
-Если данных еще нет, запустите ingestion job:
+If the project has not been indexed yet, start ingestion once:
 
-```powershell
-curl -X POST http://localhost:8080/v1/indexing/ingestion/jobs `
-  -H "Content-Type: application/json" `
-  -d "{\"workspacePath\":\"/workspace\"}"
+```bash
+curl -X POST http://localhost:8080/v1/indexing/ingestion/jobs \
+  -H "Content-Type: application/json" \
+  -d '{"workspacePath":"/workspace"}'
 ```
 
-Повторите запрос поиска после завершения job.
+Then repeat the search.
 
-## 4. Подключение MCP-клиента
-
-Минимальный пример client config:
+## 4) Optional: connect an MCP client
 
 ```json
 {
@@ -69,10 +77,8 @@ curl -X POST http://localhost:8080/v1/indexing/ingestion/jobs `
 }
 ```
 
-После этого MCP-клиент может вызывать search/source/metadata tools без дополнительной ручной настройки инфраструктуры.
+## 5) Stop
 
-## 5. Остановка
-
-```powershell
-docker compose down
+```bash
+docker compose -f ndlss-compose.yml down
 ```
