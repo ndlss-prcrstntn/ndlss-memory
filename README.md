@@ -144,3 +144,4 @@ powershell -File scripts/tests/run_quality_stability_suite.ps1
 
 Roadmap snapshots are versioned in `docs/roadmaps/`.
 Current baseline release roadmap: `docs/roadmaps/0.2.0.md`.
+Next planned roadmap: `docs/roadmaps/0.3.0.md`.
