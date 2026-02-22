@@ -4,7 +4,8 @@
 
 - [ ] Update `VERSION`
 - [ ] Update `CHANGELOG.md`
-- [ ] Create release tag (`0.1.1` and/or `v0.1.1`)
+- [ ] Create release tag (`0.1.2` and/or `v0.1.2`)
+- [ ] Ensure changelog has a matching section (`## <version> - <date>`)
 
 ## Validation
 
@@ -38,3 +39,8 @@ Release flow:
 - [ ] `CONTRIBUTING.md` is up to date
 - [ ] `docs/compose-presets.md` lists all presets
 - [ ] `docs/quickstart.md` matches current startup flow
+
+## GitHub Release publishing
+
+- [ ] Verify workflow `.github/workflows/github-release.yml` passed
+- [ ] Verify Release page contains notes from `CHANGELOG.md`

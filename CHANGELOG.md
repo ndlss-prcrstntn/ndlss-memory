@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 - 2026-02-22
+
+- Added image-based compose presets (`deploy/compose-images/*`) as the default no-clone startup path.
+- Added Docker Hub publishing workflow (`.github/workflows/docker-release.yml`) for `file-indexer` and `mcp-server`.
+- Added language and stack coverage improvements:
+  - new presets: `typescript`, `csharp`
+  - updated docs for multi-project parallel compose usage (`-p` + custom ports)
+- Updated quickstart and preset documentation to use image defaults (`latest`) with optional tag pinning.
+
 ## 0.1.1 - 2026-02-22
 
 - Added no-clone onboarding: users can start the stack in any project folder with one command.

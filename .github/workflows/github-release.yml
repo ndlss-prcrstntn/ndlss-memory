@@ -1,0 +1,59 @@
+name: Publish GitHub Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "*.*.*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag (e.g. 0.1.2 or v0.1.2)"
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve tag and version
+        id: vars
+        shell: bash
+        run: |
+          RAW_TAG="${GITHUB_REF_NAME}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW_TAG="${{ github.event.inputs.release_tag }}"
+          fi
+          VERSION="${RAW_TAG#v}"
+          echo "raw_tag=${RAW_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract changelog section
+        id: notes
+        shell: bash
+        run: |
+          VERSION="${{ steps.vars.outputs.version }}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## " ver " - " { capture=1; next }
+            capture && $0 ~ "^## " { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ ! -s release-notes.md ]; then
+            echo "No matching section found in CHANGELOG.md for version ${VERSION}."
+            exit 1
+          fi
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.raw_tag }}
+          name: ndlss-memory ${{ steps.vars.outputs.version }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: false
