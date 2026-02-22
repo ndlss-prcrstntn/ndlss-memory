@@ -12,6 +12,26 @@ from search_models import SearchFilters
 from search_repository import QdrantSearchRepository
 
 
+def test_from_env_prefers_qdrant_api_port(monkeypatch):
+    monkeypatch.setenv("QDRANT_HOST", "qdrant")
+    monkeypatch.setenv("QDRANT_PORT", "16333")
+    monkeypatch.setenv("QDRANT_API_PORT", "6333")
+
+    repo = QdrantSearchRepository.from_env()
+
+    assert repo.qdrant_url == "http://qdrant:6333"
+
+
+def test_from_env_falls_back_to_qdrant_port(monkeypatch):
+    monkeypatch.setenv("QDRANT_HOST", "qdrant")
+    monkeypatch.setenv("QDRANT_PORT", "16333")
+    monkeypatch.delenv("QDRANT_API_PORT", raising=False)
+
+    repo = QdrantSearchRepository.from_env()
+
+    assert repo.qdrant_url == "http://qdrant:16333"
+
+
 class _MissingCollectionRepo(QdrantSearchRepository):
     def _request_json(self, *, method, path, payload):  # noqa: ANN001
         raise collection_not_found(self.collection_name)

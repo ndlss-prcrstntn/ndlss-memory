@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: MCP Transport API
-  version: 0.1.6
+  version: 0.1.7
   description: >-
     MCP transport contract for VS Code/Claude/Cline compatibility:
     streamable HTTP endpoint, SSE fallback, discovery and JSON-RPC envelopes.

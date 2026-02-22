@@ -59,6 +59,7 @@ try {
     & (Join-Path $root "scripts/tests/us1_full_scan_recursive_indexing.ps1")
     & (Join-Path $root "scripts/tests/us1_delta_changed_only.ps1")
     & (Join-Path $root "scripts/tests/us2_quality_search_flow.ps1") -SkipComposeLifecycle
+    & (Join-Path $root "scripts/tests/us1_ingestion_collection_creation.ps1") -SkipComposeLifecycle
 
     & (Join-Path $root "scripts/tests/us1_idempotent_repeat_run.ps1")
     $first = Get-Content -Raw -Path (Join-Path $artifactDir "us1-idempotency-summary.json") | ConvertFrom-Json
@@ -70,6 +71,10 @@ try {
         throw "Repeat-run consistency check failed: failedChunks increased"
     }
 
+    # Run dedicated custom external port scenario in isolated lifecycle.
+    Invoke-Compose -ComposeArgs @('-f', $compose, '--env-file', $envFile, 'down')
+    & (Join-Path $root "scripts/tests/us2_custom_qdrant_external_port.ps1")
+
     $summary = [ordered]@{
         runId = [guid]::NewGuid().ToString("N")
         stageName = "us3-e2e-quality"
@@ -80,6 +85,7 @@ try {
             fullScan = $true
             deltaAfterCommit = $true
             semanticSearch = $true
+            customExternalQdrantPort = $true
             repeatRunConsistency = $true
         }
     }

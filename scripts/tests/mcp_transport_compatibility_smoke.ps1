@@ -69,6 +69,18 @@ try {
 
     Wait-Health -BaseUrl $baseUrl
 
+    try {
+        Invoke-RestMethod -Method Get -Uri "$baseUrl/mcp" -TimeoutSec 3 | Out-Null
+        throw "Expected GET /mcp to return method-not-allowed"
+    } catch {
+        if (-not $_.Exception.Response) {
+            throw
+        }
+        if ([int]$_.Exception.Response.StatusCode -ne 405) {
+            throw "GET /mcp returned unexpected status code"
+        }
+    }
+
     $discovery = Invoke-RestMethod -Method Get -Uri "$baseUrl/.well-known/mcp"
     if (-not ($discovery.transports | Where-Object { $_.url -like "*/mcp" })) {
         throw "Discovery transports do not include /mcp endpoint"
@@ -111,10 +123,33 @@ try {
         if (-not $_.Exception.Response) {
             throw
         }
+        $statusCode = [int]$_.Exception.Response.StatusCode
+        if ($statusCode -notin @(400, 404)) {
+            throw "Unknown method returned unexpected HTTP status: $statusCode"
+        }
+
         $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
         $body = $reader.ReadToEnd()
-        if ($body -notmatch '"code"\s*:\s*-32601') {
-            throw "Unknown method did not return JSON-RPC -32601"
+        if ($body -and $body.Trim()) {
+            $parsed = $null
+            try {
+                $parsed = $body | ConvertFrom-Json -Depth 8
+            } catch {
+                throw "Unknown method response is not valid JSON: $body"
+            }
+
+            $jsonrpcCode = $null
+            $domainCode = $null
+            if ($parsed -and $parsed.error) {
+                $jsonrpcCode = $parsed.error.code
+                if ($parsed.error.data) {
+                    $domainCode = $parsed.error.data.errorCode
+                }
+            }
+
+            if ($jsonrpcCode -ne -32601 -and $domainCode -ne "METHOD_NOT_SUPPORTED") {
+                throw "Unknown method did not return expected JSON-RPC error. body=$body"
+            }
         }
     }
 

@@ -4,7 +4,7 @@
 
 - [ ] Update `VERSION`
 - [ ] Update `CHANGELOG.md`
-- [ ] Create release tag (`0.1.4` and/or `v0.1.4`)
+- [ ] Create release tag (`0.1.7` and/or `v0.1.7`)
 - [ ] Ensure changelog has a matching section (`## <version> - <date>`)
 
 ## Validation
@@ -12,6 +12,8 @@
 - [ ] Validate compose files (`docker compose config`)
 - [ ] Run quality/stability suite
 - [ ] Verify examples in `README.md` and `docs/quickstart.md`
+- [ ] Validate MCP ingestion creates `workspace_chunks` and `points/count > 0`
+- [ ] Validate non-default external `QDRANT_PORT` works with internal `QDRANT_API_PORT=6333`
 
 ## Docker Hub publishing
 
@@ -32,6 +34,7 @@ Release flow:
   - `<namespace>/ndlss-memory-file-indexer:<tag>`
   - `<namespace>/ndlss-memory-mcp-server:<tag>`
   - optional `latest`
+- [ ] Verify published images include `QDRANT_API_PORT` and `INGESTION_ENABLE_QDRANT_HTTP=1` runtime defaults in compose presets
 
 ## Artifacts and docs
 

@@ -25,7 +25,7 @@ preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/nd
 Optional: pin image tag and namespace (default tag is `latest`):
 
 ```bash
-NDLSS_DOCKERHUB_NAMESPACE=ndlss NDLSS_IMAGE_TAG=0.1.4 docker compose -f ndlss-compose.yml up -d
+NDLSS_DOCKERHUB_NAMESPACE=ndlss NDLSS_IMAGE_TAG=0.1.7 docker compose -f ndlss-compose.yml up -d
 ```
 
 If a specific tag is not published yet, keep `NDLSS_IMAGE_TAG` unset and use `latest`.
@@ -51,6 +51,7 @@ Project A:
 ```powershell
 $env:MCP_PORT="18080"
 $env:QDRANT_PORT="16333"
+$env:QDRANT_API_PORT="6333"
 docker compose -p ndlss-project-a -f ndlss-compose.yml up -d
 ```
 
@@ -59,6 +60,7 @@ Project B:
 ```powershell
 $env:MCP_PORT="28080"
 $env:QDRANT_PORT="26333"
+$env:QDRANT_API_PORT="6333"
 docker compose -p ndlss-project-b -f ndlss-compose.yml up -d
 ```
 
@@ -117,6 +119,7 @@ Important:
 
 - `http://localhost:8080/` is REST catalog, not MCP JSON-RPC endpoint.
 - MCP clients must use `http://localhost:8080/mcp`.
+- `QDRANT_PORT` controls host exposure only; internal service traffic uses `QDRANT_API_PORT` (default `6333`).
 - Legacy fallback endpoints are `GET /sse` and `POST /messages?sessionId=...`.
 
 ## 5) Stop

@@ -1,13 +1,14 @@
 ﻿{
-    "runId":  "2733284a9f9d4143a270d622d30833ca",
+    "runId":  "33a2bbd2b25b4cc1846466d4da75f505",
     "stageName":  "us3-e2e-quality",
     "status":  "passed",
-    "generatedAt":  "2026-02-22T03:19:51.9200080+03:00",
+    "generatedAt":  "2026-02-22T14:18:29.4202850+03:00",
     "checks":  {
                    "composeUp":  true,
                    "fullScan":  true,
                    "deltaAfterCommit":  true,
                    "semanticSearch":  true,
+                   "customExternalQdrantPort":  true,
                    "repeatRunConsistency":  true
                }
 }

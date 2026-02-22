@@ -84,3 +84,16 @@ function Add-QualityFailure {
         message = $Message
     }
 }
+
+function Resolve-QdrantRuntimeConfig {
+    $externalPort = if ($env:QDRANT_PORT) { [int]$env:QDRANT_PORT } else { 6333 }
+    $internalPort = if ($env:QDRANT_API_PORT) { [int]$env:QDRANT_API_PORT } else { 6333 }
+    $host = if ($env:QDRANT_HOST) { $env:QDRANT_HOST } else { "qdrant" }
+    return [ordered]@{
+        host = $host
+        externalPort = $externalPort
+        internalPort = $internalPort
+        externalBaseUrl = "http://localhost:$externalPort"
+        internalBaseUrl = "http://$host`:$internalPort"
+    }
+}

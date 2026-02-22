@@ -1,0 +1,1 @@
+﻿Original editable content for stale-cleanup validation.

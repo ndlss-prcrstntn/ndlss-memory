@@ -35,6 +35,7 @@ Use a unique compose project name and unique host ports per project:
 ```powershell
 $env:MCP_PORT="18080"
 $env:QDRANT_PORT="16333"
+$env:QDRANT_API_PORT="6333"
 docker compose -p ndlss-project-a -f ndlss-compose.yml up -d
 ```
 
@@ -43,10 +44,12 @@ For another project:
 ```powershell
 $env:MCP_PORT="28080"
 $env:QDRANT_PORT="26333"
+$env:QDRANT_API_PORT="6333"
 docker compose -p ndlss-project-b -f ndlss-compose.yml up -d
 ```
 
 This keeps containers, networks, and volumes isolated between projects.
+`QDRANT_PORT` controls host exposure only; internal service traffic uses `QDRANT_API_PORT` (default `6333`).
 
 ## How indexing works across different projects
 
@@ -62,6 +65,7 @@ Practical model:
 - Choose the closest preset for your stack.
 - Start with defaults.
 - Override environment variables only where needed.
+- Keep `INGESTION_ENABLE_QDRANT_HTTP=1` to persist ingestion results in Qdrant.
 
 This gives a good out-of-box setup for different codebases while keeping one runtime architecture.
 

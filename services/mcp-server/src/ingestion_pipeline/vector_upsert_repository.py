@@ -79,15 +79,23 @@ class VectorUpsertRepository:
         self._ensure_collection_exists()
         payload = json.dumps({"points": [point]}).encode("utf-8")
         endpoint = f"{self.qdrant_url.rstrip('/')}/collections/{self.collection_name}/points?wait=true"
-        req = request.Request(endpoint, method="PUT", data=payload, headers={"Content-Type": "application/json"})
-        try:
-            with request.urlopen(req, timeout=self.request_timeout_seconds) as resp:
-                if resp.status >= 300:
-                    raise UpsertError(f"Qdrant upsert failed with HTTP {resp.status}")
-        except error.HTTPError as exc:
-            raise UpsertError(f"Qdrant upsert failed with HTTP {exc.code}") from exc
-        except error.URLError as exc:
-            raise UpsertError(f"Qdrant upsert connection error: {exc.reason}") from exc
+
+        for attempt in range(2):
+            req = request.Request(endpoint, method="PUT", data=payload, headers={"Content-Type": "application/json"})
+            try:
+                with request.urlopen(req, timeout=self.request_timeout_seconds) as resp:
+                    if resp.status >= 300:
+                        raise UpsertError(f"Qdrant upsert failed with HTTP {resp.status}")
+                    return
+            except error.HTTPError as exc:
+                # Collection may be dropped between runs while repository cache still marks it as initialized.
+                if exc.code == 404 and attempt == 0:
+                    self._collection_initialized = False
+                    self._ensure_collection_exists()
+                    continue
+                raise UpsertError(f"Qdrant upsert failed with HTTP {exc.code}") from exc
+            except error.URLError as exc:
+                raise UpsertError(f"Qdrant upsert connection error: {exc.reason}") from exc
 
     def _delete_via_http(self, point_ids: set[str]) -> None:
         self._ensure_collection_exists()
@@ -99,6 +107,9 @@ class VectorUpsertRepository:
                 if resp.status >= 300:
                     raise UpsertError(f"Qdrant delete failed with HTTP {resp.status}")
         except error.HTTPError as exc:
+            if exc.code == 404:
+                self._collection_initialized = False
+                return
             raise UpsertError(f"Qdrant delete failed with HTTP {exc.code}") from exc
         except error.URLError as exc:
             raise UpsertError(f"Qdrant delete connection error: {exc.reason}") from exc
@@ -151,7 +162,7 @@ class VectorUpsertRepository:
 
 def repository_from_env() -> VectorUpsertRepository:
     host = os.getenv("QDRANT_HOST", "qdrant")
-    port = os.getenv("QDRANT_PORT", "6333")
+    port = os.getenv("QDRANT_API_PORT") or os.getenv("QDRANT_PORT", "6333")
     collection_name = os.getenv("QDRANT_COLLECTION_NAME", "workspace_chunks")
     qdrant_url = f"http://{host}:{port}"
     cache_key = f"{qdrant_url}|{collection_name}"
@@ -161,7 +172,7 @@ def repository_from_env() -> VectorUpsertRepository:
             qdrant_url=qdrant_url,
             vector_size=int(os.getenv("INGESTION_EMBEDDING_VECTOR_SIZE", "16")),
             request_timeout_seconds=float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
-            enable_http_upsert=os.getenv("INGESTION_ENABLE_QDRANT_HTTP", "0") == "1",
+            enable_http_upsert=os.getenv("INGESTION_ENABLE_QDRANT_HTTP", "1") == "1",
         )
     return _REPOSITORY_CACHE[cache_key]
 
