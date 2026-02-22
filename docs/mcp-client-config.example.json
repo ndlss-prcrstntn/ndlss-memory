@@ -1,8 +1,26 @@
 {
-  "servers": {
-    "ndlss-memory": {
-      "transport": "http",
-      "url": "http://localhost:8080"
+  "vscode": {
+    "servers": {
+      "ndlss-memory": {
+        "transport": "http",
+        "url": "http://localhost:8080/mcp"
+      }
+    }
+  },
+  "claude_desktop": {
+    "mcpServers": {
+      "ndlss-memory": {
+        "transport": "http",
+        "url": "http://localhost:8080/mcp"
+      }
+    }
+  },
+  "cline_or_roo": {
+    "servers": {
+      "ndlss-memory": {
+        "transport": "http",
+        "url": "http://localhost:8080/mcp"
+      }
     }
   }
 }

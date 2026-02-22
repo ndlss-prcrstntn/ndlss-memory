@@ -29,6 +29,8 @@ def test_root_endpoint_catalog_contains_core_paths():
     paths = {item["path"] for item in payload["commands"]}
 
     assert "/health" in paths
+    assert "/mcp" in paths
+    assert "/.well-known/mcp" in paths
     assert "/v1/search/semantic" in paths
     assert "/v1/indexing/ingestion/jobs" in paths
     assert "/v1/commands/execute" in paths

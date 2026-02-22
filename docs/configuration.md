@@ -61,3 +61,20 @@
   без отдельного обоснования.
 - Храните аудит минимум `COMMAND_AUDIT_RETENTION_DAYS=7`, чтобы покрывать
   операционные расследования.
+
+## MCP transport troubleshooting
+
+- Если MCP-клиент получает `404` или `405`, проверьте endpoint:
+  - корректно: `http://localhost:8080/mcp`
+  - некорректно: `http://localhost:8080/` (это REST catalog, не MCP JSON-RPC)
+- Проверьте discovery:
+  - `GET http://localhost:8080/.well-known/mcp`
+- Для legacy fallback:
+  - `GET /sse` (получить `sessionId`)
+  - `POST /messages?sessionId=...`
+- Если `tools/list` возвращает `SESSION_NOT_INITIALIZED`, сначала выполните:
+  - `initialize`
+  - `notifications/initialized`
+- Если `semantic_search` возвращает пустой результат в новом workspace:
+  - это допустимо до первой индексации;
+  - запустите `start_ingestion` и затем повторите поиск.

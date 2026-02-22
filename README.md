@@ -91,6 +91,12 @@ System:
 - `GET /v1/system/status`
 - `GET /v1/system/config`
 
+MCP transport:
+
+- `POST /mcp` (JSON-RPC streamable HTTP)
+- `GET /sse` and `POST /messages?sessionId=...` (legacy SSE fallback)
+- `GET /.well-known/mcp` (discovery)
+
 Search:
 
 - `POST /v1/search/semantic`
@@ -108,6 +114,7 @@ Indexing:
 
 - `docs/quickstart.md`
 - `docs/compose-presets.md`
+- `docs/mcp-client-config.example.json`
 - `docs/configuration.md`
 - `docs/release-checklist.md`
 - `CONTRIBUTING.md`

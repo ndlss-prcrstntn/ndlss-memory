@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.6 - 2026-02-22
+
+- Added full MCP transport compatibility surface:
+  - `POST /mcp` (streamable HTTP JSON-RPC)
+  - `GET /sse` and `POST /messages` (legacy SSE fallback)
+  - `GET /.well-known/mcp` discovery endpoint
+- Added MCP method support:
+  - `initialize`, `notifications/initialized`, `ping`
+  - `tools/list`, `tools/call`
+- Added MCP tool registry and adapters for:
+  - `semantic_search`
+  - `get_source_by_id`
+  - `get_metadata_by_id`
+  - `start_ingestion`
+  - `get_ingestion_status`
+- Added JSON-RPC error mapping with machine-readable `errorCode/details/retryable`.
+- Added MCP transport unit, contract, and integration artifacts.
+- Added MCP transport compatibility smoke script and quality-gate integration.
+- Updated onboarding/docs to use MCP endpoint `http://localhost:8080/mcp`.
+
 ## 0.1.5 - 2026-02-22
 
 - Added `GET /` root endpoint in `mcp-server` that returns a structured catalog of all available API commands.

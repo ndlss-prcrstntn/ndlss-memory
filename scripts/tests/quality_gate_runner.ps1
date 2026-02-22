@@ -101,6 +101,13 @@ Invoke-Stage -Report $report -Name "contract" -Skip:$SkipContract -Body {
     }
 }
 
+Invoke-Stage -Report $report -Name "mcp_transport" -Skip:$SkipIntegration -FailureCode "MCP_TRANSPORT_COMPAT_FAILED" -Body {
+    & (Join-Path $root "scripts/tests/mcp_transport_compatibility_smoke.ps1")
+    if (-not $?) {
+        throw "MCP transport compatibility smoke failed"
+    }
+}
+
 $us3Artifact = Join-Path $artifactRoot "us3-e2e-summary.json"
 Invoke-Stage -Report $report -Name "us3" -Skip:$SkipE2E -FailureCode "US3_E2E_FAILED" -ArtifactPaths @($us3Artifact) -Body {
     $e2eScript = Join-Path $root "scripts/tests/quality_stability_e2e.ps1"

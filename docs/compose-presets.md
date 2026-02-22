@@ -6,6 +6,7 @@ Image presets:
 - Pull prebuilt images from Docker Hub.
 - Mount your current folder as `/workspace` (read-only).
 - Start `qdrant`, `file-indexer`, and `mcp-server`.
+- Expose MCP transport on `http://localhost:${MCP_PORT}/mcp`.
 - Support image pinning via `NDLSS_IMAGE_TAG` (default: `latest`).
 - Do not hardcode compose project name (supports running many stacks in parallel).
 
@@ -77,3 +78,11 @@ docker compose -f ndlss-compose.yml up -d
 ```powershell
 docker compose -f ndlss-compose.yml down
 ```
+
+## MCP client endpoint
+
+- Discovery: `GET http://localhost:${MCP_PORT:-8080}/.well-known/mcp`
+- Streamable HTTP transport: `POST http://localhost:${MCP_PORT:-8080}/mcp`
+- SSE fallback: `GET /sse`, `POST /messages?sessionId=...`
+
+Do not point MCP clients to `/` because it is a REST command catalog endpoint.

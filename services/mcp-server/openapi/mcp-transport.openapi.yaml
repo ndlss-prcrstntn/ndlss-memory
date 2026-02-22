@@ -1,0 +1,221 @@
+openapi: 3.1.0
+info:
+  title: MCP Transport API
+  version: 0.1.6
+  description: >-
+    MCP transport contract for VS Code/Claude/Cline compatibility:
+    streamable HTTP endpoint, SSE fallback, discovery and JSON-RPC envelopes.
+servers:
+  - url: http://localhost:{mcp_port}
+    variables:
+      mcp_port:
+        default: "8080"
+paths:
+  /mcp:
+    post:
+      summary: MCP streamable HTTP JSON-RPC endpoint
+      operationId: mcpRpcPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JsonRpcRequest"
+      responses:
+        "200":
+          description: JSON-RPC response envelope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JsonRpcResponse"
+        "400":
+          description: Invalid JSON-RPC request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JsonRpcErrorResponse"
+  /sse:
+    get:
+      summary: Legacy MCP SSE handshake endpoint
+      operationId: mcpSseConnect
+      responses:
+        "200":
+          description: text/event-stream with session bootstrap event
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /messages:
+    post:
+      summary: Send JSON-RPC message for an SSE session
+      operationId: mcpSseMessagePost
+      parameters:
+        - in: query
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JsonRpcRequest"
+      responses:
+        "202":
+          description: Message accepted for SSE delivery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcceptedEnvelope"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JsonRpcErrorResponse"
+  /.well-known/mcp:
+    get:
+      summary: MCP discovery descriptor
+      operationId: mcpDiscovery
+      responses:
+        "200":
+          description: Discovery document with supported transport and capabilities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/McpDiscoveryDocument"
+components:
+  schemas:
+    JsonRpcRequest:
+      type: object
+      required: [jsonrpc, method]
+      properties:
+        jsonrpc:
+          type: string
+          const: "2.0"
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+            - type: "null"
+        method:
+          type: string
+          enum:
+            - initialize
+            - notifications/initialized
+            - ping
+            - tools/list
+            - tools/call
+        params:
+          type: object
+          additionalProperties: true
+    JsonRpcResponse:
+      oneOf:
+        - $ref: "#/components/schemas/JsonRpcSuccessResponse"
+        - $ref: "#/components/schemas/JsonRpcErrorResponse"
+    JsonRpcSuccessResponse:
+      type: object
+      required: [jsonrpc, id, result]
+      properties:
+        jsonrpc:
+          type: string
+          const: "2.0"
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+            - type: "null"
+        result:
+          type: object
+          additionalProperties: true
+    JsonRpcErrorResponse:
+      type: object
+      required: [jsonrpc, id, error]
+      properties:
+        jsonrpc:
+          type: string
+          const: "2.0"
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+            - type: "null"
+        error:
+          $ref: "#/components/schemas/JsonRpcError"
+    JsonRpcError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            errorCode:
+              type: string
+            details:
+              type: string
+            retryable:
+              type: boolean
+          additionalProperties: true
+    AcceptedEnvelope:
+      type: object
+      required: [status, sessionId]
+      properties:
+        status:
+          type: string
+          enum: [accepted]
+        sessionId:
+          type: string
+    McpDiscoveryDocument:
+      type: object
+      required: [name, version, transports, capabilities]
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+        transports:
+          type: array
+          items:
+            type: object
+            required: [type, url]
+            properties:
+              type:
+                type: string
+                enum: [streamable-http, sse]
+              url:
+                type: string
+        capabilities:
+          type: object
+          required: [methods, tools]
+          properties:
+            methods:
+              type: array
+              items:
+                type: string
+            tools:
+              type: array
+              items:
+                $ref: "#/components/schemas/McpToolDescriptor"
+    McpToolDescriptor:
+      type: object
+      required: [name, description, inputSchema]
+      properties:
+        name:
+          type: string
+          enum:
+            - semantic_search
+            - get_source_by_id
+            - get_metadata_by_id
+            - start_ingestion
+            - get_ingestion_status
+        description:
+          type: string
+        inputSchema:
+          type: object
+          additionalProperties: true
+

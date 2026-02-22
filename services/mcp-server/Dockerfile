@@ -14,6 +14,7 @@ COPY openapi/idempotency-indexing.openapi.yaml /app/openapi/idempotency-indexing
 COPY openapi/delta-after-commit-indexing.openapi.yaml /app/openapi/delta-after-commit-indexing.openapi.yaml
 COPY openapi/mcp-search-tools.openapi.yaml /app/openapi/mcp-search-tools.openapi.yaml
 COPY openapi/mcp-command-security.openapi.yaml /app/openapi/mcp-command-security.openapi.yaml
+COPY openapi/mcp-transport.openapi.yaml /app/openapi/mcp-transport.openapi.yaml
 
 RUN sed -i 's/\r$//' /app/scripts/*.sh
 RUN chmod +x /app/scripts/entrypoint.sh

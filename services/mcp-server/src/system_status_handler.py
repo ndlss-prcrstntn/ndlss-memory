@@ -23,6 +23,7 @@ from idempotency_errors import json_error as idempotency_json_error
 from idempotency_state import STATE as IDEMPOTENCY_STATE
 from ingestion_errors import json_error as ingestion_json_error
 from ingestion_state import STATE as INGESTION_STATE
+from mcp_transport import register_mcp_transport_routes
 from search_errors import SearchApiError, json_error_from_exception as search_json_error_from_exception
 from search_models import SemanticSearchRequest
 from search_repository import QdrantSearchRepository
@@ -38,6 +39,7 @@ STATUS_ENV_MAP = {
 app = Flask(__name__)
 SEARCH_SERVICE = SearchService(QdrantSearchRepository.from_env())
 COMMAND_EXECUTION_SERVICE: CommandExecutionService | None = None
+MCP_DISPATCHER = register_mcp_transport_routes(app)
 
 API_COMMANDS = [
     {
@@ -63,6 +65,30 @@ API_COMMANDS = [
         "method": "GET",
         "path": "/v1/system/services/{serviceName}",
         "description": "Status for a specific service",
+    },
+    {
+        "category": "mcp",
+        "method": "POST",
+        "path": "/mcp",
+        "description": "MCP streamable HTTP JSON-RPC endpoint",
+    },
+    {
+        "category": "mcp",
+        "method": "GET",
+        "path": "/sse",
+        "description": "MCP legacy SSE endpoint",
+    },
+    {
+        "category": "mcp",
+        "method": "POST",
+        "path": "/messages",
+        "description": "MCP SSE message endpoint",
+    },
+    {
+        "category": "mcp",
+        "method": "GET",
+        "path": "/.well-known/mcp",
+        "description": "MCP discovery endpoint",
     },
     {
         "category": "search",

@@ -38,6 +38,7 @@ $header | Set-Content -Path $regressionLog -Encoding utf8
 
 Write-Host "[suite] started at $($start.ToString('o'))"
 Write-Host "[suite] args: $argText"
+Write-Host "[suite] includes mcp_transport compatibility stage via quality_gate_runner.ps1"
 $runnerOutput = & $runner @runnerParams *>&1 | ForEach-Object {
     $line = if ($_ -is [System.Management.Automation.ErrorRecord]) {
         $_.ToString()

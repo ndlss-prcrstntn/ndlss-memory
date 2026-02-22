@@ -96,16 +96,28 @@ Then repeat the search.
 
 ## 4) Optional: connect an MCP client
 
+Verify MCP discovery first:
+
+```bash
+curl http://localhost:8080/.well-known/mcp
+```
+
 ```json
 {
   "servers": {
     "ndlss-memory": {
       "transport": "http",
-      "url": "http://localhost:8080"
+      "url": "http://localhost:8080/mcp"
     }
   }
 }
 ```
+
+Important:
+
+- `http://localhost:8080/` is REST catalog, not MCP JSON-RPC endpoint.
+- MCP clients must use `http://localhost:8080/mcp`.
+- Legacy fallback endpoints are `GET /sse` and `POST /messages?sessionId=...`.
 
 ## 5) Stop
 

@@ -1,10 +1,10 @@
 ﻿param(
     [string[]]$Paths = @(
         "README.md",
-        "docs/testing",
+        "docs",
         "tests/contract",
         "tests/integration",
-        "specs/008-quality-stability-tests"
+        "specs/009-mcp-transport"
     )
 )
 
