@@ -1,0 +1,1 @@
+﻿This file is deleted during stale-cleanup tests.

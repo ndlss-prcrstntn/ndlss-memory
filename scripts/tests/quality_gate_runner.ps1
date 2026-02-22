@@ -80,6 +80,14 @@ Invoke-Stage -Report $report -Name "us1" -Skip:$SkipUnit -FailureCode "US1_IDEMP
     }
 }
 
+$us1PersistenceArtifact = Join-Path $artifactRoot "us1-ingestion-collection-summary.json"
+Invoke-Stage -Report $report -Name "us1_persistence" -Skip:$SkipIntegration -FailureCode "US1_PERSISTENCE_FAILED" -ArtifactPaths @($us1PersistenceArtifact) -Body {
+    & (Join-Path $root "scripts/tests/us1_ingestion_collection_creation.ps1")
+    if (-not $?) {
+        throw "US1 ingestion collection creation script failed"
+    }
+}
+
 Invoke-Stage -Report $report -Name "integration" -Skip:$SkipIntegration -Body {
     & (Join-Path $root "scripts/tests/full_scan_compose_regression.ps1")
     & (Join-Path $root "scripts/tests/delta_after_commit_compose_regression.ps1")
@@ -91,6 +99,14 @@ Invoke-Stage -Report $report -Name "us2" -Skip:$SkipIntegration -FailureCode "US
     & (Join-Path $root "scripts/tests/us2_quality_search_flow.ps1")
     if (-not $?) {
         throw "US2 search flow script failed"
+    }
+}
+
+$us2CustomPortArtifact = Join-Path $artifactRoot "us2-custom-port-summary.json"
+Invoke-Stage -Report $report -Name "us2_custom_port" -Skip:$SkipIntegration -FailureCode "US2_CUSTOM_PORT_FAILED" -ArtifactPaths @($us2CustomPortArtifact) -Body {
+    & (Join-Path $root "scripts/tests/us2_custom_qdrant_external_port.ps1")
+    if (-not $?) {
+        throw "US2 custom external port script failed"
     }
 }
 
