@@ -4,28 +4,7 @@ RUN apk add --no-cache curl git && pip install --no-cache-dir flask pyyaml
 
 WORKDIR /app
 
-COPY src/system_status_handler.py /app/src/system_status_handler.py
-COPY src/full_scan_state.py /app/src/full_scan_state.py
-COPY src/full_scan_errors.py /app/src/full_scan_errors.py
-COPY src/ingestion_state.py /app/src/ingestion_state.py
-COPY src/ingestion_errors.py /app/src/ingestion_errors.py
-COPY src/idempotency_state.py /app/src/idempotency_state.py
-COPY src/idempotency_errors.py /app/src/idempotency_errors.py
-COPY src/delta_after_commit_state.py /app/src/delta_after_commit_state.py
-COPY src/delta_after_commit_errors.py /app/src/delta_after_commit_errors.py
-COPY src/command_security_policy.py /app/src/command_security_policy.py
-COPY src/command_execution_errors.py /app/src/command_execution_errors.py
-COPY src/command_execution_models.py /app/src/command_execution_models.py
-COPY src/command_execution_state.py /app/src/command_execution_state.py
-COPY src/command_process_runner.py /app/src/command_process_runner.py
-COPY src/command_workspace_guard.py /app/src/command_workspace_guard.py
-COPY src/command_audit_store.py /app/src/command_audit_store.py
-COPY src/command_execution_service.py /app/src/command_execution_service.py
-COPY src/search_models.py /app/src/search_models.py
-COPY src/search_errors.py /app/src/search_errors.py
-COPY src/search_result_ref.py /app/src/search_result_ref.py
-COPY src/search_repository.py /app/src/search_repository.py
-COPY src/search_service.py /app/src/search_service.py
+COPY src /app/src
 COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
 COPY config/security-policy.yaml /app/config/security-policy.yaml
 COPY openapi/compose-observability.openapi.yaml /app/openapi/compose-observability.openapi.yaml
