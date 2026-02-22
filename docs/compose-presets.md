@@ -12,8 +12,10 @@ All presets:
 
 - `deploy/compose/generic.yml`: best default for mixed/polyglot repos.
 - `deploy/compose/python.yml`: Python and notebooks.
+- `deploy/compose/typescript.yml`: TypeScript-first repositories.
 - `deploy/compose/javascript.yml`: JavaScript/TypeScript web repos.
 - `deploy/compose/java-kotlin.yml`: Java/Kotlin repos.
+- `deploy/compose/csharp.yml`: .NET/C# repositories.
 - `deploy/compose/go.yml`: Go repos.
 
 ## One-line start (PowerShell)

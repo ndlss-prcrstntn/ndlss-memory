@@ -21,7 +21,7 @@ $preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndls
 preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose/${preset}.yml" -o ndlss-compose.yml && NDLSS_WORKSPACE="$PWD" docker compose -f ndlss-compose.yml up -d --build
 ```
 
-- Replace `generic` with `python`, `javascript`, `java-kotlin`, or `go`.
+- Replace `generic` with `python`, `typescript`, `javascript`, `java-kotlin`, `csharp`, or `go`.
 - Optional: pin remote source with `NDLSS_GIT_REF` (for example `v1.0.0`).
 - Full guide: `docs/quickstart.md`
 - Preset details: `docs/compose-presets.md`
@@ -49,8 +49,10 @@ This gives a good out-of-box setup for different codebases while keeping one run
 |---|---|---|
 | `generic` | polyglot repos | `.md,.txt,.json,.yml,.yaml,.py,.js,.ts,.tsx,.java,.kt,.go,...` |
 | `python` | Python apps, notebooks | `.py,.ipynb,.md,.txt,.json,.yaml,.toml,...` |
+| `typescript` | TypeScript-first repos | `.ts,.tsx,.mts,.cts,.js,.jsx,.json,.md,...` |
 | `javascript` | Node/TS web apps | `.js,.jsx,.ts,.tsx,.mjs,.cjs,.json,.md,...` |
 | `java-kotlin` | JVM projects | `.java,.kt,.kts,.xml,.properties,.gradle,...` |
+| `csharp` | .NET/C# solutions | `.cs,.csproj,.sln,.props,.targets,.json,.md,...` |
 | `go` | Go services/tools | `.go,.mod,.sum,.md,.json,.yml,.yaml` |
 
 ## Services

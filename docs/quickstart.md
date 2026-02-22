@@ -32,8 +32,10 @@ Available presets:
 
 - `generic`
 - `python`
+- `typescript`
 - `javascript`
 - `java-kotlin`
+- `csharp`
 - `go`
 
 Details: `docs/compose-presets.md`.
