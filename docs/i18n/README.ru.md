@@ -6,17 +6,27 @@
 
 ## Быстрый старт без клонирования
 
-Полный quickstart: `../quickstart.md`.
+Полный quickstart: [Quickstart](../quickstart.md).
 
 PowerShell (одной командой):
 
 ```powershell
-$preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose/$preset.yml" -OutFile ndlss-compose.yml; $env:NDLSS_WORKSPACE=(Get-Location).Path; docker compose -f ndlss-compose.yml up -d --build
+$preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose-images/$preset.yml" -OutFile ndlss-compose.yml; $env:NDLSS_WORKSPACE=(Get-Location).Path; docker compose -f ndlss-compose.yml up -d
 ```
+
+Приоритетно: зафиксируйте версию образов:
+
+```powershell
+$env:NDLSS_DOCKERHUB_NAMESPACE="ndlss"
+$env:NDLSS_IMAGE_TAG="0.2.0"
+docker compose -f ndlss-compose.yml up -d
+```
+
+Если нужный тег еще не опубликован, оставьте `NDLSS_IMAGE_TAG` пустым и используйте `latest`.
 
 ## Документация
 
-- `../quickstart.md`
-- `../compose-presets.md`
-- `../configuration.md`
-- `../../CONTRIBUTING.md`
+- [Quickstart](../quickstart.md)
+- [Compose presets](../compose-presets.md)
+- [Configuration](../configuration.md)
+- [Contributing](../../CONTRIBUTING.md)

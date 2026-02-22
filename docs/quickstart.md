@@ -40,7 +40,7 @@ Available presets:
 - `csharp`
 - `go`
 
-Details: `docs/compose-presets.md`.
+Details: [Compose presets](compose-presets.md).
 
 ## Run multiple projects at the same time
 

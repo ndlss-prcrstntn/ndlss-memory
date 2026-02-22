@@ -1,30 +1,36 @@
-# Contributing
+﻿# Contributing
 
 ## Branching and specs
 
-- Для новых фич используйте нумерацию по возрастанию: `002`, `003`, `004`, ... (не дублировать `001`).
-- Перед реализацией держите в актуальном состоянии `specs/<feature>/spec.md`, `plan.md`, `tasks.md`.
-- Все новые Markdown-файлы сохраняйте в UTF-8.
+- Use incremental feature numbering: `002`, `003`, `004`, ... (do not reuse `001`).
+- Keep `specs/<feature>/spec.md`, `plan.md`, and `tasks.md` up to date before implementation.
+- Save markdown files in UTF-8.
 
 ## Local workflow
 
-1. Создайте виртуальное окружение и установите зависимости.
-2. Запустите unit-тесты:
+1. Create a virtual environment and install dependencies.
+2. Run unit tests:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/unit
 ```
 
-3. При изменениях в compose/интеграции выполните соответствующие сценарии из `scripts/tests/`.
+3. For compose/integration changes, run relevant scripts from `scripts/tests/`.
 
-## Code style
+## Code and docs quality
 
-- Изменения должны быть атомарными и с понятным сообщением коммита.
-- Не коммитьте временные файлы, секреты и локальные `.env`.
-- Для shell-скриптов используйте LF line endings и валидный shebang.
+- Keep changes atomic and use clear commit messages.
+- Do not commit temporary files, secrets, or local `.env` overrides.
+- For shell scripts, use LF line endings and a valid shebang.
+- Update user-facing docs when behavior changes:
+  - [README](README.md)
+  - [Quickstart](docs/quickstart.md)
+  - [Compose presets](docs/compose-presets.md)
+  - [Configuration](docs/configuration.md)
+  - [Roadmaps](docs/roadmaps/README.md)
 
 ## Pull requests
 
-- Приложите краткое описание проблемы и решения.
-- Приложите результаты тестов (минимум unit, а при необходимости integration/e2e).
-- Обновите `README.md`, если меняется пользовательский сценарий.
+- Add a short problem/solution summary.
+- Attach test results (at minimum unit tests; add integration/e2e where relevant).
+- Link related spec/plan/tasks files if the change is part of a feature branch.

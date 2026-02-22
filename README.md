@@ -24,9 +24,9 @@ preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/nd
 - Replace `generic` with `python`, `typescript`, `javascript`, `java-kotlin`, `csharp`, or `go`.
 - Optional: pin image version with `NDLSS_IMAGE_TAG` (default is `latest`).
 - Optional: change Docker Hub namespace with `NDLSS_DOCKERHUB_NAMESPACE` (default: `ndlss`).
-- Source-build presets are still available in `deploy/compose/` when you explicitly want to build from source.
-- Full guide: `docs/quickstart.md`
-- Preset details: `docs/compose-presets.md`
+- Source-build presets are still available in [`deploy/compose/`](deploy/compose/) when you explicitly want to build from source.
+- Full guide: [Quickstart](docs/quickstart.md)
+- Preset details: [Compose presets](docs/compose-presets.md)
 
 ### Run multiple stacks in parallel (different projects)
 
@@ -116,14 +116,14 @@ Indexing:
 
 ## User documentation
 
-- `docs/quickstart.md`
-- `docs/compose-presets.md`
-- `docs/mcp-client-config.example.json`
-- `docs/configuration.md`
-- `docs/release-checklist.md`
-- `docs/roadmaps/README.md`
-- `docs/roadmaps/0.2.0.md`
-- `CONTRIBUTING.md`
+- [Quickstart](docs/quickstart.md)
+- [Compose presets](docs/compose-presets.md)
+- [MCP client config example](docs/mcp-client-config.example.json)
+- [Configuration](docs/configuration.md)
+- [Release checklist](docs/release-checklist.md)
+- [Roadmaps index](docs/roadmaps/README.md)
+- [Roadmap 0.2.0](docs/roadmaps/0.2.0.md)
+- [Contributing](CONTRIBUTING.md)
 
 ## Local development (clone-based)
 
@@ -142,6 +142,6 @@ powershell -File scripts/tests/run_quality_stability_suite.ps1
 
 ## Roadmap status
 
-Roadmap snapshots are versioned in `docs/roadmaps/`.
-Current baseline release roadmap: `docs/roadmaps/0.2.0.md`.
-Next planned roadmap: `docs/roadmaps/0.3.0.md`.
+Roadmap snapshots are versioned in [docs/roadmaps](docs/roadmaps/README.md).
+Current baseline release roadmap: [0.2.0](docs/roadmaps/0.2.0.md).
+Next planned roadmap: [0.3.0](docs/roadmaps/0.3.0.md).

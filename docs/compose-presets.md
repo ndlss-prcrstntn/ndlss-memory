@@ -2,6 +2,11 @@
 
 These presets are intended for users who want to run `ndlss-memory` in any existing project directory without cloning this repository.
 
+See also:
+
+- [Quickstart](quickstart.md)
+- [Configuration](configuration.md)
+
 Image presets:
 - Pull prebuilt images from Docker Hub.
 - Mount your current folder as `/workspace` (read-only).

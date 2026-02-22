@@ -11,7 +11,7 @@
 
 - [ ] Validate compose files (`docker compose config`)
 - [ ] Run quality/stability suite
-- [ ] Verify examples in `README.md` and `docs/quickstart.md`
+- [ ] Verify examples in [README](../README.md) and [Quickstart](quickstart.md)
 - [ ] Validate MCP ingestion creates `workspace_chunks` and `points/count > 0`
 - [ ] Validate non-default external `QDRANT_PORT` works with internal `QDRANT_API_PORT=6333`
 
@@ -38,10 +38,10 @@ Release flow:
 
 ## Artifacts and docs
 
-- [ ] `README.md` is up to date
-- [ ] `CONTRIBUTING.md` is up to date
-- [ ] `docs/compose-presets.md` lists all presets
-- [ ] `docs/quickstart.md` matches current startup flow
+- [ ] [README](../README.md) is up to date
+- [ ] [CONTRIBUTING](../CONTRIBUTING.md) is up to date
+- [ ] [Compose presets](compose-presets.md) lists all presets
+- [ ] [Quickstart](quickstart.md) matches current startup flow
 
 ## GitHub Release publishing
 

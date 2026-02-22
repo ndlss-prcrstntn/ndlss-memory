@@ -4,8 +4,8 @@
 
 - Promoted `ndlss-memory` baseline to `0.2.0`.
 - Added versioned roadmap documentation:
-  - `docs/roadmaps/README.md`
-  - `docs/roadmaps/0.2.0.md`
+  - [Roadmaps index](docs/roadmaps/README.md)
+  - [Roadmap 0.2.0](docs/roadmaps/0.2.0.md)
 - Formalized roadmap `0..10` completion snapshot for the `0.2.0` release line.
 - Consolidated production-ready stack capabilities from `0.1.x`:
   - no-clone startup with image presets (`generic`, `python`, `typescript`, `javascript`, `java-kotlin`, `csharp`, `go`)
@@ -34,8 +34,8 @@
   - search repository internal-port resolution tests
   - vector upsert repository env-resolution tests (`mcp-server`, `file-indexer`)
 - Updated docs and release checklist:
-  - `README.md`, `docs/quickstart.md`, `docs/configuration.md`, `docs/compose-presets.md`
-  - `docs/release-checklist.md`
+  - [README](README.md), [Quickstart](docs/quickstart.md), [Configuration](docs/configuration.md), [Compose presets](docs/compose-presets.md)
+  - [Release checklist](docs/release-checklist.md)
 
 ## 0.1.6 - 2026-02-22
 
@@ -98,7 +98,7 @@
   - `csharp`
   - `go`
 - Added preset documentation and runtime source pinning (`NDLSS_GIT_REF`) for reproducible startup.
-- Switched the primary `README.md` to English and added localized READMEs (RU, FR, DE, ZH-CN, KO, JA).
+- Switched the primary [README](README.md) to English and added localized READMEs (RU, FR, DE, ZH-CN, KO, JA).
 
 ## 0.1.0 - 2026-02-22
 
