@@ -74,6 +74,7 @@ class ScanSummary:
     indexed_count: int
     skip_count: int
     error_count: int
+    applied_limits: dict[str, int | None]
     skip_breakdown: list[dict[str, Any]]
 
     def to_dict(self) -> dict[str, Any]:
@@ -87,6 +88,7 @@ class ScanSummary:
                 "skipCount": self.skip_count,
                 "errorCount": self.error_count,
             },
+            "appliedLimits": self.applied_limits,
             "skipBreakdown": self.skip_breakdown,
         }
 

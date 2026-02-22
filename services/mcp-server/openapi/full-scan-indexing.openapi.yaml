@@ -1,9 +1,9 @@
-openapi: 3.1.0
+п»їopenapi: 3.1.0
 info:
   title: Full Scan Indexing API
   version: 0.1.0
   description: >-
-    Контракт управления задачами полной индексации workspace.
+    РљРѕРЅС‚СЂР°РєС‚ СѓРїСЂР°РІР»РµРЅРёСЏ Р·Р°РґР°С‡Р°РјРё РїРѕР»РЅРѕР№ РёРЅРґРµРєСЃР°С†РёРё workspace.
 servers:
   - url: http://localhost:{mcp_port}
     variables:
@@ -12,7 +12,7 @@ servers:
 paths:
   /v1/indexing/full-scan/jobs:
     post:
-      summary: Запустить новую задачу full-scan
+      summary: Р—Р°РїСѓСЃС‚РёС‚СЊ РЅРѕРІСѓСЋ Р·Р°РґР°С‡Сѓ full-scan
       operationId: startFullScanJob
       requestBody:
         required: false
@@ -22,20 +22,26 @@ paths:
               $ref: "#/components/schemas/StartFullScanRequest"
       responses:
         "202":
-          description: Задача принята в обработку
+          description: Р—Р°РґР°С‡Р° РїСЂРёРЅСЏС‚Р° РІ РѕР±СЂР°Р±РѕС‚РєСѓ
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/StartFullScanResponse"
+        "400":
+          description: РќРµРІР°Р»РёРґРЅС‹Рµ Р·РЅР°С‡РµРЅРёСЏ Р»РёРјРёС‚РѕРІ Р·Р°РїСѓСЃРєР°
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Задача full-scan уже выполняется
+          description: Р—Р°РґР°С‡Р° full-scan СѓР¶Рµ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /v1/indexing/full-scan/jobs/{jobId}:
     get:
-      summary: Получить текущий прогресс задачи full-scan
+      summary: РџРѕР»СѓС‡РёС‚СЊ С‚РµРєСѓС‰РёР№ РїСЂРѕРіСЂРµСЃСЃ Р·Р°РґР°С‡Рё full-scan
       operationId: getFullScanJobProgress
       parameters:
         - name: jobId
@@ -45,20 +51,20 @@ paths:
             type: string
       responses:
         "200":
-          description: Текущий статус и прогресс задачи
+          description: РўРµРєСѓС‰РёР№ СЃС‚Р°С‚СѓСЃ Рё РїСЂРѕРіСЂРµСЃСЃ Р·Р°РґР°С‡Рё
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ScanProgress"
         "404":
-          description: Задача не найдена
+          description: Р—Р°РґР°С‡Р° РЅРµ РЅР°Р№РґРµРЅР°
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /v1/indexing/full-scan/jobs/{jobId}/summary:
     get:
-      summary: Получить итоговый отчет по задаче full-scan
+      summary: РџРѕР»СѓС‡РёС‚СЊ РёС‚РѕРіРѕРІС‹Р№ РѕС‚С‡РµС‚ РїРѕ Р·Р°РґР°С‡Рµ full-scan
       operationId: getFullScanJobSummary
       parameters:
         - name: jobId
@@ -68,19 +74,19 @@ paths:
             type: string
       responses:
         "200":
-          description: Итоговый отчет завершенной задачи
+          description: РС‚РѕРіРѕРІС‹Р№ РѕС‚С‡РµС‚ Р·Р°РІРµСЂС€РµРЅРЅРѕР№ Р·Р°РґР°С‡Рё
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ScanSummary"
         "404":
-          description: Задача не найдена
+          description: Р—Р°РґР°С‡Р° РЅРµ РЅР°Р№РґРµРЅР°
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Задача еще не завершена
+          description: Р—Р°РґР°С‡Р° РµС‰Рµ РЅРµ Р·Р°РІРµСЂС€РµРЅР°
           content:
             application/json:
               schema:
@@ -92,11 +98,21 @@ components:
       properties:
         workspacePath:
           type: string
-          description: Необязательный путь workspace для текущего запуска
+          description: РќРµРѕР±СЏР·Р°С‚РµР»СЊРЅС‹Р№ РїСѓС‚СЊ workspace РґР»СЏ С‚РµРєСѓС‰РµРіРѕ Р·Р°РїСѓСЃРєР°
         maxFileSizeBytes:
           type: integer
           minimum: 1
-          description: Необязательное переопределение лимита размера файла
+          description: РќРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕРµ РїРµСЂРµРѕРїСЂРµРґРµР»РµРЅРёРµ Р»РёРјРёС‚Р° СЂР°Р·РјРµСЂР° С„Р°Р№Р»Р°
+        maxTraversalDepth:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: РќРµРѕР±СЏР·Р°С‚РµР»СЊРЅС‹Р№ Р»РёРјРёС‚ РіР»СѓР±РёРЅС‹ РѕР±С…РѕРґР° РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅРѕ РєРѕСЂРЅСЏ workspace
+        maxFilesPerRun:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: РќРµРѕР±СЏР·Р°С‚РµР»СЊРЅС‹Р№ Р»РёРјРёС‚ РєРѕР»РёС‡РµСЃС‚РІР° С„Р°Р№Р»РѕРІ РЅР° Р·Р°РїСѓСЃРє
     StartFullScanResponse:
       type: object
       required: [jobId, status, acceptedAt]
@@ -146,9 +162,21 @@ components:
         lastEventAt:
           type: string
           format: date-time
+    RunLimits:
+      type: object
+      required: [maxTraversalDepth, maxFilesPerRun]
+      properties:
+        maxTraversalDepth:
+          type: integer
+          minimum: 0
+          nullable: true
+        maxFilesPerRun:
+          type: integer
+          minimum: 1
+          nullable: true
     ScanSummary:
       type: object
-      required: [jobId, result, durationSeconds, totals, skipBreakdown]
+      required: [jobId, result, durationSeconds, appliedLimits, totals, skipBreakdown]
       properties:
         jobId:
           type: string
@@ -158,6 +186,8 @@ components:
         durationSeconds:
           type: number
           minimum: 0
+        appliedLimits:
+          $ref: "#/components/schemas/RunLimits"
         totals:
           type: object
           required: [processedCount, indexedCount, skipCount, errorCount]
@@ -191,6 +221,8 @@ components:
               FILE_TOO_LARGE,
               READ_ERROR,
               EMPTY_FILE,
+              LIMIT_DEPTH_EXCEEDED,
+              LIMIT_MAX_FILES_REACHED,
             ]
         count:
           type: integer
@@ -205,3 +237,4 @@ components:
           type: string
         details:
           type: string
+

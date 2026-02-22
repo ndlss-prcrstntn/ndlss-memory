@@ -1,9 +1,9 @@
 ﻿{
     "status":  "passed",
-    "checkedAt":  "2026-02-22T22:38:48.9316438+03:00",
+    "checkedAt":  "2026-02-23T00:51:16.6433887+03:00",
     "readiness":  {
                       "bootstrap":  {
-                                        "checkedAt":  "2026-02-22T19:38:46.825291+00:00",
+                                        "checkedAt":  "2026-02-22T21:51:14.389498+00:00",
                                         "collectionName":  "workspace_chunks",
                                         "decision":  "skip-already-completed",
                                         "reason":  "bootstrap already completed for workspace",
@@ -12,12 +12,12 @@
                                         "trigger":  "auto-startup",
                                         "workspaceKey":  "/workspace|c52ddf65534b7b46"
                                     },
-                      "checkedAt":  "2026-02-22T19:38:46.827781+00:00",
+                      "checkedAt":  "2026-02-22T21:51:14.391291+00:00",
                       "collection":  {
-                                         "checkedAt":  "2026-02-22T19:38:46.825477+00:00",
+                                         "checkedAt":  "2026-02-22T21:51:14.389569+00:00",
                                          "collectionName":  "workspace_chunks",
                                          "exists":  true,
-                                         "pointCount":  9408
+                                         "pointCount":  9942
                                      },
                       "collectionName":  "workspace_chunks",
                       "indexMode":  "full-scan",
@@ -25,7 +25,7 @@
                       "preflightChecks":  [
                                               {
                                                   "checkId":  "qdrant_reachability",
-                                                  "checkedAt":  "2026-02-22T19:38:46.818287+00:00",
+                                                  "checkedAt":  "2026-02-22T21:51:14.383584+00:00",
                                                   "details":  {
                                                                   "status":  200,
                                                                   "url":  "http://qdrant:6333/collections"
@@ -36,7 +36,7 @@
                                               },
                                               {
                                                   "checkId":  "workspace_readable",
-                                                  "checkedAt":  "2026-02-22T19:38:46.820286+00:00",
+                                                  "checkedAt":  "2026-02-22T21:51:14.386742+00:00",
                                                   "details":  {
                                                                   "workspacePath":  "/workspace"
                                                               },
@@ -46,7 +46,7 @@
                                               },
                                               {
                                                   "checkId":  "git_available",
-                                                  "checkedAt":  "2026-02-22T19:38:46.820312+00:00",
+                                                  "checkedAt":  "2026-02-22T21:51:14.386759+00:00",
                                                   "details":  {
                                                                   "indexMode":  "full-scan"
                                                               },

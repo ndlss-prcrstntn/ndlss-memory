@@ -11,6 +11,8 @@
 - `INDEX_FILE_TYPES`: расширения индексируемых файлов через запятую.
 - `INDEX_EXCLUDE_PATTERNS`: исключаемые каталоги/паттерны.
 - `INDEX_MAX_FILE_SIZE_BYTES`: лимит размера файла для Full Scan.
+- `INDEX_MAX_TRAVERSAL_DEPTH`: опциональный лимит глубины обхода (`0` = только файлы в корне workspace).
+- `INDEX_MAX_FILES_PER_RUN`: опциональный лимит числа файлов в одном запуске (если пусто, лимит отключен).
 - `INDEX_PROGRESS_INTERVAL_SECONDS`: интервал обновления прогресса сканирования в секундах.
 - `INGESTION_CHUNK_SIZE`: размер чанка для ingestion pipeline.
 - `INGESTION_CHUNK_OVERLAP`: overlap между соседними чанками.
@@ -64,6 +66,7 @@
   `COMMAND_MEMORY_LIMIT_BYTES` для предотвращения деградации сервиса.
 - Используйте `HOST_WORKSPACE_PATH` только для необходимых директорий.
 - Ограничивайте `INDEX_MAX_FILE_SIZE_BYTES`, чтобы исключить тяжелые файлы.
+- Задавайте `INDEX_MAX_TRAVERSAL_DEPTH` и `INDEX_MAX_FILES_PER_RUN` в больших репозиториях, чтобы контролировать blast radius и время запуска.
 - Не задавайте `INDEX_PROGRESS_INTERVAL_SECONDS` слишком большим значением
   (рекомендуется 5-60 секунд).
 - Держите `INGESTION_CHUNK_OVERLAP` меньше `INGESTION_CHUNK_SIZE`.

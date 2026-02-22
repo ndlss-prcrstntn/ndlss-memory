@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.4 - 2026-02-22
+
+- Added indexing run limits for blast-radius control in large repositories:
+  - `maxTraversalDepth` and `maxFilesPerRun` accepted by full-scan and ingestion start APIs;
+  - environment defaults via `INDEX_MAX_TRAVERSAL_DEPTH` and `INDEX_MAX_FILES_PER_RUN`;
+  - deterministic candidate ordering with consistent limit application.
+- Added limit-aware summary diagnostics:
+  - `appliedLimits` block in full-scan and ingestion summary payloads;
+  - explicit skip reasons `LIMIT_DEPTH_EXCEEDED` and `LIMIT_MAX_FILES_REACHED`.
+- Updated runtime/config/openapi surfaces:
+  - compose/env propagation across local and image-based presets;
+  - validation/default handling in `file-indexer` startup scripts;
+  - synchronized OpenAPI contracts (`mcp-server` + feature contract).
+- Added regression coverage for limits:
+  - unit tests for deterministic selection with depth/max-files limits;
+  - integration tests for full-scan/ingestion consistency, backward compatibility, and summary reporting;
+  - contract tests for ingestion validation and full-scan/ingestion summary payloads.
+- Updated docs and quality scripts:
+  - `README.md`, `docs/configuration.md`, and feature quickstart;
+  - smoke scripts `us2_full_scan_filtering.ps1` and `us2_quality_search_flow.ps1` now verify applied limits.
+
 ## 0.2.3 - 2026-02-22
 
 - Added continuous watch indexing mode (`INDEX_MODE=watch`) with incremental create/update/delete processing:

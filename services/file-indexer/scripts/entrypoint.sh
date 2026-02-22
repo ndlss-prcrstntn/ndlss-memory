@@ -17,6 +17,14 @@ if [ -z "${INDEX_MAX_FILE_SIZE_BYTES:-}" ]; then
   export INDEX_MAX_FILE_SIZE_BYTES="1048576"
 fi
 
+if [ -z "${INDEX_MAX_TRAVERSAL_DEPTH+x}" ]; then
+  export INDEX_MAX_TRAVERSAL_DEPTH=""
+fi
+
+if [ -z "${INDEX_MAX_FILES_PER_RUN+x}" ]; then
+  export INDEX_MAX_FILES_PER_RUN=""
+fi
+
 if [ -z "${INDEX_PROGRESS_INTERVAL_SECONDS:-}" ]; then
   export INDEX_PROGRESS_INTERVAL_SECONDS="15"
 fi

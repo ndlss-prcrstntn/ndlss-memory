@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$SkipComposeLifecycle
 )
 
@@ -95,7 +95,7 @@ try {
         $null = Invoke-RestMethod -Method Put -Uri "$qdrantBaseUrl/collections/$qdrantCollection" -ContentType "application/json" -Body $collectionBody -TimeoutSec 10
     }
 
-    $ingestionBody = @{ workspacePath = $workspacePathContainer } | ConvertTo-Json -Compress
+    $ingestionBody = @{ workspacePath = $workspacePathContainer; maxTraversalDepth = 10; maxFilesPerRun = 500 } | ConvertTo-Json -Compress
     $run = Invoke-RestMethod -Method Post -Uri "$baseUrl/v1/indexing/ingestion/jobs" -ContentType "application/json" -Body $ingestionBody
     $runId = $run.runId
     for ($i = 0; $i -lt 120; $i++) {
@@ -109,6 +109,12 @@ try {
     $summary = Invoke-RestMethod -Method Get -Uri "$baseUrl/v1/indexing/ingestion/jobs/$runId/summary"
     if ($summary.failedChunks -gt 0) {
         throw "Ingestion failedChunks is greater than zero for runId=$runId"
+    }
+    if ($summary.appliedLimits.maxTraversalDepth -ne 10) {
+        throw "Expected appliedLimits.maxTraversalDepth=10 for runId=$runId"
+    }
+    if ($summary.appliedLimits.maxFilesPerRun -ne 500) {
+        throw "Expected appliedLimits.maxFilesPerRun=500 for runId=$runId"
     }
 
     $searchBody = @{ query = "readme"; limit = 5; filters = @{ fileType = ".md" } } | ConvertTo-Json -Depth 6
@@ -176,3 +182,5 @@ finally {
         }
     }
 }
+
+

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from flask import jsonify
 
+INVALID_LIMIT_VALUE = "INVALID_LIMIT_VALUE"
+
 
 def classify_pipeline_exception(exc: Exception) -> tuple[str, str]:
     message = str(exc).strip() or exc.__class__.__name__

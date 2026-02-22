@@ -57,6 +57,8 @@ The indexer behavior is preset-driven and still fully configurable:
 
 - `INDEX_FILE_TYPES`: which file extensions are indexed.
 - `INDEX_EXCLUDE_PATTERNS`: directories/files to skip.
+- `INDEX_MAX_TRAVERSAL_DEPTH`: optional maximum directory depth per run (`0` = only workspace root files).
+- `INDEX_MAX_FILES_PER_RUN`: optional maximum number of files selected in one run.
 - `INDEX_MODE=full-scan`: indexes the current workspace.
 - `INDEX_MODE=delta-after-commit`: for git repos, indexes only changed files.
 - `INDEX_MODE=watch`: continuously tracks create/update/delete and incrementally refreshes index.
