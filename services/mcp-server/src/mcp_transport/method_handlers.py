@@ -67,7 +67,7 @@ class McpMethodHandlers:
             "protocolVersion": "2025-06-18",
             "serverInfo": {
                 "name": "ndlss-memory-mcp-server",
-                "version": os.getenv("NDLSS_VERSION", "0.1.6"),
+                "version": os.getenv("NDLSS_VERSION", "0.1.7"),
             },
             "capabilities": {
                 "tools": {"listChanged": False},

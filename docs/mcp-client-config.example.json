@@ -3,7 +3,8 @@
     "servers": {
       "ndlss-memory": {
         "transport": "http",
-        "url": "http://localhost:8080/mcp"
+        "url": "http://localhost:8080/mcp",
+        "discovery_url": "http://localhost:8080/.well-known/mcp"
       }
     }
   },
@@ -11,7 +12,8 @@
     "mcpServers": {
       "ndlss-memory": {
         "transport": "http",
-        "url": "http://localhost:8080/mcp"
+        "url": "http://localhost:8080/mcp",
+        "discovery_url": "http://localhost:8080/.well-known/mcp"
       }
     }
   },
@@ -19,7 +21,8 @@
     "servers": {
       "ndlss-memory": {
         "transport": "http",
-        "url": "http://localhost:8080/mcp"
+        "url": "http://localhost:8080/mcp",
+        "discovery_url": "http://localhost:8080/.well-known/mcp"
       }
     }
   }

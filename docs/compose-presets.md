@@ -51,8 +51,8 @@ preset=python; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/ndl
 Use unique `-p` values and unique host ports:
 
 ```powershell
-$env:MCP_PORT="18080"; $env:QDRANT_PORT="16333"; docker compose -p ndlss-project-a -f ndlss-compose.yml up -d
-$env:MCP_PORT="28080"; $env:QDRANT_PORT="26333"; docker compose -p ndlss-project-b -f ndlss-compose.yml up -d
+$env:QDRANT_API_PORT="6333"; $env:MCP_PORT="18080"; $env:QDRANT_PORT="16333"; docker compose -p ndlss-project-a -f ndlss-compose.yml up -d
+$env:QDRANT_API_PORT="6333"; $env:MCP_PORT="28080"; $env:QDRANT_PORT="26333"; docker compose -p ndlss-project-b -f ndlss-compose.yml up -d
 ```
 
 ## Configuration overrides
@@ -69,7 +69,7 @@ Image override example:
 
 ```powershell
 $env:NDLSS_DOCKERHUB_NAMESPACE="ndlss"
-$env:NDLSS_IMAGE_TAG="0.1.4"
+$env:NDLSS_IMAGE_TAG="0.1.7"
 docker compose -f ndlss-compose.yml up -d
 ```
 
@@ -84,5 +84,8 @@ docker compose -f ndlss-compose.yml down
 - Discovery: `GET http://localhost:${MCP_PORT:-8080}/.well-known/mcp`
 - Streamable HTTP transport: `POST http://localhost:${MCP_PORT:-8080}/mcp`
 - SSE fallback: `GET /sse`, `POST /messages?sessionId=...`
+- `QDRANT_PORT` is host mapping only.
+- `QDRANT_API_PORT` is internal service-to-service port (default `6333`).
+- Keep `INGESTION_ENABLE_QDRANT_HTTP=1` for persistent ingestion into Qdrant.
 
 Do not point MCP clients to `/` because it is a REST command catalog endpoint.

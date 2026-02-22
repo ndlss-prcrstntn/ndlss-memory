@@ -4,7 +4,8 @@
 
 ## Обязательные параметры
 
-- `QDRANT_PORT`: внешний порт Qdrant.
+- `QDRANT_PORT`: внешний host-порт Qdrant (только публикация на localhost).
+- `QDRANT_API_PORT`: внутренний порт Qdrant для связи сервисов внутри docker-сети (`mcp-server`/`file-indexer` -> `qdrant`).
 - `MCP_PORT`: внешний порт mcp-server.
 - `INDEX_MODE`: `full-scan` или `delta-after-commit`.
 - `INDEX_FILE_TYPES`: расширения индексируемых файлов через запятую.
@@ -54,7 +55,9 @@
   относительно mounted workspace.
 - Держите `DELTA_ENABLE_FALLBACK=1`, если требуется автоматическое восстановление
   при ошибках Git-диффа.
-- Для production включайте `INGESTION_ENABLE_QDRANT_HTTP=1` и задавайте отдельную коллекцию.
+- Для реальной индексации через MCP обязательно держите `INGESTION_ENABLE_QDRANT_HTTP=1`.
+- Для production задавайте отдельную коллекцию и не переиспользуйте общий индекс между проектами.
+- Не подменяйте внутренний порт Qdrant через `QDRANT_PORT`: для сервис-сервис трафика используйте `QDRANT_API_PORT` (по умолчанию `6333`).
 - Для идемпотентного режима оставляйте `IDEMPOTENCY_HASH_ALGORITHM=sha256`.
 - Используйте `IDEMPOTENCY_ENABLE_STALE_CLEANUP=1`, чтобы индекс не накапливал устаревшие чанки.
 - Держите `COMMAND_RUN_AS_NON_ROOT=1` и не ослабляйте контейнерные security-параметры

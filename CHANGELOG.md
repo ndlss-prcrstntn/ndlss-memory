@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.7 - 2026-02-22
+
+- Fixed MCP ingestion persistence reliability:
+  - enabled HTTP upsert defaults for MCP ingestion flow
+  - ingestion now surfaces persistence failures as `INGESTION_PERSISTENCE_FAILED`
+  - ingestion status/summary now include persistence diagnostics
+- Fixed Qdrant networking model for multi-project stacks:
+  - introduced `QDRANT_API_PORT` for internal service traffic
+  - kept `QDRANT_PORT` for host mapping only
+  - updated compose presets (`deploy/compose-images/*`, `deploy/compose/*`) and local compose files
+- Added regression coverage:
+  - `scripts/tests/us1_ingestion_collection_creation.ps1`
+  - `scripts/tests/us2_custom_qdrant_external_port.ps1`
+  - integrated new stages into quality runner/suite
+- Added/updated tests:
+  - search repository internal-port resolution tests
+  - vector upsert repository env-resolution tests (`mcp-server`, `file-indexer`)
+- Updated docs and release checklist:
+  - `README.md`, `docs/quickstart.md`, `docs/configuration.md`, `docs/compose-presets.md`
+  - `docs/release-checklist.md`
+
 ## 0.1.6 - 2026-02-22
 
 - Added full MCP transport compatibility surface:
