@@ -1,12 +1,12 @@
 ﻿{
-    "runId":  "eaffb2fce6724d049e557091e3d8f2ac",
+    "runId":  "4c3001767fd8455da2af929f67e0d669",
     "stageName":  "us1-ingestion-collection-creation",
     "status":  "passed",
-    "generatedAt":  "2026-02-22T22:39:59.6460007+03:00",
-    "ingestionRunId":  "0c4e34bb3979464db83a3a69f6afd310",
+    "generatedAt":  "2026-02-23T00:52:28.8983722+03:00",
+    "ingestionRunId":  "bb353f6ade6448c7b5b841003053c5db",
     "collectionName":  "workspace_chunks",
     "collectionMissingBefore":  true,
-    "pointsCount":  7,
+    "pointsCount":  15,
     "persistence":  {
                         "ingestionEmbeddingVectorSize":  16,
                         "ingestionEnableQdrantHttp":  "1",

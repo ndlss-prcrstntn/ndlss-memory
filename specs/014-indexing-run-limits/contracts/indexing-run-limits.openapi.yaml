@@ -1,0 +1,287 @@
+﻿openapi: 3.0.3
+info:
+  title: Indexing Run Limits Contract
+  version: 0.2.0
+  description: Contract updates for traversal-depth and max-files limits in indexing runs.
+
+paths:
+  /v1/indexing/full-scan/jobs:
+    post:
+      summary: Start full-scan indexing job with optional run limits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartFullScanRequest'
+      responses:
+        '202':
+          description: Job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartFullScanResponse'
+        '400':
+          description: Invalid limits configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/indexing/full-scan/jobs/{jobId}/summary:
+    get:
+      summary: Get full-scan summary with applied limits and skip reasons
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Summary payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FullScanSummaryResponse'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/indexing/ingestion/jobs:
+    post:
+      summary: Start ingestion run with optional run limits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartIngestionRequest'
+      responses:
+        '202':
+          description: Run accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartIngestionResponse'
+        '400':
+          description: Invalid limits configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/indexing/ingestion/jobs/{runId}/summary:
+    get:
+      summary: Get ingestion summary with applied limits and skip reasons
+      parameters:
+        - in: path
+          name: runId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Summary payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionSummaryResponse'
+        '404':
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    RunLimits:
+      type: object
+      required: [maxTraversalDepth, maxFilesPerRun]
+      properties:
+        maxTraversalDepth:
+          type: integer
+          minimum: 0
+          nullable: true
+        maxFilesPerRun:
+          type: integer
+          minimum: 1
+          nullable: true
+
+    StartFullScanRequest:
+      type: object
+      properties:
+        workspacePath:
+          type: string
+        maxFileSizeBytes:
+          type: integer
+          minimum: 1
+        maxTraversalDepth:
+          type: integer
+          minimum: 0
+          nullable: true
+        maxFilesPerRun:
+          type: integer
+          minimum: 1
+          nullable: true
+
+    StartIngestionRequest:
+      type: object
+      properties:
+        workspacePath:
+          type: string
+        maxTraversalDepth:
+          type: integer
+          minimum: 0
+          nullable: true
+        maxFilesPerRun:
+          type: integer
+          minimum: 1
+          nullable: true
+
+    StartFullScanResponse:
+      type: object
+      required: [jobId, status, acceptedAt]
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [running]
+        acceptedAt:
+          type: string
+          format: date-time
+
+    StartIngestionResponse:
+      type: object
+      required: [runId, status, acceptedAt]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [running]
+        acceptedAt:
+          type: string
+          format: date-time
+
+    SkipBreakdownItem:
+      type: object
+      required: [code, count]
+      properties:
+        code:
+          type: string
+          enum:
+            - LIMIT_DEPTH_EXCEEDED
+            - LIMIT_MAX_FILES_REACHED
+        count:
+          type: integer
+          minimum: 0
+
+    FullScanSummaryResponse:
+      type: object
+      required: [jobId, result, durationSeconds, appliedLimits, totals, skipBreakdown]
+      properties:
+        jobId:
+          type: string
+        result:
+          type: string
+          enum: [completed, failed, cancelled]
+        durationSeconds:
+          type: number
+          minimum: 0
+        appliedLimits:
+          $ref: '#/components/schemas/RunLimits'
+        totals:
+          type: object
+          required: [processedCount, indexedCount, skipCount, errorCount]
+          properties:
+            processedCount:
+              type: integer
+              minimum: 0
+            indexedCount:
+              type: integer
+              minimum: 0
+            skipCount:
+              type: integer
+              minimum: 0
+            errorCount:
+              type: integer
+              minimum: 0
+        skipBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkipBreakdownItem'
+
+    IngestionSummaryResponse:
+      type: object
+      required: [runId, status, appliedLimits, skipBreakdown, totalFiles, totalChunks, embeddedChunks, failedChunks, retryCount, startedAt, finishedAt, metadataCoverage]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [completed, partial, failed]
+        appliedLimits:
+          $ref: '#/components/schemas/RunLimits'
+        skipBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkipBreakdownItem'
+        totalFiles:
+          type: integer
+          minimum: 0
+        totalChunks:
+          type: integer
+          minimum: 0
+        embeddedChunks:
+          type: integer
+          minimum: 0
+        failedChunks:
+          type: integer
+          minimum: 0
+        retryCount:
+          type: integer
+          minimum: 0
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        metadataCoverage:
+          type: object
+          required: [path, fileName, fileType, contentHash, timestamp]
+          properties:
+            path:
+              type: number
+            fileName:
+              type: number
+            fileType:
+              type: number
+            contentHash:
+              type: number
+            timestamp:
+              type: number
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+          enum:
+            - INVALID_LIMIT_VALUE
+            - JOB_NOT_FOUND
+            - RUN_NOT_FOUND
+            - RUN_NOT_FINISHED
+            - JOB_NOT_FINISHED
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true

@@ -3,6 +3,8 @@ EXCLUDED_BY_PATTERN = "EXCLUDED_BY_PATTERN"
 FILE_TOO_LARGE = "FILE_TOO_LARGE"
 READ_ERROR = "READ_ERROR"
 EMPTY_FILE = "EMPTY_FILE"
+LIMIT_DEPTH_EXCEEDED = "LIMIT_DEPTH_EXCEEDED"
+LIMIT_MAX_FILES_REACHED = "LIMIT_MAX_FILES_REACHED"
 
 KNOWN_SKIP_REASONS = {
     UNSUPPORTED_TYPE: "File type is not allowed by INDEX_FILE_TYPES",
@@ -10,5 +12,7 @@ KNOWN_SKIP_REASONS = {
     FILE_TOO_LARGE: "File exceeds INDEX_MAX_FILE_SIZE_BYTES",
     READ_ERROR: "Failed to read file content",
     EMPTY_FILE: "File has zero size",
+    LIMIT_DEPTH_EXCEEDED: "File depth exceeds maxTraversalDepth",
+    LIMIT_MAX_FILES_REACHED: "File skipped because maxFilesPerRun limit was reached",
 }
 

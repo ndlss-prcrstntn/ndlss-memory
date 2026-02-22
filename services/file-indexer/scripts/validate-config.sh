@@ -29,6 +29,24 @@ if [ -z "${INDEX_MAX_FILE_SIZE_BYTES:-}" ]; then
   exit 1
 fi
 
+if [ -n "${INDEX_MAX_TRAVERSAL_DEPTH:-}" ]; then
+  if ! echo "$INDEX_MAX_TRAVERSAL_DEPTH" | grep -Eq '^[0-9]+$'; then
+    echo "INDEX_MAX_TRAVERSAL_DEPTH must be a non-negative integer"
+    exit 1
+  fi
+fi
+
+if [ -n "${INDEX_MAX_FILES_PER_RUN:-}" ]; then
+  if ! echo "$INDEX_MAX_FILES_PER_RUN" | grep -Eq '^[0-9]+$'; then
+    echo "INDEX_MAX_FILES_PER_RUN must be a positive integer"
+    exit 1
+  fi
+  if [ "$INDEX_MAX_FILES_PER_RUN" -lt 1 ]; then
+    echo "INDEX_MAX_FILES_PER_RUN must be >= 1"
+    exit 1
+  fi
+fi
+
 if [ -z "${INDEX_PROGRESS_INTERVAL_SECONDS:-}" ]; then
   echo "INDEX_PROGRESS_INTERVAL_SECONDS is required"
   exit 1

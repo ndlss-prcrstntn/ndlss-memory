@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from file_size_guard import is_file_too_large
 from file_type_filter import is_supported_file, parse_supported_types
+from full_scan_walker import path_depth
 from ingestion_pipeline.chunk_models import ChunkingConfig
 from ingestion_pipeline.chunk_record_builder import build_chunk_records
 from ingestion_pipeline.embedding_models import EmbeddingTask, VectorRecord
@@ -19,6 +20,7 @@ from ingestion_pipeline.metadata_mapper import map_chunk_metadata
 from ingestion_pipeline.run_summary import IngestionRunSummary, SummaryAccumulator
 from ingestion_pipeline.vector_upsert_repository import UpsertError, VectorUpsertRepository, repository_from_env
 from path_exclude_filter import is_excluded_path, parse_exclude_patterns
+from skip_reasons import LIMIT_DEPTH_EXCEEDED, LIMIT_MAX_FILES_REACHED
 
 
 def _read_text(path: Path) -> str:
@@ -43,6 +45,8 @@ class IngestionService:
         file_types_csv: str | None = None,
         exclude_patterns_csv: str | None = None,
         max_file_size_bytes: int | None = None,
+        max_traversal_depth: int | None = None,
+        max_files_per_run: int | None = None,
     ) -> None:
         self.config = config
         self.provider = provider or provider_from_env()
@@ -50,6 +54,8 @@ class IngestionService:
         self.file_types_csv = file_types_csv or os.getenv("INDEX_FILE_TYPES", ".md,.txt,.json,.yml,.yaml")
         self.exclude_patterns_csv = exclude_patterns_csv or os.getenv("INDEX_EXCLUDE_PATTERNS", ".git,node_modules,dist,build")
         self.max_file_size_bytes = max_file_size_bytes or int(os.getenv("INDEX_MAX_FILE_SIZE_BYTES", "1048576"))
+        self.max_traversal_depth = self._optional_limit(max_traversal_depth, "INDEX_MAX_TRAVERSAL_DEPTH", minimum=0)
+        self.max_files_per_run = self._optional_limit(max_files_per_run, "INDEX_MAX_FILES_PER_RUN", minimum=1)
 
     def run(
         self,
@@ -59,12 +65,16 @@ class IngestionService:
         progress_callback: Callable[[dict[str, int]], None] | None = None,
     ) -> IngestionRunSummary:
         root = Path(workspace_path)
-        summary = SummaryAccumulator(run_id)
+        summary = SummaryAccumulator(
+            run_id,
+            max_traversal_depth=self.max_traversal_depth,
+            max_files_per_run=self.max_files_per_run,
+        )
         if not root.exists() or not root.is_dir():
             summary.on_embedding_failure()
             return summary.finalize()
 
-        for file_path in self._iter_candidate_files(root):
+        for file_path in self._iter_candidate_files(root, summary=summary):
             summary.on_file()
             try:
                 content = _read_text(file_path)
@@ -202,12 +212,18 @@ class IngestionService:
 
         return summary.finalize()
 
-    def _iter_candidate_files(self, root: Path) -> Iterable[Path]:
+    def _iter_candidate_files(self, root: Path, summary: SummaryAccumulator | None = None) -> Iterable[Path]:
         supported_types = parse_supported_types(self.file_types_csv)
         exclude_patterns = parse_exclude_patterns(self.exclude_patterns_csv)
         candidates = sorted(path for path in root.rglob("*") if path.is_file())
+        selected_files = 0
         for path in candidates:
             rel = path.relative_to(root)
+            depth = path_depth(root, path)
+            if self.max_traversal_depth is not None and depth > self.max_traversal_depth:
+                if summary is not None:
+                    summary.on_skip(LIMIT_DEPTH_EXCEEDED)
+                continue
             if is_excluded_path(rel, exclude_patterns):
                 continue
             if not is_supported_file(path, supported_types):
@@ -215,7 +231,24 @@ class IngestionService:
             too_large, size = is_file_too_large(path, self.max_file_size_bytes)
             if size <= 0 or too_large:
                 continue
+            if self.max_files_per_run is not None and selected_files >= self.max_files_per_run:
+                if summary is not None:
+                    summary.on_skip(LIMIT_MAX_FILES_REACHED)
+                continue
+            selected_files += 1
             yield path
+
+    @staticmethod
+    def _optional_limit(explicit_value: int | None, env_name: str, *, minimum: int) -> int | None:
+        if explicit_value is not None:
+            return explicit_value
+        raw = os.getenv(env_name, "")
+        if raw is None or str(raw).strip() == "":
+            return None
+        value = int(raw)
+        if value < minimum:
+            raise ValueError(f"{env_name} must be >= {minimum}")
+        return value
 
     @staticmethod
     def _emit_progress(summary: SummaryAccumulator, callback: Callable[[dict[str, int]], None] | None) -> None:

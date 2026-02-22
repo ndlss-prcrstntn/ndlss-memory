@@ -21,9 +21,11 @@ from command_security_policy import load_command_security_policy
 from delta_after_commit_errors import json_error as delta_json_error
 from delta_after_commit_state import STATE as DELTA_STATE
 from full_scan_errors import json_error as full_scan_json_error
-from full_scan_state import STATE as FULL_SCAN_STATE
+from full_scan_state import LIMIT_DEPTH_EXCEEDED, LIMIT_MAX_FILES_REACHED, STATE as FULL_SCAN_STATE
 from idempotency_errors import json_error as idempotency_json_error
 from idempotency_state import STATE as IDEMPOTENCY_STATE
+from indexing_run_limits import IndexingRunLimitValidationError, resolve_indexing_run_limits
+from ingestion_errors import INVALID_LIMIT_VALUE as INGESTION_INVALID_LIMIT_VALUE
 from ingestion_errors import classify_pipeline_exception, json_error as ingestion_json_error
 from ingestion_state import STATE as INGESTION_STATE
 from mcp_transport import register_mcp_transport_routes
@@ -254,6 +256,19 @@ def _parse_int_env(name: str, default: int) -> int:
         return default
 
 
+def _parse_optional_int_env(name: str, minimum: int) -> int | None:
+    raw = os.getenv(name, "")
+    if raw is None or str(raw).strip() == "":
+        return None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if value < minimum:
+        return None
+    return value
+
+
 def _ensure_file_indexer_src_path() -> None:
     candidates = [
         Path("/workspace/services/file-indexer/src"),
@@ -267,7 +282,26 @@ def _ensure_file_indexer_src_path() -> None:
             as_text = str(candidate)
             if as_text not in sys.path:
                 sys.path.insert(0, as_text)
+            _evict_if_shadowed("ingestion_pipeline", candidate)
+            _evict_if_shadowed("delta_after_commit", candidate)
             break
+
+
+def _evict_if_shadowed(namespace: str, expected_root: Path) -> None:
+    module = sys.modules.get(namespace)
+    if module is None:
+        return
+    module_file = getattr(module, "__file__", None)
+    if not module_file:
+        return
+    expected = str(expected_root.resolve())
+    actual = str(Path(module_file).resolve())
+    if os.path.normcase(actual).startswith(os.path.normcase(expected)):
+        return
+    prefix = f"{namespace}."
+    for name in list(sys.modules.keys()):
+        if name == namespace or name.startswith(prefix):
+            del sys.modules[name]
 
 
 def load_security_policy() -> dict:
@@ -350,16 +384,31 @@ def _run_full_scan_job(job_id: str) -> None:
         FULL_SCAN_STATE.finish_job(job_id, "failed")
         return
 
-    files = [path for path in workspace.rglob("*") if path.is_file()]
+    files = sorted(
+        (path for path in workspace.rglob("*") if path.is_file()),
+        key=lambda path: str(path.relative_to(workspace)).replace("\\", "/"),
+    )
     total = len(files)
     if total == 0:
         FULL_SCAN_STATE.finish_job(job_id, "completed")
         return
 
+    selected_files = 0
     for idx, file_path in enumerate(files, start=1):
         rel_path = file_path.relative_to(workspace)
         ext = file_path.suffix.lower()
         percent = round((idx * 100.0) / total, 2)
+        depth = max(len(rel_path.parts) - 1, 0)
+
+        if job.max_traversal_depth is not None and depth > job.max_traversal_depth:
+            FULL_SCAN_STATE.update_job(
+                job_id,
+                processed_delta=1,
+                skip_delta=1,
+                skip_reason=LIMIT_DEPTH_EXCEEDED,
+                percent_complete=percent,
+            )
+            continue
 
         if _is_excluded(rel_path, excluded_patterns):
             FULL_SCAN_STATE.update_job(
@@ -396,9 +445,20 @@ def _run_full_scan_job(job_id: str) -> None:
             FULL_SCAN_STATE.update_job(job_id, processed_delta=1, skip_delta=1, skip_reason="FILE_TOO_LARGE", percent_complete=percent)
             continue
 
+        if job.max_files_per_run is not None and selected_files >= job.max_files_per_run:
+            FULL_SCAN_STATE.update_job(
+                job_id,
+                processed_delta=1,
+                skip_delta=1,
+                skip_reason=LIMIT_MAX_FILES_REACHED,
+                percent_complete=percent,
+            )
+            continue
+
         try:
             file_path.read_bytes()
             FULL_SCAN_STATE.update_job(job_id, processed_delta=1, indexed_delta=1, percent_complete=percent)
+            selected_files += 1
         except OSError:
             FULL_SCAN_STATE.update_job(
                 job_id,
@@ -444,7 +504,11 @@ def _run_ingestion_job(run_id: str, workspace_path: str, payload: dict) -> None:
             retry_backoff_seconds=effective_backoff,
         )
         config.validate()
-        service = IngestionService(config=config)
+        service = IngestionService(
+            config=config,
+            max_traversal_depth=run.max_traversal_depth,
+            max_files_per_run=run.max_files_per_run,
+        )
         summary = service.run(run_id=run_id, workspace_path=workspace_path, progress_callback=_progress_update)
         summary_payload = summary.to_dict()
         INGESTION_STATE.finish_run(run_id, summary=summary_payload, status=summary_payload.get("status", "completed"))
@@ -477,6 +541,11 @@ def _run_ingestion_job(run_id: str, workspace_path: str, payload: dict) -> None:
                 "contentHash": 0,
                 "timestamp": 0,
             },
+            "appliedLimits": {
+                "maxTraversalDepth": run.max_traversal_depth,
+                "maxFilesPerRun": run.max_files_per_run,
+            },
+            "skipBreakdown": [],
             "errorCode": error_code,
             "errorMessage": error_message,
         }
@@ -647,9 +716,16 @@ def _start_ingestion_run(
     *,
     workspace_path: str,
     payload: dict,
+    max_traversal_depth: int | None = None,
+    max_files_per_run: int | None = None,
     bootstrap_context: dict | None = None,
 ):
-    run = INGESTION_STATE.create_run(workspace_path=workspace_path, bootstrap=bootstrap_context)
+    run = INGESTION_STATE.create_run(
+        workspace_path=workspace_path,
+        max_traversal_depth=max_traversal_depth,
+        max_files_per_run=max_files_per_run,
+        bootstrap=bootstrap_context,
+    )
     if _is_watch_mode_enabled():
         INGESTION_STATE.update_run(run.run_id, watch_activity=WATCH_STATE.get_status())
     Thread(target=_run_ingestion_job, args=(run.run_id, workspace_path, payload), daemon=True).start()
@@ -666,6 +742,8 @@ def build_runtime_config() -> dict:
     index_file_types = _split_csv(os.getenv("INDEX_FILE_TYPES", ".md,.txt,.json,.yml,.yaml"))
     index_exclude_patterns = _split_csv(os.getenv("INDEX_EXCLUDE_PATTERNS", ".git,node_modules,dist,build"))
     max_size = _parse_int_env("INDEX_MAX_FILE_SIZE_BYTES", 1048576)
+    max_traversal_depth = _parse_optional_int_env("INDEX_MAX_TRAVERSAL_DEPTH", 0)
+    max_files_per_run = _parse_optional_int_env("INDEX_MAX_FILES_PER_RUN", 1)
     progress_interval = _parse_int_env("INDEX_PROGRESS_INTERVAL_SECONDS", 15)
     return {
         "projectName": os.getenv("COMPOSE_PROJECT_NAME", "ndlss-memory"),
@@ -677,6 +755,8 @@ def build_runtime_config() -> dict:
         "indexFileTypes": index_file_types,
         "indexExcludePatterns": index_exclude_patterns,
         "indexMaxFileSizeBytes": max_size,
+        "indexMaxTraversalDepth": max_traversal_depth,
+        "indexMaxFilesPerRun": max_files_per_run,
         "indexProgressIntervalSeconds": progress_interval,
         "ingestionChunkSize": _parse_int_env("INGESTION_CHUNK_SIZE", 800),
         "ingestionChunkOverlap": _parse_int_env("INGESTION_CHUNK_OVERLAP", 120),
@@ -707,6 +787,8 @@ def build_runtime_config() -> dict:
             "supportedTypes": index_file_types,
             "excludePatterns": index_exclude_patterns,
             "maxFileSizeBytes": max_size,
+            "maxTraversalDepth": max_traversal_depth,
+            "maxFilesPerRun": max_files_per_run,
         },
         "commandAllowlist": allowlist,
         "commandTimeoutSeconds": int(timeout_value),
@@ -825,6 +907,8 @@ def _run_startup_preflight_or_exit() -> None:
             start_ingestion_run=lambda workspace: _start_ingestion_run(
                 workspace_path=workspace,
                 payload={"workspacePath": workspace},
+                max_traversal_depth=None,
+                max_files_per_run=None,
                 bootstrap_context={
                     "trigger": "auto-startup",
                     "decision": "run",
@@ -971,6 +1055,10 @@ def start_full_scan_job():
     payload = request.get_json(silent=True) or {}
     workspace_path = payload.get("workspacePath") or os.getenv("WORKSPACE_PATH", "/workspace")
     max_file_size = payload.get("maxFileSizeBytes")
+    try:
+        run_limits = resolve_indexing_run_limits(payload, env=os.environ)
+    except IndexingRunLimitValidationError as exc:
+        return full_scan_json_error(exc.error_code, str(exc), 400)
     if max_file_size is None:
         max_file_size = _parse_int_env("INDEX_MAX_FILE_SIZE_BYTES", 1048576)
 
@@ -983,7 +1071,12 @@ def start_full_scan_job():
         return full_scan_json_error("INVALID_REQUEST", "maxFileSizeBytes must be >= 1", 400)
 
     try:
-        job = FULL_SCAN_STATE.create_job(workspace_path=workspace_path, max_file_size_bytes=max_file_size)
+        job = FULL_SCAN_STATE.create_job(
+            workspace_path=workspace_path,
+            max_file_size_bytes=max_file_size,
+            max_traversal_depth=run_limits.max_traversal_depth,
+            max_files_per_run=run_limits.max_files_per_run,
+        )
     except RuntimeError:
         return full_scan_json_error("FULL_SCAN_ALREADY_RUNNING", "Full scan job is already running", 409)
 
@@ -1014,9 +1107,15 @@ def start_ingestion_job():
     payload = request.get_json(silent=True) or {}
     workspace_path = payload.get("workspacePath") or os.getenv("WORKSPACE_PATH", "/workspace")
     try:
+        run_limits = resolve_indexing_run_limits(payload, env=os.environ)
+    except IndexingRunLimitValidationError as exc:
+        return ingestion_json_error(INGESTION_INVALID_LIMIT_VALUE, str(exc), 400)
+    try:
         run = _start_ingestion_run(
             workspace_path=workspace_path,
             payload=payload,
+            max_traversal_depth=run_limits.max_traversal_depth,
+            max_files_per_run=run_limits.max_files_per_run,
             bootstrap_context={
                 "trigger": "manual",
                 "decision": "run",

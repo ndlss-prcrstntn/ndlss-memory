@@ -15,6 +15,8 @@ def _now_iso() -> str:
 class IngestionRunRecord:
     run_id: str
     workspace_path: str
+    max_traversal_depth: int | None = None
+    max_files_per_run: int | None = None
     status: str = "queued"
     accepted_at: str = field(default_factory=_now_iso)
     started_at: str | None = None
@@ -35,6 +37,10 @@ class IngestionRunRecord:
         payload = {
             "runId": self.run_id,
             "status": self.status,
+            "appliedLimits": {
+                "maxTraversalDepth": self.max_traversal_depth,
+                "maxFilesPerRun": self.max_files_per_run,
+            },
             "totalFiles": self.total_files,
             "totalChunks": self.total_chunks,
             "embeddedChunks": self.embedded_chunks,
@@ -57,13 +63,25 @@ class IngestionState:
         self._runs: dict[str, IngestionRunRecord] = {}
         self._active_run_id: str | None = None
 
-    def create_run(self, workspace_path: str, *, bootstrap: dict[str, Any] | None = None) -> IngestionRunRecord:
+    def create_run(
+        self,
+        workspace_path: str,
+        *,
+        max_traversal_depth: int | None = None,
+        max_files_per_run: int | None = None,
+        bootstrap: dict[str, Any] | None = None,
+    ) -> IngestionRunRecord:
         with self._lock:
             if self._active_run_id:
                 active = self._runs.get(self._active_run_id)
                 if active and active.status in {"queued", "running"}:
                     raise RuntimeError("INGESTION_ALREADY_RUNNING")
-            record = IngestionRunRecord(run_id=uuid4().hex, workspace_path=workspace_path)
+            record = IngestionRunRecord(
+                run_id=uuid4().hex,
+                workspace_path=workspace_path,
+                max_traversal_depth=max_traversal_depth,
+                max_files_per_run=max_files_per_run,
+            )
             record.status = "running"
             record.started_at = _now_iso()
             record.bootstrap = bootstrap
@@ -100,6 +118,15 @@ class IngestionState:
             record.embedded_chunks = int(summary.get("embeddedChunks", record.embedded_chunks))
             record.failed_chunks = int(summary.get("failedChunks", record.failed_chunks))
             record.retry_count = int(summary.get("retryCount", record.retry_count))
+            if isinstance(record.summary, dict):
+                record.summary.setdefault(
+                    "appliedLimits",
+                    {
+                        "maxTraversalDepth": record.max_traversal_depth,
+                        "maxFilesPerRun": record.max_files_per_run,
+                    },
+                )
+                record.summary.setdefault("skipBreakdown", [])
             if record.bootstrap is not None and isinstance(record.summary, dict):
                 record.summary.setdefault("bootstrap", record.bootstrap)
             if record.watch_activity is not None and isinstance(record.summary, dict):

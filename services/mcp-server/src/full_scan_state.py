@@ -6,6 +6,9 @@ from threading import Lock
 from typing import Any
 from uuid import uuid4
 
+LIMIT_DEPTH_EXCEEDED = "LIMIT_DEPTH_EXCEEDED"
+LIMIT_MAX_FILES_REACHED = "LIMIT_MAX_FILES_REACHED"
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -16,6 +19,8 @@ class FullScanJobRecord:
     job_id: str
     workspace_path: str
     max_file_size_bytes: int
+    max_traversal_depth: int | None = None
+    max_files_per_run: int | None = None
     status: str = "queued"
     accepted_at: str = field(default_factory=_now_iso)
     started_at: str | None = None
@@ -51,6 +56,10 @@ class FullScanJobRecord:
             "jobId": self.job_id,
             "result": self.status if self.status in {"completed", "failed", "cancelled"} else "running",
             "durationSeconds": duration,
+            "appliedLimits": {
+                "maxTraversalDepth": self.max_traversal_depth,
+                "maxFilesPerRun": self.max_files_per_run,
+            },
             "totals": {
                 "processedCount": self.processed_count,
                 "indexedCount": self.indexed_count,
@@ -67,11 +76,24 @@ class FullScanState:
         self._jobs: dict[str, FullScanJobRecord] = {}
         self._active_job_id: str | None = None
 
-    def create_job(self, workspace_path: str, max_file_size_bytes: int) -> FullScanJobRecord:
+    def create_job(
+        self,
+        workspace_path: str,
+        max_file_size_bytes: int,
+        *,
+        max_traversal_depth: int | None = None,
+        max_files_per_run: int | None = None,
+    ) -> FullScanJobRecord:
         with self._lock:
             if self._active_job_id and self._jobs[self._active_job_id].status in {"queued", "running"}:
                 raise RuntimeError("FULL_SCAN_ALREADY_RUNNING")
-            job = FullScanJobRecord(job_id=uuid4().hex, workspace_path=workspace_path, max_file_size_bytes=max_file_size_bytes)
+            job = FullScanJobRecord(
+                job_id=uuid4().hex,
+                workspace_path=workspace_path,
+                max_file_size_bytes=max_file_size_bytes,
+                max_traversal_depth=max_traversal_depth,
+                max_files_per_run=max_files_per_run,
+            )
             job.status = "running"
             job.started_at = _now_iso()
             job.last_event_at = _now_iso()
