@@ -22,9 +22,10 @@
     environment:
       INDEX_MODE: ${INDEX_MODE:-full-scan}
       INDEX_FILE_TYPES: ${INDEX_FILE_TYPES:-.cs,.csproj,.sln,.props,.targets,.json,.md,.yml,.yaml,.config}
-      INDEX_EXCLUDE_PATTERNS: ${INDEX_EXCLUDE_PATTERNS:-.git,bin,obj,packages,.vs,.idea,node_modules,dist,build}
-      INDEX_MAX_FILE_SIZE_BYTES: ${INDEX_MAX_FILE_SIZE_BYTES:-2097152}
+      INDEX_EXCLUDE_PATTERNS: ${INDEX_EXCLUDE_PATTERNS:-.git,bin,obj,packages,.vs,.idea,node_modules,dist,build}     
       INDEX_PROGRESS_INTERVAL_SECONDS: ${INDEX_PROGRESS_INTERVAL_SECONDS:-15}
+      COMMAND_ALLOWLIST: ${COMMAND_ALLOWLIST:-echo,ls,pwd,cat}
+      COMMAND_TIMEOUT_SECONDS: ${COMMAND_TIMEOUT_SECONDS:-20}
       INGESTION_ENABLE_QDRANT_HTTP: ${INGESTION_ENABLE_QDRANT_HTTP:-1}
       QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-workspace_chunks}
       WORKSPACE_PATH: /workspace
@@ -75,6 +76,10 @@
 
 volumes:
   qdrant_data:
+
+
+
+
 
 
 

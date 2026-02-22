@@ -24,9 +24,10 @@
     environment:
       INDEX_MODE: ${INDEX_MODE:-full-scan}
       INDEX_FILE_TYPES: ${INDEX_FILE_TYPES:-.py,.ipynb,.md,.txt,.json,.yaml,.yml,.toml,.ini}
-      INDEX_EXCLUDE_PATTERNS: ${INDEX_EXCLUDE_PATTERNS:-.git,__pycache__,.venv,venv,.pytest_cache,.mypy_cache,dist,build,node_modules}
-      INDEX_MAX_FILE_SIZE_BYTES: ${INDEX_MAX_FILE_SIZE_BYTES:-2097152}
+      INDEX_EXCLUDE_PATTERNS: ${INDEX_EXCLUDE_PATTERNS:-.git,__pycache__,.venv,venv,.pytest_cache,.mypy_cache,dist,build,node_modules}     
       INDEX_PROGRESS_INTERVAL_SECONDS: ${INDEX_PROGRESS_INTERVAL_SECONDS:-15}
+      COMMAND_ALLOWLIST: ${COMMAND_ALLOWLIST:-echo,ls,pwd,cat}
+      COMMAND_TIMEOUT_SECONDS: ${COMMAND_TIMEOUT_SECONDS:-20}
       INGESTION_ENABLE_QDRANT_HTTP: ${INGESTION_ENABLE_QDRANT_HTTP:-1}
       QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-workspace_chunks}
       WORKSPACE_PATH: /workspace
@@ -79,4 +80,8 @@
 
 volumes:
   qdrant_data:
+
+
+
+
 
