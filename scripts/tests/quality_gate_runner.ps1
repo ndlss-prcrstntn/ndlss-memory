@@ -149,6 +149,13 @@ Invoke-Stage -Report $report -Name "startup_preflight" -Skip:$SkipIntegration -F
     } -MaxAttempts 2
 }
 
+$startupBootstrapArtifact = Join-Path $artifactRoot "startup-bootstrap-smoke.json"
+Invoke-Stage -Report $report -Name "startup_bootstrap" -Skip:$SkipIntegration -FailureCode "STARTUP_BOOTSTRAP_SMOKE_FAILED" -ArtifactPaths @($startupBootstrapArtifact) -Body {
+    Invoke-CheckedScript -Path (Join-Path $root "scripts/tests/startup_bootstrap_smoke.ps1") -NamedArguments @{
+        ArtifactPath = $startupBootstrapArtifact
+    } -MaxAttempts 2
+}
+
 Invoke-Stage -Report $report -Name "contract" -Skip:$SkipContract -Body {
     & (Join-Path $root "scripts/tests/contract_quality_stability.ps1")
     if (-not $?) {

@@ -42,6 +42,9 @@
 - `STARTUP_PREFLIGHT_TIMEOUT_SECONDS`: таймаут preflight-проверок зависимостей.
 - `STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA`: требовать git для `INDEX_MODE=delta-after-commit`.
 - `STARTUP_READY_SUMMARY_LOG_ENABLED`: печатать единый startup-ready summary в лог.
+- `BOOTSTRAP_AUTO_INGEST_ON_START`: автоматически запускать bootstrap ingestion при старте (`1`/`0`).
+- `BOOTSTRAP_RETRY_FAILED_ON_START`: автоматически повторять failed-bootstrap при старте (`1`/`0`).
+- `BOOTSTRAP_STATE_COLLECTION`: служебная коллекция маркеров bootstrap-состояния workspace.
 - `MCP_ENDPOINT_PATH`: MCP endpoint path для startup summary (по умолчанию `/mcp`).
 - `HOST_WORKSPACE_PATH`: путь хоста для bind mount в индексатор.
 
@@ -75,6 +78,20 @@
   отключения preflight.
 - Для `INDEX_MODE=delta-after-commit` оставляйте
   `STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA=1`.
+- Для zero-friction bootstrap держите `BOOTSTRAP_AUTO_INGEST_ON_START=1`.
+- Для production оставляйте `BOOTSTRAP_RETRY_FAILED_ON_START=1`, чтобы
+  failed-bootstrap автоматически восстанавливался после кратковременных сбоев.
+- Не переиспользуйте `BOOTSTRAP_STATE_COLLECTION` между изолированными окружениями.
+
+## Bootstrap observability
+
+- `GET /v1/system/startup/readiness` возвращает:
+  - `bootstrap` (`trigger`, `decision`, `status`, `workspaceKey`, `runId?`, `errorCode?`, `reason?`);
+  - `collection` (`collectionName`, `exists`, `pointCount`, `checkedAt`);
+  - `bootstrapFailure` при статусе `failed` (структурированная actionable-диагностика).
+- `GET /v1/indexing/ingestion/jobs/{runId}` и `/summary` включают:
+  - `bootstrap` контекст запуска;
+  - `collection` snapshot для верификации готовности индекса.
 
 ## MCP transport troubleshooting
 

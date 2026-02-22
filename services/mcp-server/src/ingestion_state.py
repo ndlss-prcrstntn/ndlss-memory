@@ -28,9 +28,10 @@ class IngestionRunRecord:
     error_code: str | None = None
     error_message: str | None = None
     summary: dict[str, Any] | None = None
+    bootstrap: dict[str, Any] | None = None
 
     def as_status(self) -> dict[str, Any]:
-        return {
+        payload = {
             "runId": self.run_id,
             "status": self.status,
             "totalFiles": self.total_files,
@@ -42,6 +43,9 @@ class IngestionRunRecord:
             "errorCode": self.error_code,
             "errorMessage": self.error_message,
         }
+        if self.bootstrap is not None:
+            payload["bootstrap"] = self.bootstrap
+        return payload
 
 
 class IngestionState:
@@ -50,7 +54,7 @@ class IngestionState:
         self._runs: dict[str, IngestionRunRecord] = {}
         self._active_run_id: str | None = None
 
-    def create_run(self, workspace_path: str) -> IngestionRunRecord:
+    def create_run(self, workspace_path: str, *, bootstrap: dict[str, Any] | None = None) -> IngestionRunRecord:
         with self._lock:
             if self._active_run_id:
                 active = self._runs.get(self._active_run_id)
@@ -59,6 +63,7 @@ class IngestionState:
             record = IngestionRunRecord(run_id=uuid4().hex, workspace_path=workspace_path)
             record.status = "running"
             record.started_at = _now_iso()
+            record.bootstrap = bootstrap
             self._runs[record.run_id] = record
             self._active_run_id = record.run_id
             return record
@@ -92,6 +97,8 @@ class IngestionState:
             record.embedded_chunks = int(summary.get("embeddedChunks", record.embedded_chunks))
             record.failed_chunks = int(summary.get("failedChunks", record.failed_chunks))
             record.retry_count = int(summary.get("retryCount", record.retry_count))
+            if record.bootstrap is not None and isinstance(record.summary, dict):
+                record.summary.setdefault("bootstrap", record.bootstrap)
             if self._active_run_id == run_id:
                 self._active_run_id = None
             return record

@@ -45,11 +45,15 @@ class StartupReadinessSummary:
     mcp_endpoint: str
     collection_name: str
     preflight_checks: list[StartupCheckResult]
+    status: str = "ready"
+    collection: dict[str, Any] | None = None
+    bootstrap: dict[str, Any] | None = None
+    bootstrap_failure: dict[str, Any] | None = None
     checked_at: str = field(default_factory=now_iso)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "status": "ready",
+        payload: dict[str, Any] = {
+            "status": self.status,
             "serviceReadiness": self.service_readiness,
             "workspacePath": self.workspace_path,
             "indexMode": self.index_mode,
@@ -58,4 +62,11 @@ class StartupReadinessSummary:
             "preflightChecks": [check.to_dict() for check in self.preflight_checks],
             "checkedAt": self.checked_at,
         }
+        if self.collection is not None:
+            payload["collection"] = self.collection
+        if self.bootstrap is not None:
+            payload["bootstrap"] = self.bootstrap
+        if self.bootstrap_failure is not None:
+            payload["bootstrapFailure"] = self.bootstrap_failure
+        return payload
 

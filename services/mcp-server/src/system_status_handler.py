@@ -9,6 +9,8 @@ from threading import Thread
 import yaml
 from flask import Flask, jsonify, request
 
+from bootstrap_orchestrator import BootstrapOrchestrator
+from bootstrap_state import build_workspace_key
 from command_audit_store import CommandAuditStore
 from command_execution_errors import CommandExecutionError, json_error_from_exception as command_json_error_from_exception
 from command_execution_models import CommandExecutionRequest
@@ -30,7 +32,11 @@ from search_models import SemanticSearchRequest
 from search_repository import QdrantSearchRepository
 from search_service import SearchService
 from startup_preflight_checks import run_startup_preflight
-from startup_preflight_errors import StartupPreflightError, build_startup_failure_report
+from startup_preflight_errors import (
+    StartupPreflightError,
+    build_bootstrap_failure_report,
+    build_startup_failure_report,
+)
 from startup_readiness_summary import build_startup_readiness_summary
 from startup_preflight_state import STATE as STARTUP_PREFLIGHT_STATE
 
@@ -45,6 +51,9 @@ app = Flask(__name__)
 SEARCH_SERVICE = SearchService(QdrantSearchRepository.from_env())
 COMMAND_EXECUTION_SERVICE: CommandExecutionService | None = None
 MCP_DISPATCHER = register_mcp_transport_routes(app)
+BOOTSTRAP_ORCHESTRATOR = BootstrapOrchestrator()
+STARTUP_PREFLIGHT_CONTEXT: dict | None = None
+STARTUP_PREFLIGHT_CHECKS: list = []
 
 API_COMMANDS = [
     {
@@ -401,6 +410,16 @@ def _run_ingestion_job(run_id: str, workspace_path: str, payload: dict) -> None:
         summary = service.run(run_id=run_id, workspace_path=workspace_path, progress_callback=_progress_update)
         summary_payload = summary.to_dict()
         INGESTION_STATE.finish_run(run_id, summary=summary_payload, status=summary_payload.get("status", "completed"))
+        finished = INGESTION_STATE.get_run(run_id)
+        if finished and finished.bootstrap and finished.bootstrap.get("trigger") == "auto-startup":
+            BOOTSTRAP_ORCHESTRATOR.on_ingestion_finished(
+                run_id=run_id,
+                workspace_path=workspace_path,
+                status=summary_payload.get("status", "completed"),
+                error_code=summary_payload.get("errorCode"),
+                error_message=summary_payload.get("errorMessage"),
+            )
+            _update_startup_readiness_with_bootstrap()
     except Exception as exc:
         error_code, error_message = classify_pipeline_exception(exc)
         failure = {
@@ -425,6 +444,16 @@ def _run_ingestion_job(run_id: str, workspace_path: str, payload: dict) -> None:
         }
         INGESTION_STATE.update_run(run_id, error_code=error_code, error_message=error_message)
         INGESTION_STATE.finish_run(run_id, summary=failure, status="failed")
+        finished = INGESTION_STATE.get_run(run_id)
+        if finished and finished.bootstrap and finished.bootstrap.get("trigger") == "auto-startup":
+            BOOTSTRAP_ORCHESTRATOR.on_ingestion_finished(
+                run_id=run_id,
+                workspace_path=workspace_path,
+                status="failed",
+                error_code=error_code,
+                error_message=error_message,
+            )
+            _update_startup_readiness_with_bootstrap()
 
 
 def _run_idempotency_job(run_id: str, workspace_path: str, payload: dict) -> None:
@@ -540,6 +569,53 @@ def _run_delta_after_commit_job(run_id: str, workspace_path: str, payload: dict)
         DELTA_STATE.finish_run(run_id, summary=failure, status="failed")
 
 
+def _resolve_ready_status(bootstrap_status: str) -> str:
+    if bootstrap_status == "running":
+        return "running"
+    if bootstrap_status in {"failed", "blocked"}:
+        return "failed"
+    return "ready"
+
+
+def _update_startup_readiness_with_bootstrap() -> None:
+    if STARTUP_PREFLIGHT_CONTEXT is None or not STARTUP_PREFLIGHT_CHECKS:
+        return
+    workspace_path = STARTUP_PREFLIGHT_CONTEXT.get("workspacePath", os.getenv("WORKSPACE_PATH", "/workspace"))
+    bootstrap_payload = BOOTSTRAP_ORCHESTRATOR.get_bootstrap_payload(workspace_path)
+    collection_payload = BOOTSTRAP_ORCHESTRATOR.get_collection_payload()
+    bootstrap_error_code = str(bootstrap_payload.get("errorCode") or "BOOTSTRAP_RUNTIME_FAILED")
+    bootstrap_reason = str(bootstrap_payload.get("reason") or "Bootstrap failed")
+    bootstrap_failure = None
+    if str(bootstrap_payload.get("status") or "").lower() == "failed":
+        bootstrap_failure = build_bootstrap_failure_report(
+            workspace_path=workspace_path,
+            collection_name=str(collection_payload.get("collectionName") or STARTUP_PREFLIGHT_CONTEXT.get("collectionName", "workspace_chunks")),
+            error_code=bootstrap_error_code,
+            message=bootstrap_reason,
+        )
+    summary = build_startup_readiness_summary(
+        context=STARTUP_PREFLIGHT_CONTEXT,
+        checks=STARTUP_PREFLIGHT_CHECKS,
+        service_readiness=_build_startup_service_readiness(),
+        status=_resolve_ready_status(str(bootstrap_payload.get("status") or "ready")),
+        bootstrap=bootstrap_payload,
+        collection=collection_payload,
+        bootstrap_failure=bootstrap_failure,
+    )
+    STARTUP_PREFLIGHT_STATE.mark_ready(summary)
+
+
+def _start_ingestion_run(
+    *,
+    workspace_path: str,
+    payload: dict,
+    bootstrap_context: dict | None = None,
+):
+    run = INGESTION_STATE.create_run(workspace_path=workspace_path, bootstrap=bootstrap_context)
+    Thread(target=_run_ingestion_job, args=(run.run_id, workspace_path, payload), daemon=True).start()
+    return run
+
+
 def build_runtime_config() -> dict:
     policy = load_security_policy()
     command_policy = load_command_security_policy(security_policy=policy)
@@ -592,7 +668,12 @@ def build_runtime_config() -> dict:
         "startupPreflightTimeoutSeconds": float(os.getenv("STARTUP_PREFLIGHT_TIMEOUT_SECONDS", "3")),
         "startupPreflightRequireGitForDelta": os.getenv("STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA", "1"),
         "startupReadySummaryLogEnabled": os.getenv("STARTUP_READY_SUMMARY_LOG_ENABLED", "1"),
+        "bootstrapAutoIngestOnStart": os.getenv("BOOTSTRAP_AUTO_INGEST_ON_START", "1"),
+        "bootstrapRetryFailedOnStart": os.getenv("BOOTSTRAP_RETRY_FAILED_ON_START", "1"),
+        "bootstrapStateCollection": os.getenv("BOOTSTRAP_STATE_COLLECTION", "workspace_bootstrap_state"),
         "mcpEndpointPath": os.getenv("MCP_ENDPOINT_PATH", "/mcp"),
+        "bootstrap": BOOTSTRAP_ORCHESTRATOR.get_bootstrap_payload(os.getenv("WORKSPACE_PATH", "/workspace")),
+        "collection": BOOTSTRAP_ORCHESTRATOR.get_collection_payload(),
         "startupReadiness": STARTUP_PREFLIGHT_STATE.get_readiness_summary()
         or {
             "status": "not-ready",
@@ -666,17 +747,18 @@ def _build_startup_service_readiness() -> dict[str, str]:
 
 
 def _run_startup_preflight_or_exit() -> None:
+    global STARTUP_PREFLIGHT_CONTEXT, STARTUP_PREFLIGHT_CHECKS
     STARTUP_PREFLIGHT_STATE.reset()
+    STARTUP_PREFLIGHT_CONTEXT = None
+    STARTUP_PREFLIGHT_CHECKS = []
     if not _should_run_startup_preflight():
         return
 
     try:
         context, checks = run_startup_preflight()
-        summary = build_startup_readiness_summary(
-            context=context,
-            checks=checks,
-            service_readiness=_build_startup_service_readiness(),
-        )
+        STARTUP_PREFLIGHT_CONTEXT = context
+        STARTUP_PREFLIGHT_CHECKS = checks
+        summary = build_startup_readiness_summary(context=context, checks=checks, service_readiness=_build_startup_service_readiness())
         STARTUP_PREFLIGHT_STATE.mark_ready(summary)
         if _should_log_startup_summary():
             print(
@@ -688,6 +770,22 @@ def _run_startup_preflight_or_exit() -> None:
                     ensure_ascii=False,
                 )
             )
+        decision = BOOTSTRAP_ORCHESTRATOR.evaluate_startup(
+            workspace_path=context["workspacePath"],
+            start_ingestion_run=lambda workspace: _start_ingestion_run(
+                workspace_path=workspace,
+                payload={"workspacePath": workspace},
+                bootstrap_context={
+                    "trigger": "auto-startup",
+                    "decision": "run",
+                    "status": "running",
+                    "workspaceKey": build_workspace_key(workspace),
+                },
+            ).run_id,
+        )
+        if _should_log_startup_summary():
+            print(json.dumps({"event": "startup-bootstrap", "bootstrap": decision.to_dict()}, ensure_ascii=False))
+        _update_startup_readiness_with_bootstrap()
     except StartupPreflightError as exc:
         report = exc.to_failure_report()
         STARTUP_PREFLIGHT_STATE.mark_failed(report)
@@ -866,11 +964,18 @@ def start_ingestion_job():
     payload = request.get_json(silent=True) or {}
     workspace_path = payload.get("workspacePath") or os.getenv("WORKSPACE_PATH", "/workspace")
     try:
-        run = INGESTION_STATE.create_run(workspace_path=workspace_path)
+        run = _start_ingestion_run(
+            workspace_path=workspace_path,
+            payload=payload,
+            bootstrap_context={
+                "trigger": "manual",
+                "decision": "run",
+                "status": "running",
+                "workspaceKey": build_workspace_key(workspace_path),
+            },
+        )
     except RuntimeError:
         return ingestion_json_error("INGESTION_ALREADY_RUNNING", "Ingestion run is already running", 409)
-
-    Thread(target=_run_ingestion_job, args=(run.run_id, workspace_path, payload), daemon=True).start()
     return jsonify({"runId": run.run_id, "status": run.status, "acceptedAt": run.accepted_at}), 202
 
 
@@ -881,6 +986,9 @@ def get_ingestion_job_status(run_id: str):
         return ingestion_json_error("RUN_NOT_FOUND", f"Ingestion run '{run_id}' is not found", 404)
     payload = run.as_status()
     payload["persistence"] = build_ingestion_persistence_diagnostics()
+    if "bootstrap" not in payload:
+        payload["bootstrap"] = BOOTSTRAP_ORCHESTRATOR.get_bootstrap_payload(run.workspace_path)
+    payload["collection"] = BOOTSTRAP_ORCHESTRATOR.get_collection_payload()
     return jsonify(payload)
 
 
@@ -895,6 +1003,8 @@ def get_ingestion_job_summary(run_id: str):
         return ingestion_json_error("RUN_SUMMARY_MISSING", "Run summary is not available", 404)
     payload = dict(run.summary)
     payload["persistence"] = build_ingestion_persistence_diagnostics()
+    payload.setdefault("bootstrap", run.bootstrap or BOOTSTRAP_ORCHESTRATOR.get_bootstrap_payload(run.workspace_path))
+    payload["collection"] = BOOTSTRAP_ORCHESTRATOR.get_collection_payload()
     return jsonify(payload)
 
 
