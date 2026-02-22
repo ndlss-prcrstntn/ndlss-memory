@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4 - 2026-02-22
+
+- Fixed ingestion runtime in containerized `mcp-server` images:
+  - bundled `ingestion_pipeline` and `delta_after_commit` modules into `mcp-server` image
+  - updated Dockerfile to copy full `src/` tree
+- Fixed no-clone compose startup validation by adding missing command runtime defaults to all presets:
+  - `COMMAND_ALLOWLIST`
+  - `COMMAND_TIMEOUT_SECONDS`
+
 ## 0.1.3 - 2026-02-22
 
 - Changed default Docker Hub namespace in image presets to `ndlss`.

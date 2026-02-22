@@ -25,7 +25,7 @@ preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/nd
 Optional: pin image tag and namespace (default tag is `latest`):
 
 ```bash
-NDLSS_DOCKERHUB_NAMESPACE=ndlss NDLSS_IMAGE_TAG=0.1.3 docker compose -f ndlss-compose.yml up -d
+NDLSS_DOCKERHUB_NAMESPACE=ndlss NDLSS_IMAGE_TAG=0.1.4 docker compose -f ndlss-compose.yml up -d
 ```
 
 If a specific tag is not published yet, keep `NDLSS_IMAGE_TAG` unset and use `latest`.

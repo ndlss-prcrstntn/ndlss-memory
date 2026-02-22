@@ -4,7 +4,7 @@
 
 - [ ] Update `VERSION`
 - [ ] Update `CHANGELOG.md`
-- [ ] Create release tag (`0.1.3` and/or `v0.1.3`)
+- [ ] Create release tag (`0.1.4` and/or `v0.1.4`)
 - [ ] Ensure changelog has a matching section (`## <version> - <date>`)
 
 ## Validation
