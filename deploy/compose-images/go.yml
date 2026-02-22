@@ -14,7 +14,7 @@
       start_period: 20s
 
   file-indexer:
-    image: ${NDLSS_DOCKERHUB_NAMESPACE:-ndlss-prcrstntn}/ndlss-memory-file-indexer:${NDLSS_IMAGE_TAG:-latest}
+    image: ${NDLSS_DOCKERHUB_NAMESPACE:-ndlss}/ndlss-memory-file-indexer:${NDLSS_IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       qdrant:
@@ -38,7 +38,7 @@
       start_period: 10s
 
   mcp-server:
-    image: ${NDLSS_DOCKERHUB_NAMESPACE:-ndlss-prcrstntn}/ndlss-memory-mcp-server:${NDLSS_IMAGE_TAG:-latest}
+    image: ${NDLSS_DOCKERHUB_NAMESPACE:-ndlss}/ndlss-memory-mcp-server:${NDLSS_IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       qdrant:
@@ -75,6 +75,7 @@
 
 volumes:
   qdrant_data:
+
 
 
 
