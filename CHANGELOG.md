@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 - 2026-02-22
+
+- Changed default Docker Hub namespace in image presets to `ndlss`.
+- Updated quickstart/preset examples to use `ndlss` namespace by default.
+- Added release bump and workflow input examples for `0.1.3`.
+
 ## 0.1.2 - 2026-02-22
 
 - Added image-based compose presets (`deploy/compose-images/*`) as the default no-clone startup path.

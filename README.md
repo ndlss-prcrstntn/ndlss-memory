@@ -23,7 +23,7 @@ preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/nd
 
 - Replace `generic` with `python`, `typescript`, `javascript`, `java-kotlin`, `csharp`, or `go`.
 - Optional: pin image version with `NDLSS_IMAGE_TAG` (default is `latest`).
-- Optional: change Docker Hub namespace with `NDLSS_DOCKERHUB_NAMESPACE`.
+- Optional: change Docker Hub namespace with `NDLSS_DOCKERHUB_NAMESPACE` (default: `ndlss`).
 - Source-build presets are still available in `deploy/compose/` when you explicitly want to build from source.
 - Full guide: `docs/quickstart.md`
 - Preset details: `docs/compose-presets.md`
