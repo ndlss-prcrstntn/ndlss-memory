@@ -12,6 +12,7 @@ Image presets:
 - Mount your current folder as `/workspace` (read-only).
 - Start `qdrant`, `file-indexer`, and `mcp-server`.
 - Expose MCP transport on `http://localhost:${MCP_PORT}/mcp`.
+- Expose startup readiness endpoint on `http://localhost:${MCP_PORT}/v1/system/startup/readiness`.
 - Support image pinning via `NDLSS_IMAGE_TAG` (default: `latest`).
 - Do not hardcode compose project name (supports running many stacks in parallel).
 
@@ -70,11 +71,21 @@ $env:INDEX_EXCLUDE_PATTERNS=".git,node_modules,.venv"
 docker compose -f ndlss-compose.yml up -d
 ```
 
+Startup preflight override example:
+
+```powershell
+$env:STARTUP_PREFLIGHT_ENABLED="1"
+$env:STARTUP_PREFLIGHT_TIMEOUT_SECONDS="5"
+$env:STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA="1"
+$env:STARTUP_READY_SUMMARY_LOG_ENABLED="1"
+docker compose -f ndlss-compose.yml up -d
+```
+
 Image override example:
 
 ```powershell
 $env:NDLSS_DOCKERHUB_NAMESPACE="ndlss"
-$env:NDLSS_IMAGE_TAG="0.2.0"
+$env:NDLSS_IMAGE_TAG="0.2.1"
 docker compose -f ndlss-compose.yml up -d
 ```
 
@@ -92,5 +103,10 @@ docker compose -f ndlss-compose.yml down
 - `QDRANT_PORT` is host mapping only.
 - `QDRANT_API_PORT` is internal service-to-service port (default `6333`).
 - Keep `INGESTION_ENABLE_QDRANT_HTTP=1` for persistent ingestion into Qdrant.
+- Startup preflight defaults:
+  - `STARTUP_PREFLIGHT_ENABLED=1`
+  - `STARTUP_PREFLIGHT_TIMEOUT_SECONDS=3`
+  - `STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA=1`
+  - `MCP_ENDPOINT_PATH=/mcp`
 
 Do not point MCP clients to `/` because it is a REST command catalog endpoint.

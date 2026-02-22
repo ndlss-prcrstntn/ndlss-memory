@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.2.1 - 2026-02-22
+
+- Added startup preflight checks for `mcp-server` and `file-indexer`:
+  - Qdrant reachability check
+  - workspace existence/readability check
+  - git availability check for `INDEX_MODE=delta-after-commit`
+- Added fail-fast startup behavior with structured failure reports:
+  - `errorCode`, `message`, `details`, `failedChecks`, `recommendedActions`
+- Added startup readiness observability:
+  - new endpoint `GET /v1/system/startup/readiness`
+  - startup readiness snapshot embedded into `GET /v1/system/config`
+  - unified startup-ready log records in `mcp-server` and `file-indexer`
+- Added startup preflight configuration knobs in env/compose presets:
+  - `STARTUP_PREFLIGHT_ENABLED`
+  - `STARTUP_PREFLIGHT_TIMEOUT_SECONDS`
+  - `STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA`
+  - `STARTUP_READY_SUMMARY_LOG_ENABLED`
+  - `MCP_ENDPOINT_PATH`
+- Added tests and smoke scripts:
+  - unit tests for preflight models/checks/readiness endpoint
+  - `scripts/tests/startup_preflight_smoke.ps1`
+  - `scripts/tests/us3_startup_backward_compat.ps1`
+- Extended quality pipeline with `startup_preflight` stage in
+  `scripts/tests/quality_gate_runner.ps1` and suite output wiring.
+- Updated docs and OpenAPI contracts:
+  - [README](README.md)
+  - [Quickstart](docs/quickstart.md)
+  - [Configuration](docs/configuration.md)
+  - [Compose presets](docs/compose-presets.md)
+  - `services/mcp-server/openapi/compose-observability.openapi.yaml`
+  - `specs/001-startup-preflight-summary/contracts/startup-preflight-readiness.openapi.yaml`
+- Stabilized integration regression orchestration:
+  - fixed env-ordering race in `scripts/tests/ingestion_compose_regression.ps1`
+  - added resilient compose startup retries for flaky Docker health timing
+  - ensured `quality_gate_runner` completes with all stages passed
+- Added roadmap snapshot for this release:
+  - [Roadmap 0.2.1](docs/roadmaps/0.2.1.md)
+
 ## 0.2.0 - 2026-02-22
 
 - Promoted `ndlss-memory` baseline to `0.2.0`.

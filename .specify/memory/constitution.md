@@ -1,11 +1,10 @@
 ﻿<!--
 Sync Impact Report
-- Version change: 1.1.0 -> 1.2.0
+- Version change: 1.2.0 -> 1.2.1
 - Modified principles:
-  - Development Workflow and Delivery Gates (добавлены правила глобальной нумерации feature/spec и обязательного UTF-8 для Markdown)
+  - Development Workflow and Delivery Gates (усилено правило нумерации feature/spec: обязательный алгоритм вычисления следующего номера по remote/local/specs и запрет дублей)
 - Added sections:
-  - Architecture and Operational Constraints
-  - Development Workflow and Delivery Gates
+  - None
 - Removed sections:
   - None
 - Templates requiring updates:
@@ -99,7 +98,17 @@ Sync Impact Report
 6. Новые feature-ветки и директории в `specs/` ДОЛЖНЫ использовать глобальную
 возрастающую трехзначную нумерацию по репозиторию (`001`, `002`, `003`, ...),
 без повторного старта с `001` для нового short-name.
-7. Все Markdown-файлы (`*.md`) ДОЛЖНЫ сохраняться в кодировке UTF-8.
+7. Перед созданием новой feature-ветки ДОЛЖЕН выполняться единый алгоритм
+вычисления номера:
+   - получить актуальные remote-ветки (`git fetch --all --prune`);
+   - проверить exact-match short-name в трех источниках:
+     remote branches, local branches, `specs/[0-9]+-short-name`;
+   - извлечь максимальный номер `N` из всех найденных значений;
+   - использовать только `N+1`;
+   - при отсутствии совпадений использовать `001`.
+   Любой дубль номера (включая повторный `001`) считается нарушением
+   quality gates и подлежит немедленному исправлению до продолжения работы.
+8. Все Markdown-файлы (`*.md`) ДОЛЖНЫ сохраняться в кодировке UTF-8.
 Файлы в UTF-16/ANSI считаются нарушением quality gates и подлежат исправлению в
 том же изменении.
 
@@ -118,6 +127,6 @@ quality gates;
 - отсутствие подтверждения compliance блокирует merge;
 - обнаруженные нарушения фиксируются как отдельные задачи с дедлайном.
 
-**Version**: 1.2.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-21
+**Version**: 1.2.1 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-22
 
 

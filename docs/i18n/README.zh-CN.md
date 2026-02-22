@@ -1,30 +1,30 @@
-﻿# ndlss-memory（简体中文）
+# ndlss-memory(????)
 
-语言: [English](../../README.md) | [Русский](README.ru.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [中文](README.zh-CN.md) | [한국어](README.ko.md) | [日本語](README.ja.md)
+??: [English](../../README.md) | [�������](README.ru.md) | [Francais](README.fr.md) | [Deutsch](README.de.md) | [??](README.zh-CN.md) | [???](README.ko.md) | [???](README.ja.md)
 
-`ndlss-memory` 是一个面向 MCP Agent 的本地记忆层。
+`ndlss-memory` ????? MCP Agent ???????
 
-## 无需克隆仓库的一键启动
+## ???????????
 
-完整指南：[Quickstart](../quickstart.md)。
+????:[Quickstart](../quickstart.md)?
 
-PowerShell（一条命令）：
+PowerShell(????):
 
 ```powershell
 $preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose-images/$preset.yml" -OutFile ndlss-compose.yml; $env:NDLSS_WORKSPACE=(Get-Location).Path; docker compose -f ndlss-compose.yml up -d
 ```
 
-建议优先固定镜像版本：
+??????????:
 
 ```powershell
 $env:NDLSS_DOCKERHUB_NAMESPACE="ndlss"
-$env:NDLSS_IMAGE_TAG="0.2.0"
+$env:NDLSS_IMAGE_TAG="0.2.1"
 docker compose -f ndlss-compose.yml up -d
 ```
 
-如果该 tag 尚未发布，请留空 `NDLSS_IMAGE_TAG` 并使用 `latest`。
+??? tag ????,??? `NDLSS_IMAGE_TAG` ??? `latest`?
 
-## 文档
+## ??
 
 - [Quickstart](../quickstart.md)
 - [Compose presets](../compose-presets.md)

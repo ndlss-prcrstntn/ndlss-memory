@@ -1,1 +1,4 @@
 ﻿
+# Reserved for generated startup preflight artifacts:
+# - startup-preflight-smoke.json
+# - startup-preflight-gate.log

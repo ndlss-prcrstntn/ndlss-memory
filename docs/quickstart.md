@@ -25,7 +25,7 @@ preset=generic; curl -fsSL "https://raw.githubusercontent.com/ndlss-prcrstntn/nd
 Optional: pin image tag and namespace (default tag is `latest`):
 
 ```bash
-NDLSS_DOCKERHUB_NAMESPACE=ndlss NDLSS_IMAGE_TAG=0.2.0 docker compose -f ndlss-compose.yml up -d
+NDLSS_DOCKERHUB_NAMESPACE=ndlss NDLSS_IMAGE_TAG=0.2.1 docker compose -f ndlss-compose.yml up -d
 ```
 
 If a specific tag is not published yet, keep `NDLSS_IMAGE_TAG` unset and use `latest`.
@@ -78,6 +78,15 @@ curl http://localhost:8080/health
 
 Expected: HTTP 200.
 
+Check startup readiness summary:
+
+```bash
+curl http://localhost:8080/v1/system/startup/readiness
+```
+
+Expected in healthy startup path: `status=ready` and populated fields
+`serviceReadiness`, `workspacePath`, `indexMode`, `mcpEndpoint`, `collectionName`.
+
 ## 3) Run first semantic search
 
 ```bash
@@ -120,6 +129,9 @@ Important:
 - `http://localhost:8080/` is REST catalog, not MCP JSON-RPC endpoint.
 - MCP clients must use `http://localhost:8080/mcp`.
 - `QDRANT_PORT` controls host exposure only; internal service traffic uses `QDRANT_API_PORT` (default `6333`).
+- Startup preflight is enabled by default (`STARTUP_PREFLIGHT_ENABLED=1`).
+- For delta mode, git check is enabled by default (`STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA=1`).
+- Startup preflight timeout is controlled by `STARTUP_PREFLIGHT_TIMEOUT_SECONDS` (default `3`).
 - Legacy fallback endpoints are `GET /sse` and `POST /messages?sessionId=...`.
 
 ## 5) Stop

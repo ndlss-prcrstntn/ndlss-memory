@@ -73,12 +73,36 @@ if [ -z "${IDEMPOTENCY_ENABLE_STALE_CLEANUP:-}" ]; then
   export IDEMPOTENCY_ENABLE_STALE_CLEANUP="1"
 fi
 
+if [ -z "${STARTUP_PREFLIGHT_ENABLED:-}" ]; then
+  export STARTUP_PREFLIGHT_ENABLED="1"
+fi
+
+if [ -z "${STARTUP_PREFLIGHT_TIMEOUT_SECONDS:-}" ]; then
+  export STARTUP_PREFLIGHT_TIMEOUT_SECONDS="3"
+fi
+
+if [ -z "${STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA:-}" ]; then
+  export STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA="1"
+fi
+
+if [ -z "${STARTUP_READY_SUMMARY_LOG_ENABLED:-}" ]; then
+  export STARTUP_READY_SUMMARY_LOG_ENABLED="1"
+fi
+
+if [ -z "${MCP_ENDPOINT_PATH:-}" ]; then
+  export MCP_ENDPOINT_PATH="/mcp"
+fi
+
 /app/scripts/validate-config.sh
+/app/scripts/startup-preflight.sh
 
 touch /tmp/indexer_ready
 
 echo "file-indexer started in mode: ${INDEX_MODE}"
 echo "file-indexer watching workspace: ${WORKSPACE_PATH:-/workspace}"
+if [ "${STARTUP_READY_SUMMARY_LOG_ENABLED}" = "1" ]; then
+  echo "startup-ready summary service=file-indexer workspace=${WORKSPACE_PATH:-/workspace} mode=${INDEX_MODE} mcpEndpoint=${MCP_ENDPOINT_PATH} collection=${QDRANT_COLLECTION_NAME:-workspace_chunks}"
+fi
 
 if [ "${INDEX_MODE}" = "full-scan" ]; then
   /app/scripts/full-scan-worker.sh &

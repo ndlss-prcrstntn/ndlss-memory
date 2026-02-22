@@ -3,16 +3,16 @@
 
                  ],
     "artifactsDir":  "tests/artifacts/quality-stability",
-    "finishedAt":  "2026-02-22T14:18:30.4633674+03:00",
-    "startedAt":  "2026-02-22T14:11:16.9521376+03:00",
+    "finishedAt":  "2026-02-22T17:51:57.2215843+03:00",
+    "startedAt":  "2026-02-22T17:44:35.6123187+03:00",
     "status":  "passed",
     "stages":  [
                    {
-                       "durationMs":  1251,
-                       "finishedAt":  "2026-02-22T14:11:18.2104686+03:00",
+                       "durationMs":  1241,
+                       "finishedAt":  "2026-02-22T17:44:36.8641610+03:00",
                        "failureCode":  null,
                        "stageName":  "unit",
-                       "startedAt":  "2026-02-22T14:11:16.9592556+03:00",
+                       "startedAt":  "2026-02-22T17:44:35.6235723+03:00",
                        "status":  "passed",
                        "artifactPaths":  [
 
@@ -20,11 +20,11 @@
                        "failureMessage":  null
                    },
                    {
-                       "durationMs":  27527,
-                       "finishedAt":  "2026-02-22T14:11:45.7509128+03:00",
+                       "durationMs":  24843,
+                       "finishedAt":  "2026-02-22T17:45:01.7194920+03:00",
                        "failureCode":  null,
                        "stageName":  "us1",
-                       "startedAt":  "2026-02-22T14:11:18.2236588+03:00",
+                       "startedAt":  "2026-02-22T17:44:36.8766737+03:00",
                        "status":  "passed",
                        "artifactPaths":  [
                                              "Z:\\WORK\\ndlss-memory\\tests\\artifacts\\quality-stability\\us1-idempotency-summary.json"
@@ -32,11 +32,11 @@
                        "failureMessage":  null
                    },
                    {
-                       "durationMs":  23901,
-                       "finishedAt":  "2026-02-22T14:12:09.6586781+03:00",
+                       "durationMs":  21466,
+                       "finishedAt":  "2026-02-22T17:45:23.1877035+03:00",
                        "failureCode":  null,
                        "stageName":  "us1_persistence",
-                       "startedAt":  "2026-02-22T14:11:45.7578675+03:00",
+                       "startedAt":  "2026-02-22T17:45:01.7218659+03:00",
                        "status":  "passed",
                        "artifactPaths":  [
                                              "Z:\\WORK\\ndlss-memory\\tests\\artifacts\\quality-stability\\us1-ingestion-collection-summary.json"
@@ -44,11 +44,11 @@
                        "failureMessage":  null
                    },
                    {
-                       "durationMs":  253923,
-                       "finishedAt":  "2026-02-22T14:16:23.5993727+03:00",
+                       "durationMs":  265753,
+                       "finishedAt":  "2026-02-22T17:49:48.9413412+03:00",
                        "failureCode":  null,
                        "stageName":  "integration",
-                       "startedAt":  "2026-02-22T14:12:09.6762694+03:00",
+                       "startedAt":  "2026-02-22T17:45:23.1886965+03:00",
                        "status":  "passed",
                        "artifactPaths":  [
 
@@ -56,11 +56,11 @@
                        "failureMessage":  null
                    },
                    {
-                       "durationMs":  22910,
-                       "finishedAt":  "2026-02-22T14:16:46.5270949+03:00",
+                       "durationMs":  20889,
+                       "finishedAt":  "2026-02-22T17:50:09.8338685+03:00",
                        "failureCode":  null,
                        "stageName":  "us2",
-                       "startedAt":  "2026-02-22T14:16:23.6175737+03:00",
+                       "startedAt":  "2026-02-22T17:49:48.9453398+03:00",
                        "status":  "passed",
                        "artifactPaths":  [
                                              "Z:\\WORK\\ndlss-memory\\tests\\artifacts\\quality-stability\\us2-integration-summary.json"
@@ -68,11 +68,11 @@
                        "failureMessage":  null
                    },
                    {
-                       "durationMs":  22346,
-                       "finishedAt":  "2026-02-22T14:17:08.8958258+03:00",
+                       "durationMs":  19967,
+                       "finishedAt":  "2026-02-22T17:50:29.8013845+03:00",
                        "failureCode":  null,
                        "stageName":  "us2_custom_port",
-                       "startedAt":  "2026-02-22T14:16:46.5494050+03:00",
+                       "startedAt":  "2026-02-22T17:50:09.8347149+03:00",
                        "status":  "passed",
                        "artifactPaths":  [
                                              "Z:\\WORK\\ndlss-memory\\tests\\artifacts\\quality-stability\\us2-custom-port-summary.json"
@@ -80,11 +80,23 @@
                        "failureMessage":  null
                    },
                    {
-                       "durationMs":  61,
-                       "finishedAt":  "2026-02-22T14:17:08.9661762+03:00",
+                       "durationMs":  20178,
+                       "finishedAt":  "2026-02-22T17:50:49.9793250+03:00",
+                       "failureCode":  null,
+                       "stageName":  "startup_preflight",
+                       "startedAt":  "2026-02-22T17:50:29.8013845+03:00",
+                       "status":  "passed",
+                       "artifactPaths":  [
+                                             "Z:\\WORK\\ndlss-memory\\tests\\artifacts\\quality-stability\\startup-preflight-smoke.json"
+                                         ],
+                       "failureMessage":  null
+                   },
+                   {
+                       "durationMs":  37,
+                       "finishedAt":  "2026-02-22T17:50:50.0180952+03:00",
                        "failureCode":  null,
                        "stageName":  "contract",
-                       "startedAt":  "2026-02-22T14:17:08.9048518+03:00",
+                       "startedAt":  "2026-02-22T17:50:49.9813127+03:00",
                        "status":  "passed",
                        "artifactPaths":  [
 
@@ -92,11 +104,11 @@
                        "failureMessage":  null
                    },
                    {
-                       "durationMs":  27988,
-                       "finishedAt":  "2026-02-22T14:17:36.9745296+03:00",
+                       "durationMs":  19311,
+                       "finishedAt":  "2026-02-22T17:51:09.3297242+03:00",
                        "failureCode":  null,
                        "stageName":  "mcp_transport",
-                       "startedAt":  "2026-02-22T14:17:08.9867040+03:00",
+                       "startedAt":  "2026-02-22T17:50:50.0190907+03:00",
                        "status":  "passed",
                        "artifactPaths":  [
 
@@ -104,11 +116,11 @@
                        "failureMessage":  null
                    },
                    {
-                       "durationMs":  53478,
-                       "finishedAt":  "2026-02-22T14:18:30.4588566+03:00",
+                       "durationMs":  47885,
+                       "finishedAt":  "2026-02-22T17:51:57.2169420+03:00",
                        "failureCode":  null,
                        "stageName":  "us3",
-                       "startedAt":  "2026-02-22T14:17:36.9808784+03:00",
+                       "startedAt":  "2026-02-22T17:51:09.3322595+03:00",
                        "status":  "passed",
                        "artifactPaths":  [
                                              "Z:\\WORK\\ndlss-memory\\tests\\artifacts\\quality-stability\\us3-e2e-summary.json"
@@ -116,5 +128,5 @@
                        "failureMessage":  null
                    }
                ],
-    "runId":  "6853c799300143f8958d20e07228ee8c"
+    "runId":  "0a8f184b24c34fc89610fb411518629a"
 }

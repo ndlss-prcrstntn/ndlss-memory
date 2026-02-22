@@ -69,6 +69,22 @@ Practical model:
 
 This gives a good out-of-box setup for different codebases while keeping one runtime architecture.
 
+## Startup preflight
+
+By default, both `mcp-server` and `file-indexer` run startup preflight checks before entering ready state:
+
+- Qdrant reachability (`QDRANT_HOST` + `QDRANT_API_PORT`)
+- workspace path existence/readability (`WORKSPACE_PATH`)
+- git availability for `INDEX_MODE=delta-after-commit`
+
+Relevant environment flags:
+
+- `STARTUP_PREFLIGHT_ENABLED` (default `1`)
+- `STARTUP_PREFLIGHT_TIMEOUT_SECONDS` (default `3`)
+- `STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA` (default `1`)
+- `STARTUP_READY_SUMMARY_LOG_ENABLED` (default `1`)
+- `MCP_ENDPOINT_PATH` (default `/mcp`)
+
 ## Preset matrix
 
 | Preset | Best for | Main indexed types |
@@ -94,6 +110,7 @@ System:
 - `GET /health`
 - `GET /v1/system/status`
 - `GET /v1/system/config`
+- `GET /v1/system/startup/readiness`
 
 MCP transport:
 
@@ -122,6 +139,7 @@ Indexing:
 - [Configuration](docs/configuration.md)
 - [Release checklist](docs/release-checklist.md)
 - [Roadmaps index](docs/roadmaps/README.md)
+- [Roadmap 0.2.1](docs/roadmaps/0.2.1.md)
 - [Roadmap 0.2.0](docs/roadmaps/0.2.0.md)
 - [Contributing](CONTRIBUTING.md)
 
@@ -143,5 +161,5 @@ powershell -File scripts/tests/run_quality_stability_suite.ps1
 ## Roadmap status
 
 Roadmap snapshots are versioned in [docs/roadmaps](docs/roadmaps/README.md).
-Current baseline release roadmap: [0.2.0](docs/roadmaps/0.2.0.md).
+Current baseline release roadmap: [0.2.1](docs/roadmaps/0.2.1.md).
 Next planned roadmap: [0.3.0](docs/roadmaps/0.3.0.md).

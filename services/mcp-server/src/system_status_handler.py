@@ -1,4 +1,5 @@
 ﻿import fnmatch
+import json
 import os
 import sys
 from datetime import datetime, timezone
@@ -28,6 +29,10 @@ from search_errors import SearchApiError, json_error_from_exception as search_js
 from search_models import SemanticSearchRequest
 from search_repository import QdrantSearchRepository
 from search_service import SearchService
+from startup_preflight_checks import run_startup_preflight
+from startup_preflight_errors import StartupPreflightError, build_startup_failure_report
+from startup_readiness_summary import build_startup_readiness_summary
+from startup_preflight_state import STATE as STARTUP_PREFLIGHT_STATE
 
 SERVICE_NAMES = ("qdrant", "file-indexer", "mcp-server")
 STATUS_ENV_MAP = {
@@ -59,6 +64,12 @@ API_COMMANDS = [
         "method": "GET",
         "path": "/v1/system/config",
         "description": "Effective runtime configuration",
+    },
+    {
+        "category": "system",
+        "method": "GET",
+        "path": "/v1/system/startup/readiness",
+        "description": "Startup preflight readiness summary",
     },
     {
         "category": "system",
@@ -577,6 +588,16 @@ def build_runtime_config() -> dict:
         "commandCpuTimeLimitSeconds": command_policy.cpu_time_limit_seconds,
         "commandMemoryLimitBytes": command_policy.memory_limit_bytes,
         "commandAuditRetentionDays": command_policy.audit_retention_days,
+        "startupPreflightEnabled": os.getenv("STARTUP_PREFLIGHT_ENABLED", "1"),
+        "startupPreflightTimeoutSeconds": float(os.getenv("STARTUP_PREFLIGHT_TIMEOUT_SECONDS", "3")),
+        "startupPreflightRequireGitForDelta": os.getenv("STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA", "1"),
+        "startupReadySummaryLogEnabled": os.getenv("STARTUP_READY_SUMMARY_LOG_ENABLED", "1"),
+        "mcpEndpointPath": os.getenv("MCP_ENDPOINT_PATH", "/mcp"),
+        "startupReadiness": STARTUP_PREFLIGHT_STATE.get_readiness_summary()
+        or {
+            "status": "not-ready",
+            "failureReport": STARTUP_PREFLIGHT_STATE.get_failure_report(),
+        },
     }
 
 
@@ -622,6 +643,56 @@ def build_system_status() -> dict:
     }
 
 
+
+def _should_run_startup_preflight() -> bool:
+    return os.getenv("STARTUP_PREFLIGHT_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _should_log_startup_summary() -> bool:
+    return os.getenv("STARTUP_READY_SUMMARY_LOG_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _build_startup_service_readiness() -> dict[str, str]:
+    payload: dict[str, str] = {}
+    for service_name in SERVICE_NAMES:
+        current_status = build_service_status(service_name)["status"]
+        key = {
+            "qdrant": "qdrant",
+            "file-indexer": "fileIndexer",
+            "mcp-server": "mcpServer",
+        }[service_name]
+        payload[key] = current_status
+    return payload
+
+
+def _run_startup_preflight_or_exit() -> None:
+    STARTUP_PREFLIGHT_STATE.reset()
+    if not _should_run_startup_preflight():
+        return
+
+    try:
+        context, checks = run_startup_preflight()
+        summary = build_startup_readiness_summary(
+            context=context,
+            checks=checks,
+            service_readiness=_build_startup_service_readiness(),
+        )
+        STARTUP_PREFLIGHT_STATE.mark_ready(summary)
+        if _should_log_startup_summary():
+            print(
+                json.dumps(
+                    {
+                        "event": "startup-ready",
+                        "summary": summary,
+                    },
+                    ensure_ascii=False,
+                )
+            )
+    except StartupPreflightError as exc:
+        report = exc.to_failure_report()
+        STARTUP_PREFLIGHT_STATE.mark_failed(report)
+        print(json.dumps({"event": "startup-preflight-failed", "report": report}, ensure_ascii=False), file=sys.stderr)
+        raise SystemExit(1)
 @app.get("/health")
 def get_health():
     return jsonify({"status": "ok", "timestamp": _now_iso()})
@@ -647,6 +718,25 @@ def get_system_status():
 @app.get("/v1/system/config")
 def get_runtime_config():
     return jsonify(build_runtime_config())
+
+
+@app.get("/v1/system/startup/readiness")
+def get_startup_readiness():
+    readiness = STARTUP_PREFLIGHT_STATE.get_readiness_summary()
+    if readiness is not None:
+        return jsonify(readiness)
+
+    failure_report = STARTUP_PREFLIGHT_STATE.get_failure_report()
+    if failure_report is not None:
+        return jsonify(failure_report), 503
+
+    payload = build_startup_failure_report(
+        error_code="STARTUP_NOT_READY",
+        message="Startup preflight is not completed",
+        failed_checks=[],
+        details={"hint": "Service may still be booting or preflight is disabled"},
+    )
+    return jsonify(payload), 503
 
 
 @app.get("/v1/system/services/<service_name>")
@@ -888,5 +978,11 @@ def get_delta_after_commit_job_summary(run_id: str):
 
 
 if __name__ == "__main__":
+    _run_startup_preflight_or_exit()
     port = int(os.getenv("MCP_PORT", "8080"))
     app.run(host="0.0.0.0", port=port)
+
+
+
+
+

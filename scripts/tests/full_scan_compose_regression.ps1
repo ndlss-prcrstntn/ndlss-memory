@@ -42,6 +42,7 @@ function Invoke-Compose {
 
 $tempEnv = Join-Path $env:TEMP "ndlss-memory-delta-regression.env"
 $previousIndexMode = [Environment]::GetEnvironmentVariable("INDEX_MODE", "Process")
+$previousPreflightGitRequired = [Environment]::GetEnvironmentVariable("STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA", "Process")
 try {
     Invoke-Compose -ComposeArgs @('-f', $ComposeFile, '--env-file', $EnvFile, 'up', '-d', '--build')
     Start-Sleep -Seconds $WaitSeconds
@@ -50,8 +51,13 @@ try {
 
     Copy-Item $EnvFile $tempEnv -Force
     $envLines = Get-Content -LiteralPath $tempEnv | Where-Object { $_ -notmatch '^\s*INDEX_MODE=' }
-    @($envLines + "INDEX_MODE=delta-after-commit") | Set-Content -LiteralPath $tempEnv -Encoding ascii
+    @(
+        $envLines
+        "INDEX_MODE=delta-after-commit"
+        "STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA=0"
+    ) | Set-Content -LiteralPath $tempEnv -Encoding ascii
     $env:INDEX_MODE = "delta-after-commit"
+    $env:STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA = "0"
 
     Invoke-Compose -ComposeArgs @('-f', $ComposeFile, '--env-file', $tempEnv, 'up', '-d', '--build')
     Start-Sleep -Seconds $WaitSeconds
@@ -68,6 +74,11 @@ finally {
         Remove-Item Env:INDEX_MODE -ErrorAction SilentlyContinue
     } else {
         $env:INDEX_MODE = $previousIndexMode
+    }
+    if ($null -eq $previousPreflightGitRequired) {
+        Remove-Item Env:STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA -ErrorAction SilentlyContinue
+    } else {
+        $env:STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA = $previousPreflightGitRequired
     }
     if (Test-Path $tempEnv) {
         Remove-Item -LiteralPath $tempEnv -Force

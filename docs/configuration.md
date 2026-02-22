@@ -38,6 +38,11 @@
 - `COMMAND_RUN_AS_NON_ROOT`: запуск command runtime без root (`1`/`0`).
 - `COMMAND_AUDIT_LOG_PATH`: путь к файлу аудита вызовов команд.
 - `COMMAND_AUDIT_RETENTION_DAYS`: срок хранения записей аудита (в днях).
+- `STARTUP_PREFLIGHT_ENABLED`: включает startup preflight (`1`/`0`).
+- `STARTUP_PREFLIGHT_TIMEOUT_SECONDS`: таймаут preflight-проверок зависимостей.
+- `STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA`: требовать git для `INDEX_MODE=delta-after-commit`.
+- `STARTUP_READY_SUMMARY_LOG_ENABLED`: печатать единый startup-ready summary в лог.
+- `MCP_ENDPOINT_PATH`: MCP endpoint path для startup summary (по умолчанию `/mcp`).
 - `HOST_WORKSPACE_PATH`: путь хоста для bind mount в индексатор.
 
 ## Безопасность
@@ -64,6 +69,12 @@
   без отдельного обоснования.
 - Храните аудит минимум `COMMAND_AUDIT_RETENTION_DAYS=7`, чтобы покрывать
   операционные расследования.
+- Не отключайте `STARTUP_PREFLIGHT_ENABLED` в production без отдельной проверки
+  качества запуска.
+- Для медленных сред увеличьте `STARTUP_PREFLIGHT_TIMEOUT_SECONDS` вместо
+  отключения preflight.
+- Для `INDEX_MODE=delta-after-commit` оставляйте
+  `STARTUP_PREFLIGHT_REQUIRE_GIT_FOR_DELTA=1`.
 
 ## MCP transport troubleshooting
 

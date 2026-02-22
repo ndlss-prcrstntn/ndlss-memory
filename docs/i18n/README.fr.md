@@ -1,10 +1,10 @@
-﻿# ndlss-memory (Français)
+# ndlss-memory (Francais)
 
-Langues: [English](../../README.md) | [Русский](README.ru.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [中文](README.zh-CN.md) | [한국어](README.ko.md) | [日本語](README.ja.md)
+Langues: [English](../../README.md) | [�������](README.ru.md) | [Francais](README.fr.md) | [Deutsch](README.de.md) | [??](README.zh-CN.md) | [???](README.ko.md) | [???](README.ja.md)
 
-`ndlss-memory` est une couche de mémoire locale pour les agents MCP.
+`ndlss-memory` est une couche de memoire locale pour les agents MCP.
 
-## Démarrage rapide sans cloner le dépôt
+## Demarrage rapide sans cloner le depot
 
 Guide complet : [Quickstart](../quickstart.md).
 
@@ -14,15 +14,15 @@ PowerShell (une seule commande):
 $preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose-images/$preset.yml" -OutFile ndlss-compose.yml; $env:NDLSS_WORKSPACE=(Get-Location).Path; docker compose -f ndlss-compose.yml up -d
 ```
 
-Recommande: épinglez la version d'image:
+Recommande: epinglez la version d'image:
 
 ```powershell
 $env:NDLSS_DOCKERHUB_NAMESPACE="ndlss"
-$env:NDLSS_IMAGE_TAG="0.2.0"
+$env:NDLSS_IMAGE_TAG="0.2.1"
 docker compose -f ndlss-compose.yml up -d
 ```
 
-Si ce tag n'est pas encore publié, laissez `NDLSS_IMAGE_TAG` vide et utilisez `latest`.
+Si ce tag n'est pas encore publie, laissez `NDLSS_IMAGE_TAG` vide et utilisez `latest`.
 
 ## Documentation
 

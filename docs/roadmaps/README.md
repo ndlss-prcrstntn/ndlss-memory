@@ -3,6 +3,7 @@
 Versioned roadmap snapshots live here.
 
 - [0.2.0](0.2.0.md) - baseline roadmap snapshot promoted to the `0.2.0` release.
+- [0.2.1](0.2.1.md) - startup preflight/readiness release snapshot with quality-stability hardening.
 - [0.3.0](0.3.0.md) - next milestone roadmap focused on remaining DX, watch-mode, advanced MCP tools, and hardening.
 
 Usage:

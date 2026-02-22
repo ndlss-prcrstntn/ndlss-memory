@@ -1,30 +1,30 @@
-п»ї# ndlss-memory (Р СѓСЃСЃРєРёР№)
+# ndlss-memory (Русский)
 
-РЇР·С‹Рє: [English](../../README.md) | [Р СѓСЃСЃРєРёР№](README.ru.md) | [FranГ§ais](README.fr.md) | [Deutsch](README.de.md) | [дё­ж–‡](README.zh-CN.md) | [н•њкµ­м–ґ](README.ko.md) | [ж—Ґжњ¬иЄћ](README.ja.md)
+Язык: [English](../../README.md) | [Русский](README.ru.md) | [Francais](README.fr.md) | [Deutsch](README.de.md) | [??](README.zh-CN.md) | [???](README.ko.md) | [???](README.ja.md)
 
-`ndlss-memory` вЂ” Р»РѕРєР°Р»СЊРЅС‹Р№ memory-СЃР»РѕР№ РґР»СЏ MCP-Р°РіРµРЅС‚РѕРІ.
+`ndlss-memory` — локальный memory-слой для MCP-агентов.
 
-## Р‘С‹СЃС‚СЂС‹Р№ СЃС‚Р°СЂС‚ Р±РµР· РєР»РѕРЅРёСЂРѕРІР°РЅРёСЏ
+## Быстрый старт без клонирования
 
-РџРѕР»РЅС‹Р№ quickstart: [Quickstart](../quickstart.md).
+Полный quickstart: [Quickstart](../quickstart.md).
 
-PowerShell (РѕРґРЅРѕР№ РєРѕРјР°РЅРґРѕР№):
+PowerShell (одной командой):
 
 ```powershell
 $preset = "generic"; iwr "https://raw.githubusercontent.com/ndlss-prcrstntn/ndlss-memory/main/deploy/compose-images/$preset.yml" -OutFile ndlss-compose.yml; $env:NDLSS_WORKSPACE=(Get-Location).Path; docker compose -f ndlss-compose.yml up -d
 ```
 
-РџСЂРёРѕСЂРёС‚РµС‚РЅРѕ: Р·Р°С„РёРєСЃРёСЂСѓР№С‚Рµ РІРµСЂСЃРёСЋ РѕР±СЂР°Р·РѕРІ:
+Приоритетно: зафиксируйте версию образов:
 
 ```powershell
 $env:NDLSS_DOCKERHUB_NAMESPACE="ndlss"
-$env:NDLSS_IMAGE_TAG="0.2.0"
+$env:NDLSS_IMAGE_TAG="0.2.1"
 docker compose -f ndlss-compose.yml up -d
 ```
 
-Р•СЃР»Рё РЅСѓР¶РЅС‹Р№ С‚РµРі РµС‰Рµ РЅРµ РѕРїСѓР±Р»РёРєРѕРІР°РЅ, РѕСЃС‚Р°РІСЊС‚Рµ `NDLSS_IMAGE_TAG` РїСѓСЃС‚С‹Рј Рё РёСЃРїРѕР»СЊР·СѓР№С‚Рµ `latest`.
+Если нужный тег еще не опубликован, оставьте `NDLSS_IMAGE_TAG` пустым и используйте `latest`.
 
-## Р”РѕРєСѓРјРµРЅС‚Р°С†РёСЏ
+## Документация
 
 - [Quickstart](../quickstart.md)
 - [Compose presets](../compose-presets.md)

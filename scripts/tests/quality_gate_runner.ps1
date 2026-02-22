@@ -65,6 +65,37 @@ if (-not (Test-Path $python)) {
     $python = "python"
 }
 
+function Invoke-CheckedScript {
+    param(
+        [string]$Path,
+        [string[]]$Arguments = @(),
+        [hashtable]$NamedArguments = @{},
+        [int]$MaxAttempts = 1,
+        [int]$RetryDelaySeconds = 3
+    )
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        try {
+            if ($NamedArguments.Count -gt 0) {
+                & $Path @NamedArguments @Arguments
+            } else {
+                & $Path @Arguments
+            }
+            if ($LASTEXITCODE -ne 0) {
+                throw "script exited with code $LASTEXITCODE"
+            }
+            return
+        } catch {
+            $message = $_.Exception.Message
+            if ($attempt -ge $MaxAttempts) {
+                throw "script '$Path' failed on attempt $attempt/${MaxAttempts}: $message"
+            }
+            Write-Host "[quality] retrying script '$Path' after failure (attempt $attempt/${MaxAttempts}): $message"
+            Start-Sleep -Seconds $RetryDelaySeconds
+        }
+    }
+}
+
 Invoke-Stage -Report $report -Name "unit" -Skip:$SkipUnit -Body {
     & $python -m pytest "tests/unit/file_indexer" "tests/unit/mcp_server"
     if ($LASTEXITCODE -ne 0) {
@@ -89,9 +120,9 @@ Invoke-Stage -Report $report -Name "us1_persistence" -Skip:$SkipIntegration -Fai
 }
 
 Invoke-Stage -Report $report -Name "integration" -Skip:$SkipIntegration -Body {
-    & (Join-Path $root "scripts/tests/full_scan_compose_regression.ps1")
-    & (Join-Path $root "scripts/tests/delta_after_commit_compose_regression.ps1")
-    & (Join-Path $root "scripts/tests/ingestion_compose_regression.ps1")
+    Invoke-CheckedScript -Path (Join-Path $root "scripts/tests/full_scan_compose_regression.ps1") -MaxAttempts 2
+    Invoke-CheckedScript -Path (Join-Path $root "scripts/tests/delta_after_commit_compose_regression.ps1") -MaxAttempts 2
+    Invoke-CheckedScript -Path (Join-Path $root "scripts/tests/ingestion_compose_regression.ps1") -MaxAttempts 2
 }
 
 $us2Artifact = Join-Path $artifactRoot "us2-integration-summary.json"
@@ -108,6 +139,14 @@ Invoke-Stage -Report $report -Name "us2_custom_port" -Skip:$SkipIntegration -Fai
     if (-not $?) {
         throw "US2 custom external port script failed"
     }
+}
+
+$startupPreflightArtifact = Join-Path $artifactRoot "startup-preflight-smoke.json"
+Invoke-Stage -Report $report -Name "startup_preflight" -Skip:$SkipIntegration -FailureCode "STARTUP_PREFLIGHT_SMOKE_FAILED" -ArtifactPaths @($startupPreflightArtifact) -Body {
+    Invoke-CheckedScript -Path (Join-Path $root "scripts/tests/startup_preflight_smoke.ps1") -NamedArguments @{
+        Mode = "ready"
+        ArtifactPath = $startupPreflightArtifact
+    } -MaxAttempts 2
 }
 
 Invoke-Stage -Report $report -Name "contract" -Skip:$SkipContract -Body {

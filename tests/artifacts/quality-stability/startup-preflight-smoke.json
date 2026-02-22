@@ -1,0 +1,51 @@
+﻿{
+    "status":  "passed",
+    "checkedAt":  "2026-02-22T17:50:45.6513738+03:00",
+    "readiness":  {
+                      "checkedAt":  "2026-02-22T14:50:43.735155+00:00",
+                      "collectionName":  "workspace_chunks",
+                      "indexMode":  "full-scan",
+                      "mcpEndpoint":  "/mcp",
+                      "preflightChecks":  [
+                                              {
+                                                  "checkId":  "qdrant_reachability",
+                                                  "checkedAt":  "2026-02-22T14:50:43.734517+00:00",
+                                                  "details":  {
+                                                                  "status":  200,
+                                                                  "url":  "http://qdrant:6333/collections"
+                                                              },
+                                                  "message":  "Qdrant доступен",
+                                                  "severity":  "critical",
+                                                  "status":  "passed"
+                                              },
+                                              {
+                                                  "checkId":  "workspace_readable",
+                                                  "checkedAt":  "2026-02-22T14:50:43.735113+00:00",
+                                                  "details":  {
+                                                                  "workspacePath":  "/workspace"
+                                                              },
+                                                  "message":  "Рабочая директория доступна для чтения",
+                                                  "severity":  "critical",
+                                                  "status":  "passed"
+                                              },
+                                              {
+                                                  "checkId":  "git_available",
+                                                  "checkedAt":  "2026-02-22T14:50:43.735127+00:00",
+                                                  "details":  {
+                                                                  "indexMode":  "full-scan"
+                                                              },
+                                                  "message":  "Проверка git пропущена для текущего index mode",
+                                                  "severity":  "info",
+                                                  "status":  "skipped"
+                                              }
+                                          ],
+                      "serviceReadiness":  {
+                                               "fileIndexer":  "healthy",
+                                               "mcpServer":  "healthy",
+                                               "qdrant":  "healthy"
+                                           },
+                      "status":  "ready",
+                      "workspacePath":  "/workspace"
+                  },
+    "mode":  "ready"
+}

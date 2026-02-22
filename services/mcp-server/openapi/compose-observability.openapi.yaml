@@ -1,9 +1,10 @@
 ﻿openapi: 3.1.0
 info:
   title: Compose Stack Observability API
-  version: 0.1.0
+  version: 0.2.1
   description: >-
-    Контракт операционного статуса для базового Docker Compose стека.
+    Контракт операционного статуса для startup preflight, readiness summary
+    и runtime-наблюдаемости compose-стека.
 servers:
   - url: http://localhost:{mcp_port}
     variables:
@@ -43,6 +44,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RuntimeConfig"
+  /v1/system/startup/readiness:
+    get:
+      summary: Получить агрегированную startup readiness сводку
+      operationId: getStartupReadiness
+      responses:
+        "200":
+          description: Preflight успешно завершен, сервис готов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartupReadinessSummary"
+        "503":
+          description: Сервис не готов или preflight завершился ошибкой
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartupFailureReport"
   /v1/system/services/{serviceName}:
     get:
       summary: Получить детальный статус конкретного сервиса
@@ -89,7 +107,7 @@ components:
           $ref: "#/components/schemas/ServiceName"
         status:
           type: string
-          enum: [starting, healthy, unhealthy, stopped]
+          enum: [starting, healthy, unhealthy, stopped, degraded, down]
         lastCheck:
           type: string
           format: date-time
@@ -113,11 +131,100 @@ components:
           type: array
           items:
             type: string
+    StartupCheckResult:
+      type: object
+      required: [checkId, status, severity, message, checkedAt]
+      properties:
+        checkId:
+          type: string
+          enum: [qdrant_reachability, workspace_readable, git_available]
+        status:
+          type: string
+          enum: [passed, failed, skipped]
+        severity:
+          type: string
+          enum: [critical, warning, info]
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        action:
+          type: string
+        checkedAt:
+          type: string
+          format: date-time
+    StartupReadinessSummary:
+      type: object
+      required:
+        - status
+        - serviceReadiness
+        - workspacePath
+        - indexMode
+        - mcpEndpoint
+        - collectionName
+        - preflightChecks
+        - checkedAt
+      properties:
+        status:
+          type: string
+          enum: [ready]
+        serviceReadiness:
+          type: object
+          required: [qdrant, fileIndexer, mcpServer]
+          properties:
+            qdrant:
+              type: string
+            fileIndexer:
+              type: string
+            mcpServer:
+              type: string
+        workspacePath:
+          type: string
+        indexMode:
+          type: string
+          enum: [full-scan, delta-after-commit]
+        mcpEndpoint:
+          type: string
+        collectionName:
+          type: string
+        preflightChecks:
+          type: array
+          items:
+            $ref: "#/components/schemas/StartupCheckResult"
+        checkedAt:
+          type: string
+          format: date-time
+    StartupFailureReport:
+      type: object
+      required: [errorCode, message, failedChecks, generatedAt]
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+        failedChecks:
+          type: array
+          items:
+            $ref: "#/components/schemas/StartupCheckResult"
+        details:
+          type: object
+          additionalProperties: true
+        recommendedActions:
+          type: array
+          items:
+            type: string
+        generatedAt:
+          type: string
+          format: date-time
     RuntimeConfig:
       type: object
       required:
         - projectName
         - qdrantPort
+        - qdrantApiPort
         - mcpPort
         - indexMode
         - indexFileTypes
@@ -126,6 +233,9 @@ components:
         - indexProgressIntervalSeconds
         - commandAllowlist
         - commandTimeoutSeconds
+        - startupPreflightEnabled
+        - startupPreflightTimeoutSeconds
+        - startupReadiness
       properties:
         projectName:
           type: string
@@ -133,6 +243,12 @@ components:
           type: integer
           minimum: 1
           maximum: 65535
+        qdrantApiPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        qdrantHost:
+          type: string
         mcpPort:
           type: integer
           minimum: 1
@@ -161,6 +277,26 @@ components:
         commandTimeoutSeconds:
           type: integer
           minimum: 1
+        startupPreflightEnabled:
+          type: string
+        startupPreflightTimeoutSeconds:
+          type: number
+        startupPreflightRequireGitForDelta:
+          type: string
+        startupReadySummaryLogEnabled:
+          type: string
+        mcpEndpointPath:
+          type: string
+        startupReadiness:
+          oneOf:
+            - $ref: "#/components/schemas/StartupReadinessSummary"
+            - type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                failureReport:
+                  $ref: "#/components/schemas/StartupFailureReport"
     ErrorResponse:
       type: object
       required: [errorCode, message]
@@ -170,4 +306,5 @@ components:
         message:
           type: string
         details:
-          type: string
+          type: object
+          additionalProperties: true

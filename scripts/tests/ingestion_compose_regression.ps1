@@ -7,10 +7,13 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
 $compose = Join-Path $root "infra\\docker\\docker-compose.yml"
 $envFile = Join-Path $root ".env.example"
+$debugLog = Join-Path $root "tests\\artifacts\\quality-stability\\ingestion-compose-debug.log"
 $previousEnableHttp = [Environment]::GetEnvironmentVariable("INGESTION_ENABLE_QDRANT_HTTP", "Process")
 
 function Invoke-Compose {
     param([string[]]$ComposeArgs)
+
+    New-Item -ItemType Directory -Path (Split-Path $debugLog -Parent) -Force | Out-Null
 
     $stdoutFile = [System.IO.Path]::GetTempFileName()
     $stderrFile = [System.IO.Path]::GetTempFileName()
@@ -18,8 +21,25 @@ function Invoke-Compose {
         $process = Start-Process -FilePath "docker" -ArgumentList (@("compose") + $ComposeArgs) -NoNewWindow -PassThru -Wait -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile
         $stdout = if (Test-Path $stdoutFile) { Get-Content -LiteralPath $stdoutFile } else { @() }
         $stderr = if (Test-Path $stderrFile) { Get-Content -LiteralPath $stderrFile } else { @() }
+        $stdoutLines = @($stdout)
+        $stderrLines = @($stderr)
 
-        @($stdout + $stderr) | ForEach-Object {
+        $logHeader = @(
+            "[$((Get-Date).ToString("s"))] docker compose $($ComposeArgs -join ' ')",
+            "exitCode=$($process.ExitCode)"
+        )
+        Add-Content -LiteralPath $debugLog -Value $logHeader
+        if ($stdoutLines.Count -gt 0) {
+            Add-Content -LiteralPath $debugLog -Value "stdout:"
+            Add-Content -LiteralPath $debugLog -Value $stdoutLines
+        }
+        if ($stderrLines.Count -gt 0) {
+            Add-Content -LiteralPath $debugLog -Value "stderr:"
+            Add-Content -LiteralPath $debugLog -Value $stderrLines
+        }
+        Add-Content -LiteralPath $debugLog -Value ""
+
+        @($stdoutLines + $stderrLines) | ForEach-Object {
             if ($_ -ne $null -and $_ -ne "") {
                 Write-Host $_
             }
@@ -34,9 +54,40 @@ function Invoke-Compose {
     }
 }
 
+function Invoke-ComposeUpWithRetry {
+    param(
+        [int]$MaxAttempts = 3,
+        [int]$RetryDelaySeconds = 3
+    )
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        try {
+            Invoke-Compose -ComposeArgs @('-f', $compose, '--env-file', $envFile, 'up', '-d', '--build')
+            return
+        }
+        catch {
+            $message = $_.Exception.Message
+            if ($attempt -ge $MaxAttempts) {
+                throw "compose up failed after $attempt attempts: $message"
+            }
+
+            Write-Host "compose up failed (attempt $attempt/$MaxAttempts): $message"
+            Write-Host "attempting cleanup before retry..."
+            try {
+                Invoke-Compose -ComposeArgs @('-f', $compose, '--env-file', $envFile, 'down')
+            }
+            catch {
+                Write-Host "cleanup down failed (ignored): $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds $RetryDelaySeconds
+        }
+    }
+}
+
 try {
+    & (Join-Path $root "scripts\\tests\\ingestion_test_env.ps1") | Out-Null
     $env:INGESTION_ENABLE_QDRANT_HTTP = "1"
-    Invoke-Compose -ComposeArgs @('-f', $compose, '--env-file', $envFile, 'up', '-d', '--build')
+    Invoke-ComposeUpWithRetry -MaxAttempts 3 -RetryDelaySeconds 4
     Invoke-Compose -ComposeArgs @('-f', $compose, '--env-file', $envFile, 'ps')
 
     & (Join-Path $root "scripts\\tests\\us1_chunking_deterministic.ps1")

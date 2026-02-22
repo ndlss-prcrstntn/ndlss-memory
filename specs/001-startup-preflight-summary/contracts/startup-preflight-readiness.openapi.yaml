@@ -1,0 +1,198 @@
+﻿openapi: 3.1.0
+info:
+  title: Startup Preflight and Readiness API
+  version: 0.2.1
+  description: >-
+    Контракт наблюдаемости старта для предполетных проверок и агрегированной
+    сводки готовности ndlss-memory без нарушения существующего API-контракта.
+servers:
+  - url: http://localhost:{mcp_port}
+    variables:
+      mcp_port:
+        default: "8080"
+paths:
+  /health:
+    get:
+      summary: Базовая проверка доступности API
+      operationId: getHealth
+      responses:
+        "200":
+          description: API доступен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthPing"
+  /v1/system/startup/readiness:
+    get:
+      summary: Получить агрегированную startup-сводку готовности
+      operationId: getStartupReadiness
+      responses:
+        "200":
+          description: Сводка готовности после успешного старта
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartupReadinessSummary"
+        "503":
+          description: Сервис не готов или preflight не завершен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartupFailureReport"
+              examples:
+                startupNotReady:
+                  summary: Preflight еще не завершен
+                  value:
+                    errorCode: STARTUP_NOT_READY
+                    message: Startup preflight is not completed
+                    failedChecks: []
+                    generatedAt: "2026-02-22T00:00:00+00:00"
+  /v1/system/config:
+    get:
+      summary: Получить эффективный runtime-конфиг (включая startup diagnostics)
+      operationId: getRuntimeConfigWithStartup
+      responses:
+        "200":
+          description: Эффективная конфигурация и startup-контекст
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeConfigWithStartup"
+components:
+  schemas:
+    HealthPing:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        timestamp:
+          type: string
+          format: date-time
+    StartupCheckResult:
+      type: object
+      required: [checkId, status, severity, message, checkedAt]
+      properties:
+        checkId:
+          type: string
+          enum: [qdrant_reachability, workspace_readable, git_available]
+        status:
+          type: string
+          enum: [passed, failed, skipped]
+        severity:
+          type: string
+          enum: [critical, warning, info]
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        action:
+          type: string
+        checkedAt:
+          type: string
+          format: date-time
+    StartupReadinessSummary:
+      type: object
+      required:
+        - status
+        - serviceReadiness
+        - workspacePath
+        - indexMode
+        - mcpEndpoint
+        - collectionName
+        - preflightChecks
+        - checkedAt
+      properties:
+        status:
+          type: string
+          enum: [ready]
+        serviceReadiness:
+          type: object
+          required: [qdrant, fileIndexer, mcpServer]
+          properties:
+            qdrant:
+              type: string
+              enum: [healthy, degraded, down]
+            fileIndexer:
+              type: string
+              enum: [healthy, degraded, down]
+            mcpServer:
+              type: string
+              enum: [healthy, degraded, down]
+        workspacePath:
+          type: string
+        indexMode:
+          type: string
+          enum: [full-scan, delta-after-commit]
+        mcpEndpoint:
+          type: string
+          example: /mcp
+        collectionName:
+          type: string
+          example: workspace_chunks
+        preflightChecks:
+          type: array
+          items:
+            $ref: "#/components/schemas/StartupCheckResult"
+        checkedAt:
+          type: string
+          format: date-time
+    StartupFailureReport:
+      type: object
+      required: [errorCode, message, failedChecks, generatedAt]
+      properties:
+        errorCode:
+          type: string
+          example: STARTUP_PREFLIGHT_FAILED
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        failedChecks:
+          type: array
+          items:
+            $ref: "#/components/schemas/StartupCheckResult"
+        recommendedActions:
+          type: array
+          items:
+            type: string
+        generatedAt:
+          type: string
+          format: date-time
+    RuntimeConfigWithStartup:
+      type: object
+      required:
+        - projectName
+        - qdrantPort
+        - qdrantApiPort
+        - mcpPort
+        - workspacePath
+        - indexMode
+        - startupReadiness
+      properties:
+        projectName:
+          type: string
+        qdrantPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        qdrantApiPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        mcpPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        workspacePath:
+          type: string
+        indexMode:
+          type: string
+          enum: [full-scan, delta-after-commit]
+        startupReadiness:
+          $ref: "#/components/schemas/StartupReadinessSummary"
