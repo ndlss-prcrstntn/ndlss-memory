@@ -1,0 +1,321 @@
+﻿openapi: 3.0.3
+info:
+  title: Quality & Stability Verification Surface
+  version: 1.1.0
+  description: |
+    API surface used by the quality stability suite for validating
+    full-scan, delta-after-commit, idempotency, semantic search,
+    and result resolution endpoints.
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Health probe
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+  /v1/indexing/full-scan/jobs:
+    post:
+      summary: Start full-scan indexing
+      operationId: startFullScan
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncJobAccepted'
+  /v1/indexing/full-scan/jobs/{jobId}/summary:
+    get:
+      summary: Full-scan summary
+      operationId: getFullScanSummary
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Full-scan summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunSummary'
+  /v1/indexing/delta-after-commit/jobs:
+    post:
+      summary: Start delta-after-commit indexing
+      operationId: startDeltaAfterCommit
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncJobAccepted'
+  /v1/indexing/delta-after-commit/jobs/{runId}/summary:
+    get:
+      summary: Delta summary
+      operationId: getDeltaSummary
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: Delta summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunSummary'
+  /v1/indexing/idempotency/jobs:
+    post:
+      summary: Start idempotency sync run
+      operationId: startIdempotencyRun
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncJobAccepted'
+  /v1/indexing/idempotency/jobs/{runId}/summary:
+    get:
+      summary: Idempotency summary
+      operationId: getIdempotencySummary
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: Idempotency summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunSummary'
+  /v1/search/semantic:
+    post:
+      summary: Semantic search
+      operationId: semanticSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SemanticSearchRequest'
+      responses:
+        '200':
+          description: Search response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SemanticSearchResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /v1/search/results/{resultId}/source:
+    get:
+      summary: Resolve source by result ID
+      operationId: getSearchSourceById
+      parameters:
+        - $ref: '#/components/parameters/ResultId'
+      responses:
+        '200':
+          description: Source resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceResponse'
+        '404':
+          description: Result not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /v1/search/results/{resultId}/metadata:
+    get:
+      summary: Resolve metadata by result ID
+      operationId: getSearchMetadataById
+      parameters:
+        - $ref: '#/components/parameters/ResultId'
+      responses:
+        '200':
+          description: Metadata resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetadataResponse'
+        '404':
+          description: Result not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+components:
+  parameters:
+    JobId:
+      in: path
+      name: jobId
+      required: true
+      schema:
+        type: string
+    RunId:
+      in: path
+      name: runId
+      required: true
+      schema:
+        type: string
+    ResultId:
+      in: path
+      name: resultId
+      required: true
+      schema:
+        type: string
+  schemas:
+    AsyncJobAccepted:
+      type: object
+      required: [runId, status]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [accepted]
+    RunSummary:
+      type: object
+      required: [runId, status]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [running, completed, partial, failed]
+        indexedFiles:
+          type: integer
+          minimum: 0
+        skippedFiles:
+          type: integer
+          minimum: 0
+        duplicateCount:
+          type: integer
+          minimum: 0
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiError'
+    SemanticSearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+        filters:
+          type: object
+          properties:
+            path:
+              type: string
+            folder:
+              type: string
+            fileType:
+              type: string
+    SemanticSearchResponse:
+      type: object
+      required: [status, results, meta]
+      properties:
+        status:
+          type: string
+          enum: [ok, empty]
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+              minimum: 0
+            limit:
+              type: integer
+              minimum: 1
+            requestedAt:
+              type: string
+              format: date-time
+    SourceResponse:
+      type: object
+      required: [status, source, meta]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        source:
+          type: object
+          required: [resultId, content, sourcePath]
+          properties:
+            resultId:
+              type: string
+            content:
+              type: string
+            sourcePath:
+              type: string
+        meta:
+          type: object
+          properties:
+            requestedAt:
+              type: string
+              format: date-time
+    MetadataResponse:
+      type: object
+      required: [status, metadata, meta]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        metadata:
+          type: object
+          required: [resultId, fileName, fileType, sourcePath]
+          properties:
+            resultId:
+              type: string
+            fileName:
+              type: string
+            fileType:
+              type: string
+            sourcePath:
+              type: string
+            contentHash:
+              type: string
+        meta:
+          type: object
+          properties:
+            requestedAt:
+              type: string
+              format: date-time
+    SearchResult:
+      type: object
+      required: [resultId, score, snippet]
+      properties:
+        resultId:
+          type: string
+        score:
+          type: number
+        snippet:
+          type: string
+        sourcePath:
+          type: string
+        fileType:
+          type: string
+    ApiError:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true

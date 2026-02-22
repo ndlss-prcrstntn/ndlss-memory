@@ -148,6 +148,15 @@ powershell -File scripts/tests/idempotency_compose_regression.ps1
 powershell -File scripts/tests/delta_after_commit_compose_regression.ps1
 ```
 
+Quality stability suite:
+
+```powershell
+powershell -File scripts/tests/run_quality_stability_suite.ps1
+powershell -File scripts/tests/contract_quality_stability.ps1
+powershell -File scripts/tests/quality_stability_e2e.ps1
+powershell -File scripts/tests/validate_markdown_encoding.ps1
+```
+
 ## Документация по фичам
 
 - `specs/001-base-docker-compose/`
@@ -156,6 +165,8 @@ powershell -File scripts/tests/delta_after_commit_compose_regression.ps1
 - `specs/004-indexing-idempotency/`
 - `specs/005-delta-after-commit/`
 - `specs/006-mcp-search-tools/`
+- `specs/007-secure-mcp-commands/`
+- `specs/008-quality-stability-tests/`
 ## Roadmap
 
 ### 0. Zero-Friction Setup (DX-first)
@@ -255,19 +266,19 @@ powershell -File scripts/tests/delta_after_commit_compose_regression.ps1
 
 ### 9. Качество и стабильность
 
-- [ ] Unit-тесты:
-  - [ ] чанкинг
+- [x] Unit-тесты:
+  - [x] чанкинг
   - [x] хеширование
   - [x] фильтрация файлов
-- [ ] Integration-тесты:
-  - [ ] запись в Qdrant
+- [x] Integration-тесты:
+  - [x] запись в Qdrant
   - [x] поиск через MCP
 - [x] Contract-тесты MCP-инструментов
-- [ ] E2E тест:
+- [x] E2E тест:
   - [x] `docker compose up`
-  - [ ] full-scan
+  - [x] full-scan
   - [x] delta-after-commit
-  - [ ] проверка поискового запроса
+  - [x] проверка поискового запроса
 - [x] Проверка идемпотентности повторного запуска
 
 ### 10. Open-source упаковка

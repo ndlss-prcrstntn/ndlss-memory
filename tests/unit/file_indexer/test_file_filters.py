@@ -24,3 +24,14 @@ def test_exclude_patterns_match_path_segments():
     patterns = parse_exclude_patterns(".git,node_modules,dist")
     assert is_excluded_path(Path("node_modules/pkg/a.txt"), patterns)
     assert not is_excluded_path(Path("docs/readme.md"), patterns)
+
+
+def test_exclude_patterns_match_glob_path():
+    patterns = parse_exclude_patterns("docs/*.md")
+    assert is_excluded_path(Path("docs/readme.md"), patterns)
+    assert not is_excluded_path(Path("docs/readme.txt"), patterns)
+
+
+def test_parse_supported_types_deduplicates_values():
+    allowed = parse_supported_types(" .md , md , .TXT ")
+    assert allowed == {".md", ".txt"}

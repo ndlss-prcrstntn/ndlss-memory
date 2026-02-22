@@ -6,6 +6,7 @@ from search_errors import invalid_request
 
 RESULT_ID_PREFIX = "chunk:"
 HEX64_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 
 def build_result_id(point_id: str) -> str:
@@ -23,7 +24,7 @@ def parse_result_id(result_id: str) -> str:
     else:
         point_id = raw
 
-    if not HEX64_RE.match(point_id):
+    if not HEX64_RE.match(point_id) and not UUID_RE.match(point_id):
         raise invalid_request("resultId has invalid format")
     return point_id.lower()
 

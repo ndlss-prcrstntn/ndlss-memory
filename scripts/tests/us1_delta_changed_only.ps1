@@ -1,5 +1,8 @@
 ﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 & (Join-Path $root "scripts\tests\delta_after_commit_test_env.ps1") | Out-Null
@@ -30,8 +33,20 @@ Add-Content -Path (Join-Path $workspaceHost "docs\stable.md") -Value "`n$(Get-Co
 
 Push-Location $workspaceHost
 try {
-    git add .
-    git commit -m "us1 added and modified" | Out-Null
+    $prevErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        git add . 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            throw "git add failed with exit code $LASTEXITCODE"
+        }
+        git commit -m "us1 added and modified" 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "git commit failed with exit code $LASTEXITCODE"
+        }
+    } finally {
+        $ErrorActionPreference = $prevErrorAction
+    }
 } finally {
     Pop-Location
 }

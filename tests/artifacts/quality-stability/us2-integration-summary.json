@@ -1,0 +1,29 @@
+﻿{
+    "runId":  "858c34ba4e584e3289a3af97dd268a03",
+    "stageName":  "us2-integration-search",
+    "status":  "passed",
+    "generatedAt":  "2026-02-22T03:19:49.3830413+03:00",
+    "ingestionRunId":  "94d9d257357d495eadfc5e2c0e33604c",
+    "ingestionSummary":  {
+                             "embeddedChunks":  11,
+                             "failedChunks":  0,
+                             "finishedAt":  "2026-02-22T00:19:48.876586+00:00",
+                             "metadataCoverage":  {
+                                                      "contentHash":  1.0,
+                                                      "fileName":  1.0,
+                                                      "fileType":  1.0,
+                                                      "path":  1.0,
+                                                      "timestamp":  1.0
+                                                  },
+                             "retryCount":  0,
+                             "runId":  "94d9d257357d495eadfc5e2c0e33604c",
+                             "startedAt":  "2026-02-22T00:19:48.778354+00:00",
+                             "status":  "completed",
+                             "totalChunks":  11,
+                             "totalFiles":  5
+                         },
+    "searchStatus":  "ok",
+    "searchResultCount":  5,
+    "sourceChecked":  true,
+    "metadataChecked":  true
+}

@@ -1,5 +1,8 @@
 ﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 & (Join-Path $root "scripts\tests\delta_after_commit_test_env.ps1") | Out-Null
@@ -56,8 +59,20 @@ Move-Item -LiteralPath (Join-Path $workspaceHost "docs\rename-me.md") -Destinati
 
 Push-Location $workspaceHost
 try {
-    git add -A
-    git commit -m "us2 delete and rename" | Out-Null
+    $prevErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        git add -A 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            throw "git add -A failed with exit code $LASTEXITCODE"
+        }
+        git commit -m "us2 delete and rename" 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "git commit failed with exit code $LASTEXITCODE"
+        }
+    } finally {
+        $ErrorActionPreference = $prevErrorAction
+    }
 } finally {
     Pop-Location
 }

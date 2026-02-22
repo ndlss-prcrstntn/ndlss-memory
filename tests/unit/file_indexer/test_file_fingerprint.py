@@ -25,3 +25,16 @@ def test_file_fingerprint_changed_file():
     b = FileFingerprint.from_content(file_path="docs/readme.md", content="hello world", previous_hash=a.content_hash)
     assert b.status == "changed"
 
+
+def test_file_fingerprint_hash_is_stable_for_same_input():
+    a = FileFingerprint.from_content(file_path="docs/readme.md", content="stable-content", previous_hash=None)
+    b = FileFingerprint.from_content(file_path="docs/readme.md", content="stable-content", previous_hash=None)
+    assert a.content_hash == b.content_hash
+
+
+def test_file_fingerprint_deleted_status():
+    deleted = FileFingerprint.deleted(file_path="docs/readme.md", previous_hash="abc")
+    assert deleted.status == "deleted"
+    assert deleted.previous_hash == "abc"
+    assert deleted.content_hash == ""
+

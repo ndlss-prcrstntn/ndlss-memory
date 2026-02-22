@@ -1,0 +1,84 @@
+﻿{
+    "failures":  [
+
+                 ],
+    "artifactsDir":  "tests/artifacts/quality-stability",
+    "finishedAt":  "2026-02-22T03:19:57.1956217+03:00",
+    "startedAt":  "2026-02-22T03:14:39.7061494+03:00",
+    "status":  "passed",
+    "stages":  [
+                   {
+                       "durationMs":  1077,
+                       "finishedAt":  "2026-02-22T03:14:40.7913487+03:00",
+                       "failureCode":  null,
+                       "stageName":  "unit",
+                       "startedAt":  "2026-02-22T03:14:39.7148419+03:00",
+                       "status":  "passed",
+                       "artifactPaths":  [
+
+                                         ],
+                       "failureMessage":  null
+                   },
+                   {
+                       "durationMs":  27940,
+                       "finishedAt":  "2026-02-22T03:15:08.7437846+03:00",
+                       "failureCode":  null,
+                       "stageName":  "us1",
+                       "startedAt":  "2026-02-22T03:14:40.8042495+03:00",
+                       "status":  "passed",
+                       "artifactPaths":  [
+                                             "Z:\\WORK\\ndlss-memory\\tests\\artifacts\\quality-stability\\us1-idempotency-summary.json"
+                                         ],
+                       "failureMessage":  null
+                   },
+                   {
+                       "durationMs":  235406,
+                       "finishedAt":  "2026-02-22T03:19:04.1633301+03:00",
+                       "failureCode":  null,
+                       "stageName":  "integration",
+                       "startedAt":  "2026-02-22T03:15:08.7570349+03:00",
+                       "status":  "passed",
+                       "artifactPaths":  [
+
+                                         ],
+                       "failureMessage":  null
+                   },
+                   {
+                       "durationMs":  23773,
+                       "finishedAt":  "2026-02-22T03:19:27.9500905+03:00",
+                       "failureCode":  null,
+                       "stageName":  "us2",
+                       "startedAt":  "2026-02-22T03:19:04.1768700+03:00",
+                       "status":  "passed",
+                       "artifactPaths":  [
+                                             "Z:\\WORK\\ndlss-memory\\tests\\artifacts\\quality-stability\\us2-integration-summary.json"
+                                         ],
+                       "failureMessage":  null
+                   },
+                   {
+                       "durationMs":  35,
+                       "finishedAt":  "2026-02-22T03:19:27.9942309+03:00",
+                       "failureCode":  null,
+                       "stageName":  "contract",
+                       "startedAt":  "2026-02-22T03:19:27.9596305+03:00",
+                       "status":  "passed",
+                       "artifactPaths":  [
+
+                                         ],
+                       "failureMessage":  null
+                   },
+                   {
+                       "durationMs":  29160,
+                       "finishedAt":  "2026-02-22T03:19:57.1728947+03:00",
+                       "failureCode":  null,
+                       "stageName":  "us3",
+                       "startedAt":  "2026-02-22T03:19:28.0128043+03:00",
+                       "status":  "passed",
+                       "artifactPaths":  [
+                                             "Z:\\WORK\\ndlss-memory\\tests\\artifacts\\quality-stability\\us3-e2e-summary.json"
+                                         ],
+                       "failureMessage":  null
+                   }
+               ],
+    "runId":  "58f594a2ad304165baae5ad265787c05"
+}

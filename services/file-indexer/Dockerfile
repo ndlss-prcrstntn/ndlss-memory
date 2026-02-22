@@ -11,6 +11,7 @@ COPY scripts/ingestion-worker.sh /app/scripts/ingestion-worker.sh
 COPY config/runtime-config.schema.json /app/config/runtime-config.schema.json
 COPY src /app/src
 
+RUN sed -i 's/\r$//' /app/scripts/*.sh
 RUN chmod +x /app/scripts/validate-config.sh /app/scripts/entrypoint.sh /app/scripts/full-scan-worker.sh /app/scripts/ingestion-worker.sh
 
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]

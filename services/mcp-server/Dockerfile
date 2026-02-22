@@ -36,6 +36,7 @@ COPY openapi/delta-after-commit-indexing.openapi.yaml /app/openapi/delta-after-c
 COPY openapi/mcp-search-tools.openapi.yaml /app/openapi/mcp-search-tools.openapi.yaml
 COPY openapi/mcp-command-security.openapi.yaml /app/openapi/mcp-command-security.openapi.yaml
 
+RUN sed -i 's/\r$//' /app/scripts/*.sh
 RUN chmod +x /app/scripts/entrypoint.sh
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser

@@ -9,9 +9,13 @@
 4. Проверить:
    - ответ HTTP 200
    - есть поля `status`, `results`, `meta`
+   - `status` равен `ok` или `empty`
 5. Если `results` не пустой, взять первый `resultId` и проверить:
    - `GET /v1/search/results/{resultId}/source`
    - `GET /v1/search/results/{resultId}/metadata`
+   - оба ответа возвращают `status=ok`
 6. Проверить корректную ошибку:
    - `GET /v1/search/results/chunk:0000000000000000000000000000000000000000000000000000000000000000/source`
    - ожидается HTTP 404 и `errorCode=RESULT_NOT_FOUND`
+7. Проверить артефакт US2:
+   - `tests/artifacts/quality-stability/us2-integration-summary.json` существует и содержит `searchResultCount`.

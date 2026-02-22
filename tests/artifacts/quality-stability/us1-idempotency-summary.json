@@ -1,0 +1,45 @@
+﻿{
+    "runId":  "761696bb4061477e81b8818360b4417b",
+    "stageName":  "us1-idempotency-repeat-run",
+    "status":  "passed",
+    "startedAt":  "2026-02-22T03:19:51.9013846+03:00",
+    "firstRun":  {
+                     "deletedChunks":  0,
+                     "failedChunks":  0,
+                     "finishedAt":  "2026-02-22T00:19:50.824729+00:00",
+                     "reasonBreakdown":  [
+                                             {
+                                                 "code":  "SKIPPED_UNCHANGED",
+                                                 "count":  11
+                                             }
+                                         ],
+                     "runId":  "7daeb92524944610a471e367cc5566ce",
+                     "skippedChunks":  11,
+                     "startedAt":  "2026-02-22T00:19:50.729101+00:00",
+                     "status":  "completed",
+                     "totalFiles":  5,
+                     "updatedChunks":  0
+                 },
+    "secondRun":  {
+                      "deletedChunks":  0,
+                      "failedChunks":  0,
+                      "finishedAt":  "2026-02-22T00:19:51.384276+00:00",
+                      "reasonBreakdown":  [
+                                              {
+                                                  "code":  "SKIPPED_UNCHANGED",
+                                                  "count":  11
+                                              }
+                                          ],
+                      "runId":  "d5f4b2ad45d0463c85117294f7ea210e",
+                      "skippedChunks":  11,
+                      "startedAt":  "2026-02-22T00:19:51.307410+00:00",
+                      "status":  "completed",
+                      "totalFiles":  5,
+                      "updatedChunks":  0
+                  },
+    "checks":  {
+                   "firstRunUpdatedChunks":  0,
+                   "secondRunSkippedChunks":  11,
+                   "duplicateCountStable":  true
+               }
+}

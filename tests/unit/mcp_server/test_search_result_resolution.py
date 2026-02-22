@@ -42,6 +42,12 @@ def test_result_id_roundtrip_is_stable():
     assert parse_result_id(result_id) == point_id
 
 
+def test_result_id_roundtrip_accepts_uuid():
+    point_id = "11111111-1111-4111-8111-111111111111"
+    result_id = build_result_id(point_id)
+    assert parse_result_id(result_id) == point_id
+
+
 def test_source_and_metadata_raise_not_found_for_unknown_id():
     service = SearchService(_ResolutionRepoStub())
     missing = "chunk:2222222222222222222222222222222222222222222222222222222222222222"

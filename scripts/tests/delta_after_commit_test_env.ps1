@@ -6,6 +6,9 @@
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $sourceWorkspace = (Resolve-Path (Join-Path $root $WorkspacePath)).Path
@@ -17,11 +20,32 @@ Copy-Item -Path (Join-Path $sourceWorkspace '*') -Destination $runtimeHostWorksp
 
 Push-Location $runtimeHostWorkspace
 try {
-    git init | Out-Null
-    git config user.email "delta.tests@example.local"
-    git config user.name "Delta Tests"
-    git add .
-    git commit -m "base snapshot" | Out-Null
+    $prevErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        git init 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "git init failed with exit code $LASTEXITCODE"
+        }
+        git config user.email "delta.tests@example.local" 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            throw "git config user.email failed with exit code $LASTEXITCODE"
+        }
+        git config user.name "Delta Tests" 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            throw "git config user.name failed with exit code $LASTEXITCODE"
+        }
+        git add . 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            throw "git add failed with exit code $LASTEXITCODE"
+        }
+        git commit -m "base snapshot" 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "git commit failed with exit code $LASTEXITCODE"
+        }
+    } finally {
+        $ErrorActionPreference = $prevErrorAction
+    }
 } finally {
     Pop-Location
 }

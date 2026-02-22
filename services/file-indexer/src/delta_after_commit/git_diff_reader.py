@@ -23,7 +23,10 @@ def read_git_change_set(
     target_ref: str,
     include_renames: bool = True,
 ) -> list[GitChangeSet]:
-    command = ["git", "-C", workspace_path, "diff", "--name-status"]
+    # In containerized test/runtime setups the mounted workspace owner often
+    # differs from the process user. Mark this path as safe for this command to
+    # avoid "detected dubious ownership" failures.
+    command = ["git", "-c", f"safe.directory={workspace_path}", "-C", workspace_path, "diff", "--name-status"]
     if include_renames:
         command.append("--find-renames")
     command.extend([base_ref, target_ref])

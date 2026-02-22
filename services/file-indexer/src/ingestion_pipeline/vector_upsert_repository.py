@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import uuid
 from dataclasses import dataclass, field
 from typing import Any
 from urllib import error, request
@@ -14,6 +15,7 @@ class UpsertError(RuntimeError):
 
 
 _REPOSITORY_CACHE: dict[str, "VectorUpsertRepository"] = {}
+_QDRANT_POINT_NAMESPACE = uuid.UUID("c6a7f5f3-2f2d-4f4a-92c2-8f313f2fd63c")
 
 
 @dataclass
@@ -28,6 +30,7 @@ class VectorUpsertRepository:
 
     def upsert(self, record: VectorRecord) -> None:
         point = record.to_qdrant_point()
+        point["id"] = self._qdrant_point_id(record.vector_id)
         self._points[record.vector_id] = point
         if self.enable_http_upsert:
             self._upsert_via_http(point)
@@ -84,7 +87,7 @@ class VectorUpsertRepository:
             raise UpsertError(f"Qdrant upsert connection error: {exc.reason}") from exc
 
     def _delete_via_http(self, point_ids: set[str]) -> None:
-        payload = json.dumps({"points": list(point_ids)}).encode("utf-8")
+        payload = json.dumps({"points": [self._qdrant_point_id(point_id) for point_id in point_ids]}).encode("utf-8")
         endpoint = f"{self.qdrant_url.rstrip('/')}/collections/{self.collection_name}/points/delete?wait=true"
         req = request.Request(endpoint, method="POST", data=payload, headers={"Content-Type": "application/json"})
         try:
@@ -95,6 +98,13 @@ class VectorUpsertRepository:
             raise UpsertError(f"Qdrant delete failed with HTTP {exc.code}") from exc
         except error.URLError as exc:
             raise UpsertError(f"Qdrant delete connection error: {exc.reason}") from exc
+
+    @staticmethod
+    def _qdrant_point_id(point_id: str) -> str:
+        try:
+            return str(uuid.UUID(point_id))
+        except (ValueError, TypeError, AttributeError):
+            return str(uuid.uuid5(_QDRANT_POINT_NAMESPACE, str(point_id)))
 
 
 def repository_from_env() -> VectorUpsertRepository:

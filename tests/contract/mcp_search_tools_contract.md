@@ -31,3 +31,6 @@
 
 - [ ] Фильтры `path/folder/fileType` применяются как логическое И
 - [ ] Запрос без совпадений возвращает HTTP 200, `status=empty`, без internal error
+- [ ] Для `status=ok` каждый элемент `results` содержит валидный `resultId`
+- [ ] Для `status=empty` endpoint-ы `/source` и `/metadata` не вызываются без `resultId`
+- [ ] Ответы `/source` и `/metadata` для валидного `resultId` содержат `status=ok`

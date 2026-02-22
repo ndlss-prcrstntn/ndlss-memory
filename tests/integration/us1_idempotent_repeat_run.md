@@ -16,3 +16,4 @@ Verify repeated sync on unchanged files does not create duplicate records.
 - First run reports `updatedChunks > 0`.
 - Second run reports `skippedChunks` for unchanged records.
 - Second run does not increase unique vector count unexpectedly.
+- Script writes `tests/artifacts/quality-stability/us1-idempotency-summary.json`.
