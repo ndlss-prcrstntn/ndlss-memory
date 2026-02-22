@@ -28,7 +28,7 @@ class QdrantSearchRepository:
     @classmethod
     def from_env(cls) -> "QdrantSearchRepository":
         host = os.getenv("QDRANT_HOST", "qdrant")
-        port = os.getenv("QDRANT_PORT", "6333")
+        port = os.getenv("QDRANT_API_PORT") or os.getenv("QDRANT_PORT", "6333")
         collection_name = os.getenv("QDRANT_COLLECTION_NAME", "workspace_chunks")
         return cls(
             qdrant_url=f"http://{host}:{port}",

@@ -102,8 +102,10 @@ class IngestionService:
                 try:
                     self.repository.upsert(record)
                     summary.on_embedding_success(metadata)
-                except UpsertError:
+                except UpsertError as exc:
                     summary.on_embedding_failure()
+                    self._emit_progress(summary, progress_callback)
+                    raise UpsertError(f"Persistence upsert failed for chunk '{chunk.chunk_id}': {exc}") from exc
                 self._emit_progress(summary, progress_callback)
         return summary.finalize()
 

@@ -21,7 +21,7 @@ from full_scan_errors import json_error as full_scan_json_error
 from full_scan_state import STATE as FULL_SCAN_STATE
 from idempotency_errors import json_error as idempotency_json_error
 from idempotency_state import STATE as IDEMPOTENCY_STATE
-from ingestion_errors import json_error as ingestion_json_error
+from ingestion_errors import classify_pipeline_exception, json_error as ingestion_json_error
 from ingestion_state import STATE as INGESTION_STATE
 from mcp_transport import register_mcp_transport_routes
 from search_errors import SearchApiError, json_error_from_exception as search_json_error_from_exception
@@ -391,6 +391,7 @@ def _run_ingestion_job(run_id: str, workspace_path: str, payload: dict) -> None:
         summary_payload = summary.to_dict()
         INGESTION_STATE.finish_run(run_id, summary=summary_payload, status=summary_payload.get("status", "completed"))
     except Exception as exc:
+        error_code, error_message = classify_pipeline_exception(exc)
         failure = {
             "runId": run_id,
             "status": "failed",
@@ -408,8 +409,10 @@ def _run_ingestion_job(run_id: str, workspace_path: str, payload: dict) -> None:
                 "contentHash": 0,
                 "timestamp": 0,
             },
+            "errorCode": error_code,
+            "errorMessage": error_message,
         }
-        INGESTION_STATE.update_run(run_id, error_code="INGESTION_PIPELINE_FAILED", error_message=str(exc))
+        INGESTION_STATE.update_run(run_id, error_code=error_code, error_message=error_message)
         INGESTION_STATE.finish_run(run_id, summary=failure, status="failed")
 
 
@@ -540,6 +543,8 @@ def build_runtime_config() -> dict:
     return {
         "projectName": os.getenv("COMPOSE_PROJECT_NAME", "ndlss-memory"),
         "qdrantPort": int(os.getenv("QDRANT_PORT", "6333")),
+        "qdrantApiPort": int(os.getenv("QDRANT_API_PORT", "6333")),
+        "qdrantHost": os.getenv("QDRANT_HOST", "qdrant"),
         "mcpPort": int(os.getenv("MCP_PORT", "8080")),
         "indexMode": os.getenv("INDEX_MODE", "full-scan"),
         "indexFileTypes": index_file_types,
@@ -550,6 +555,9 @@ def build_runtime_config() -> dict:
         "ingestionChunkOverlap": _parse_int_env("INGESTION_CHUNK_OVERLAP", 120),
         "ingestionRetryMaxAttempts": _parse_int_env("INGESTION_RETRY_MAX_ATTEMPTS", 3),
         "ingestionRetryBackoffSeconds": float(os.getenv("INGESTION_RETRY_BACKOFF_SECONDS", "1.0")),
+        "ingestionEnableQdrantHttp": os.getenv("INGESTION_ENABLE_QDRANT_HTTP", "1"),
+        "ingestionUpsertTimeoutSeconds": float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
+        "ingestionEmbeddingVectorSize": _parse_int_env("INGESTION_EMBEDDING_VECTOR_SIZE", 16),
         "deltaGitBaseRef": os.getenv("DELTA_GIT_BASE_REF", "HEAD~1"),
         "deltaGitTargetRef": os.getenv("DELTA_GIT_TARGET_REF", "HEAD"),
         "deltaIncludeRenames": os.getenv("DELTA_INCLUDE_RENAMES", "1"),
@@ -569,6 +577,17 @@ def build_runtime_config() -> dict:
         "commandCpuTimeLimitSeconds": command_policy.cpu_time_limit_seconds,
         "commandMemoryLimitBytes": command_policy.memory_limit_bytes,
         "commandAuditRetentionDays": command_policy.audit_retention_days,
+    }
+
+
+def build_ingestion_persistence_diagnostics() -> dict:
+    return {
+        "qdrantHost": os.getenv("QDRANT_HOST", "qdrant"),
+        "qdrantApiPort": int(os.getenv("QDRANT_API_PORT", "6333")),
+        "qdrantExternalPort": int(os.getenv("QDRANT_PORT", "6333")),
+        "ingestionEnableQdrantHttp": os.getenv("INGESTION_ENABLE_QDRANT_HTTP", "1"),
+        "ingestionUpsertTimeoutSeconds": float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
+        "ingestionEmbeddingVectorSize": _parse_int_env("INGESTION_EMBEDDING_VECTOR_SIZE", 16),
     }
 
 
@@ -770,7 +789,9 @@ def get_ingestion_job_status(run_id: str):
     run = INGESTION_STATE.get_run(run_id)
     if not run:
         return ingestion_json_error("RUN_NOT_FOUND", f"Ingestion run '{run_id}' is not found", 404)
-    return jsonify(run.as_status())
+    payload = run.as_status()
+    payload["persistence"] = build_ingestion_persistence_diagnostics()
+    return jsonify(payload)
 
 
 @app.get("/v1/indexing/ingestion/jobs/<run_id>/summary")
@@ -782,7 +803,9 @@ def get_ingestion_job_summary(run_id: str):
         return ingestion_json_error("RUN_NOT_FINISHED", "Ingestion run is not finished yet", 409)
     if run.summary is None:
         return ingestion_json_error("RUN_SUMMARY_MISSING", "Run summary is not available", 404)
-    return jsonify(run.summary)
+    payload = dict(run.summary)
+    payload["persistence"] = build_ingestion_persistence_diagnostics()
+    return jsonify(payload)
 
 
 @app.post("/v1/indexing/idempotency/jobs")

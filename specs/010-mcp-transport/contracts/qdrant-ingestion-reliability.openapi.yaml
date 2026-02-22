@@ -1,0 +1,195 @@
+openapi: 3.1.0
+info:
+  title: MCP Ingestion and Qdrant Reliability Contract
+  version: 0.1.7
+  description: >-
+    Contract for validating that ingestion started from MCP/REST creates
+    persistent Qdrant collection data and remains healthy when external
+    Qdrant host port is customized.
+servers:
+  - url: http://localhost:{mcp_port}
+    description: mcp-server
+    variables:
+      mcp_port:
+        default: "8080"
+  - url: http://localhost:{qdrant_external_port}
+    description: host-exposed Qdrant API
+    variables:
+      qdrant_external_port:
+        default: "6333"
+paths:
+  /v1/indexing/ingestion/jobs:
+    post:
+      summary: Start ingestion job
+      operationId: startIngestionJob
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                workspacePath:
+                  type: string
+      responses:
+        "202":
+          description: Ingestion accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [runId, status, acceptedAt]
+                properties:
+                  runId:
+                    type: string
+                  status:
+                    type: string
+                  acceptedAt:
+                    type: string
+                    format: date-time
+  /v1/indexing/ingestion/jobs/{runId}:
+    get:
+      summary: Get ingestion job status
+      operationId: getIngestionJobStatus
+      parameters:
+        - in: path
+          name: runId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current ingestion status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestionStatus"
+  /v1/system/config:
+    get:
+      summary: Get effective runtime configuration
+      operationId: getRuntimeConfig
+      responses:
+        "200":
+          description: Runtime config snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qdrantHost:
+                    type: string
+                  qdrantPort:
+                    type: integer
+                  qdrantApiPort:
+                    type: integer
+                  mcpPort:
+                    type: integer
+  /collections/{collectionName}:
+    get:
+      summary: Get Qdrant collection metadata
+      operationId: getCollection
+      parameters:
+        - in: path
+          name: collectionName
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Collection exists
+        "404":
+          description: Collection does not exist
+  /collections/{collectionName}/points/count:
+    post:
+      summary: Count points in collection
+      operationId: countCollectionPoints
+      parameters:
+        - in: path
+          name: collectionName
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exact:
+                  type: boolean
+                  default: true
+      responses:
+        "200":
+          description: Points count payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QdrantCountResponse"
+components:
+  schemas:
+    IngestionStatus:
+      type: object
+      required:
+        - runId
+        - status
+        - totalFiles
+        - totalChunks
+        - embeddedChunks
+        - failedChunks
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, completed, partial, failed]
+        totalFiles:
+          type: integer
+          minimum: 0
+        totalChunks:
+          type: integer
+          minimum: 0
+        embeddedChunks:
+          type: integer
+          minimum: 0
+        failedChunks:
+          type: integer
+          minimum: 0
+        retryCount:
+          type: integer
+          minimum: 0
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        lastEventAt:
+          type: string
+          format: date-time
+        persistence:
+          type: object
+          properties:
+            qdrantHost:
+              type: string
+            qdrantApiPort:
+              type: integer
+            qdrantExternalPort:
+              type: integer
+            ingestionEnableQdrantHttp:
+              type: string
+            ingestionUpsertTimeoutSeconds:
+              type: number
+            ingestionEmbeddingVectorSize:
+              type: integer
+    QdrantCountResponse:
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            count:
+              type: integer
+              minimum: 0
+        status:
+          type: string
+        time:
+          type: number
