@@ -36,7 +36,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
   /v1/search/docs/query:
     post:
-      summary: Выполнить hybrid docs search (BM25 + vector) только для markdown-коллекции
+      summary: Выполнить docs-only hybrid search (BM25 + vector) с reranking для markdown-коллекции
       operationId: docsSearch
       requestBody:
         required: true
@@ -58,7 +58,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "503":
-          description: Docs collection is temporarily unavailable
+          description: Docs collection or reranking stage is temporarily unavailable
           content:
             application/json:
               schema:
@@ -147,7 +147,7 @@ components:
           type: string
     DocsSearchResponse:
       type: object
-      required: [query, total, results, appliedStrategy]
+      required: [query, total, results, appliedStrategy, fallbackApplied]
       properties:
         query:
           type: string
@@ -156,7 +156,9 @@ components:
           minimum: 0
         appliedStrategy:
           type: string
-          enum: [bm25_plus_vector_docs_only]
+          enum: [bm25_plus_vector_rerank_docs_only]
+        fallbackApplied:
+          type: boolean
         results:
           type: array
           items:
@@ -261,12 +263,15 @@ components:
           format: date-time
     DocsSearchResultSignals:
       type: object
-      required: [lexical, semantic]
+      required: [lexical, semantic, rerank]
       properties:
         lexical:
           type: number
           minimum: 0
         semantic:
+          type: number
+          minimum: 0
+        rerank:
           type: number
           minimum: 0
     DocsSearchResult:

@@ -51,6 +51,15 @@ def docs_collection_unavailable(details: str | None = None) -> SearchApiError:
     )
 
 
+def docs_reranking_unavailable(details: str | None = None) -> SearchApiError:
+    return SearchApiError(
+        "DOCS_RERANKING_UNAVAILABLE",
+        "Docs reranking stage is temporarily unavailable",
+        503,
+        details,
+    )
+
+
 def collection_not_found(collection_name: str) -> SearchApiError:
     return SearchApiError(
         "SEARCH_COLLECTION_NOT_FOUND",

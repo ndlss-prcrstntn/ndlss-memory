@@ -98,3 +98,42 @@ def blend_scores(
         )
 
     return blended, normalized_vector, normalized_lexical
+
+
+def rerank_scores(
+    *,
+    query: str,
+    documents: dict[str, str],
+    blended_scores: dict[str, float],
+    lexical_scores: dict[str, float],
+    semantic_scores: dict[str, float],
+) -> dict[str, float]:
+    if not documents:
+        return {}
+
+    normalized_blended = normalize_scores(blended_scores)
+    normalized_lexical = normalize_scores(lexical_scores)
+    normalized_semantic = normalize_scores(semantic_scores)
+
+    query_tokens = set(tokenize(query))
+    coverage_scores: dict[str, float] = {}
+    for doc_id, text in documents.items():
+        if not query_tokens:
+            coverage_scores[doc_id] = 0.0
+            continue
+        doc_tokens = set(tokenize(text))
+        if not doc_tokens:
+            coverage_scores[doc_id] = 0.0
+            continue
+        overlap = len(query_tokens.intersection(doc_tokens))
+        coverage_scores[doc_id] = overlap / max(len(query_tokens), 1)
+
+    reranked: dict[str, float] = {}
+    for candidate_id in documents:
+        reranked[candidate_id] = (
+            (normalized_blended.get(candidate_id, 0.0) * 0.5)
+            + (normalized_lexical.get(candidate_id, 0.0) * 0.2)
+            + (normalized_semantic.get(candidate_id, 0.0) * 0.2)
+            + (coverage_scores.get(candidate_id, 0.0) * 0.1)
+        )
+    return reranked

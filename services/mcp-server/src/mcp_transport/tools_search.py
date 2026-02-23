@@ -100,14 +100,15 @@ class McpSearchTools:
             return response
 
         patched = dict(response)
-        patched.setdefault("appliedStrategy", "bm25_plus_vector_docs_only")
+        patched.setdefault("appliedStrategy", "bm25_plus_vector_rerank_docs_only")
+        patched.setdefault("fallbackApplied", False)
         results = patched.get("results")
         if isinstance(results, list):
             normalized_results: list[dict[str, Any]] = []
             for item in results:
                 if isinstance(item, dict):
                     normalized = dict(item)
-                    normalized.setdefault("rankingSignals", {"lexical": 0.0, "semantic": 0.0})
+                    normalized.setdefault("rankingSignals", {"lexical": 0.0, "semantic": 0.0, "rerank": 0.0})
                     normalized_results.append(normalized)
                 else:
                     normalized_results.append(item)

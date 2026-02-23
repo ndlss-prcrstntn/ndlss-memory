@@ -126,9 +126,13 @@ curl -X POST http://localhost:8080/v1/search/docs/query \
 
 Expected shape:
 
-- `appliedStrategy=bm25_plus_vector_docs_only`
+- `appliedStrategy=bm25_plus_vector_rerank_docs_only`
+- `fallbackApplied=false` in normal conditions
 - each result has `sourceType=documentation`
-- each result includes `rankingSignals.lexical` and `rankingSignals.semantic`
+- each result includes `rankingSignals.lexical`, `rankingSignals.semantic`, `rankingSignals.rerank`
+
+To verify fail-open fallback behavior locally, temporarily set `DOCS_RERANK_FORCE_FAILURE=1` for `mcp-server` and repeat the request.
+Expected: valid `200` response with `fallbackApplied=true`.
 
 ## 4) Optional: connect an MCP client
 

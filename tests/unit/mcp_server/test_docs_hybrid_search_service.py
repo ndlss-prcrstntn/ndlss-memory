@@ -11,16 +11,20 @@ from search_service import SearchService
 
 class _HybridRepositoryStub:
     def docs_search(self, *, query, limit):  # noqa: ANN001
-        return [
-            {
-                "documentPath": "docs/guide.md",
-                "chunkIndex": 0,
-                "snippet": "startup readiness summary",
-                "score": 0.88,
-                "sourceType": "documentation",
-                "rankingSignals": {"lexical": 0.5, "semantic": 0.8},
-            }
-        ][:limit]
+        return {
+            "appliedStrategy": "bm25_plus_vector_rerank_docs_only",
+            "fallbackApplied": False,
+            "results": [
+                {
+                    "documentPath": "docs/guide.md",
+                    "chunkIndex": 0,
+                    "snippet": "startup readiness summary",
+                    "score": 0.88,
+                    "sourceType": "documentation",
+                    "rankingSignals": {"lexical": 0.5, "semantic": 0.8, "rerank": 0.9},
+                }
+            ][:limit],
+        }
 
 
 def test_docs_search_service_returns_hybrid_envelope():
@@ -30,8 +34,10 @@ def test_docs_search_service_returns_hybrid_envelope():
     response = service.docs_search(request)
 
     assert response["query"] == "startup readiness"
-    assert response["appliedStrategy"] == "bm25_plus_vector_docs_only"
+    assert response["appliedStrategy"] == "bm25_plus_vector_rerank_docs_only"
+    assert response["fallbackApplied"] is False
     assert response["total"] == 1
     assert response["results"][0]["sourceType"] == "documentation"
     assert response["results"][0]["rankingSignals"]["lexical"] == 0.5
     assert response["results"][0]["rankingSignals"]["semantic"] == 0.8
+    assert response["results"][0]["rankingSignals"]["rerank"] == 0.9

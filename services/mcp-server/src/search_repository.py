@@ -8,8 +8,14 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
-from search_errors import SearchApiError, backend_error, collection_not_found, docs_collection_unavailable
-from search_hybrid import blend_scores, bm25_scores
+from search_errors import (
+    SearchApiError,
+    backend_error,
+    collection_not_found,
+    docs_collection_unavailable,
+    docs_reranking_unavailable,
+)
+from search_hybrid import blend_scores, bm25_scores, rerank_scores
 from search_models import SearchFilters
 from search_result_ref import build_result_id, parse_result_id
 
@@ -29,6 +35,10 @@ class QdrantSearchRepository:
     docs_hybrid_vector_weight: float = 0.65
     docs_hybrid_bm25_weight: float = 0.35
     docs_hybrid_max_candidates: int = 200
+    docs_rerank_enabled: bool = True
+    docs_rerank_fail_open: bool = True
+    docs_rerank_max_candidates: int = 100
+    docs_rerank_force_failure: bool = False
 
     @classmethod
     def from_env(cls) -> "QdrantSearchRepository":
@@ -46,6 +56,10 @@ class QdrantSearchRepository:
             docs_hybrid_vector_weight=float(os.getenv("DOCS_HYBRID_VECTOR_WEIGHT", "0.65")),
             docs_hybrid_bm25_weight=float(os.getenv("DOCS_HYBRID_BM25_WEIGHT", "0.35")),
             docs_hybrid_max_candidates=int(os.getenv("DOCS_HYBRID_MAX_CANDIDATES", "200")),
+            docs_rerank_enabled=cls._parse_bool_env("DOCS_RERANK_ENABLED", True),
+            docs_rerank_fail_open=cls._parse_bool_env("DOCS_RERANK_FAIL_OPEN", True),
+            docs_rerank_max_candidates=int(os.getenv("DOCS_RERANK_MAX_CANDIDATES", "100")),
+            docs_rerank_force_failure=cls._parse_bool_env("DOCS_RERANK_FORCE_FAILURE", False),
         )
 
     def semantic_search(self, *, query: str, limit: int, filters: SearchFilters) -> list[dict[str, Any]]:
@@ -85,7 +99,7 @@ class QdrantSearchRepository:
 
         return mapped
 
-    def docs_search(self, *, query: str, limit: int) -> list[dict[str, Any]]:
+    def docs_search(self, *, query: str, limit: int) -> dict[str, Any]:
         vector_limit = min(max(limit * 4, 20), max(self.docs_hybrid_max_candidates, limit))
         payload: dict[str, Any] = {"vector": self._build_query_embedding(query), "limit": vector_limit, "with_payload": True}
         try:
@@ -148,13 +162,14 @@ class QdrantSearchRepository:
             lexical_weight=self.docs_hybrid_bm25_weight,
         )
 
-        ranked: list[dict[str, Any]] = []
+        ranked_candidates: list[dict[str, Any]] = []
         for candidate_id, score in blended.items():
             candidate = candidates.get(candidate_id)
             if not candidate:
                 continue
-            ranked.append(
+            ranked_candidates.append(
                 {
+                    "_candidateId": candidate_id,
                     "documentPath": candidate["documentPath"],
                     "chunkIndex": candidate["chunkIndex"],
                     "snippet": candidate["snippet"],
@@ -163,18 +178,51 @@ class QdrantSearchRepository:
                     "rankingSignals": {
                         "lexical": float(normalized_lexical.get(candidate_id, 0.0)),
                         "semantic": float(normalized_vector.get(candidate_id, 0.0)),
+                        "rerank": 0.0,
                     },
                 }
             )
 
-        ranked.sort(
+        ranked_candidates.sort(
             key=lambda item: (
                 -float(item["score"]),
                 str(item["documentPath"]),
                 int(item["chunkIndex"]),
             )
         )
-        return ranked[:limit]
+        candidate_limit = min(max(self.docs_rerank_max_candidates, limit), len(ranked_candidates))
+        rerank_candidates = ranked_candidates[:candidate_limit]
+
+        if not self.docs_rerank_enabled or len(rerank_candidates) <= 1:
+            stable = [self._without_candidate_id(item) for item in rerank_candidates[:limit]]
+            return {
+                "results": stable,
+                "appliedStrategy": "bm25_plus_vector_rerank_docs_only",
+                "fallbackApplied": False,
+            }
+
+        try:
+            reranked = self._rerank_docs_candidates(
+                query=query,
+                candidates=rerank_candidates,
+                blended_scores=blended,
+                lexical_scores=lexical_scores,
+                semantic_scores=vector_scores,
+            )
+            return {
+                "results": reranked[:limit],
+                "appliedStrategy": "bm25_plus_vector_rerank_docs_only",
+                "fallbackApplied": False,
+            }
+        except Exception as exc:
+            if not self.docs_rerank_fail_open:
+                raise docs_reranking_unavailable(str(exc)) from exc
+            fallback = [self._without_candidate_id(item) for item in rerank_candidates[:limit]]
+            return {
+                "results": fallback,
+                "appliedStrategy": "bm25_plus_vector_rerank_docs_only",
+                "fallbackApplied": True,
+            }
 
     def get_source_by_result_id(self, result_id: str) -> dict[str, Any] | None:
         point = self._get_point(result_id)
@@ -366,6 +414,78 @@ class QdrantSearchRepository:
     @staticmethod
     def _candidate_id(*, document_path: str, chunk_index: int) -> str:
         return f"{document_path}::{chunk_index}"
+
+    def _rerank_docs_candidates(
+        self,
+        *,
+        query: str,
+        candidates: list[dict[str, Any]],
+        blended_scores: dict[str, float],
+        lexical_scores: dict[str, float],
+        semantic_scores: dict[str, float],
+    ) -> list[dict[str, Any]]:
+        if self.docs_rerank_force_failure:
+            raise RuntimeError("Docs reranking is forced to fail by DOCS_RERANK_FORCE_FAILURE")
+
+        documents: dict[str, str] = {}
+        for item in candidates:
+            candidate_id = str(item.get("_candidateId", ""))
+            if not candidate_id:
+                continue
+            documents[candidate_id] = str(item.get("snippet", ""))
+
+        reranked_scores = rerank_scores(
+            query=query,
+            documents=documents,
+            blended_scores=blended_scores,
+            lexical_scores=lexical_scores,
+            semantic_scores=semantic_scores,
+        )
+
+        reranked_payload: list[dict[str, Any]] = []
+        for item in candidates:
+            candidate_id = str(item.get("_candidateId", ""))
+            ranking_signals = dict(item.get("rankingSignals", {}))
+            ranking_signals["rerank"] = float(reranked_scores.get(candidate_id, 0.0))
+            reranked_payload.append(
+                {
+                    "documentPath": item.get("documentPath"),
+                    "chunkIndex": item.get("chunkIndex"),
+                    "snippet": item.get("snippet"),
+                    "score": float(reranked_scores.get(candidate_id, item.get("score", 0.0))),
+                    "sourceType": item.get("sourceType", "documentation"),
+                    "rankingSignals": ranking_signals,
+                }
+            )
+
+        reranked_payload.sort(
+            key=lambda item: (
+                -float(item["score"]),
+                str(item["documentPath"]),
+                int(item["chunkIndex"]),
+            )
+        )
+        return reranked_payload
+
+    @staticmethod
+    def _without_candidate_id(item: dict[str, Any]) -> dict[str, Any]:
+        ranking_signals = dict(item.get("rankingSignals", {}))
+        ranking_signals.setdefault("rerank", 0.0)
+        return {
+            "documentPath": item.get("documentPath"),
+            "chunkIndex": item.get("chunkIndex"),
+            "snippet": item.get("snippet"),
+            "score": float(item.get("score", 0.0)),
+            "sourceType": item.get("sourceType", "documentation"),
+            "rankingSignals": ranking_signals,
+        }
+
+    @staticmethod
+    def _parse_bool_env(name: str, default: bool) -> bool:
+        raw = os.getenv(name)
+        if raw is None:
+            return default
+        return raw.strip().lower() in {"1", "true", "yes", "on"}
 
     def _build_query_embedding(self, query: str) -> list[float]:
         digest = hashlib.sha256(query.encode("utf-8")).hexdigest()

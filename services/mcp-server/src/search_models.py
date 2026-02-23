@@ -201,7 +201,7 @@ class DocsSearchResultItem:
     ranking_signals: dict[str, float] | None = None
 
     def as_dict(self) -> dict[str, Any]:
-        ranking = self.ranking_signals or {"lexical": 0.0, "semantic": 0.0}
+        ranking = self.ranking_signals or {"lexical": 0.0, "semantic": 0.0, "rerank": 0.0}
         return {
             "documentPath": self.document_path,
             "chunkIndex": self.chunk_index,
@@ -211,14 +211,22 @@ class DocsSearchResultItem:
             "rankingSignals": {
                 "lexical": float(ranking.get("lexical", 0.0)),
                 "semantic": float(ranking.get("semantic", 0.0)),
+                "rerank": float(ranking.get("rerank", 0.0)),
             },
         }
 
 
-def build_docs_results_envelope(*, query: str, results: list[DocsSearchResultItem]) -> dict[str, Any]:
+def build_docs_results_envelope(
+    *,
+    query: str,
+    results: list[DocsSearchResultItem],
+    applied_strategy: str,
+    fallback_applied: bool,
+) -> dict[str, Any]:
     return {
         "query": query,
         "total": len(results),
-        "appliedStrategy": "bm25_plus_vector_docs_only",
+        "appliedStrategy": applied_strategy,
+        "fallbackApplied": fallback_applied,
         "results": [item.as_dict() for item in results],
     }
