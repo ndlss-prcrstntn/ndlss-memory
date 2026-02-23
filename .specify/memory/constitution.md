@@ -1,10 +1,11 @@
 ﻿<!--
 Sync Impact Report
-- Version change: 1.2.0 -> 1.2.1
+- Version change: 1.2.2 -> 1.3.0
 - Modified principles:
-  - Development Workflow and Delivery Gates (усилено правило нумерации feature/spec: обязательный алгоритм вычисления следующего номера по remote/local/specs и запрет дублей)
+  - Development Workflow and Delivery Gates (добавлены обязательные MCP-oriented шаги для multi-module задач)
 - Added sections:
-  - None
+  - VI. MCP-First Context, File-First Truth
+  - MCP Operational Policy
 - Removed sections:
   - None
 - Templates requiring updates:
@@ -13,17 +14,11 @@ Sync Impact Report
   - ✅ updated: .specify/templates/tasks-template.md
   - ⚠ pending: .specify/templates/commands/*.md (directory is missing in current repository)
   - ✅ updated: README.md
-  - ✅ updated: .codex/prompts/speckit.analyze.md
-  - ✅ updated: .codex/prompts/speckit.checklist.md
-  - ✅ updated: .codex/prompts/speckit.clarify.md
-  - ✅ updated: .codex/prompts/speckit.constitution.md
-  - ✅ updated: .codex/prompts/speckit.implement.md
-  - ✅ updated: .codex/prompts/speckit.plan.md
-  - ✅ updated: .codex/prompts/speckit.specify.md
-  - ✅ updated: .codex/prompts/speckit.tasks.md
-  - ✅ updated: .codex/prompts/speckit.taskstoissues.md
+  - ✅ updated: docs/quickstart.md
 - Follow-up TODOs:
-  - TODO(COMMAND_TEMPLATES): if Speckit command templates are later added at .specify/templates/commands/*.md, localize them to Russian and align them with this constitution.
+  - TODO(COMMAND_TEMPLATES): if Speckit command templates are later added at
+    .specify/templates/commands/*.md, localize them to Russian and align them
+    with this constitution.
 -->
 # ndlss-memory Constitution
 
@@ -70,6 +65,16 @@ Sync Impact Report
 внутренней команды.
 Рационал: для open-source проекта документация является частью продукта.
 
+### VI. MCP-First Context, File-First Truth
+MCP ДОЛЖЕН использоваться как основной слой навигации и retrieval-контекста
+(обзор репозитория, поиск по docs/code, быстрый сбор связанного контекста).
+При этом источником истины для изменений ДОЛЖНЫ оставаться реальные файлы
+workspace и результаты локальных тестов/скриптов. Любое решение, принятое на
+основе MCP-выдачи, ДОЛЖНО быть подтверждено прямым чтением соответствующих
+файлов перед внесением изменений.
+Рационал: MCP ускоряет анализ, но финальная корректность определяется кодом и
+тестами.
+
 ## Architecture and Operational Constraints
 
 1. Архитектура ограничена тремя сервисами: `qdrant`, `file-indexer`, `mcp-server`.
@@ -81,6 +86,24 @@ Sync Impact Report
 непрозрачный доступ к внутреннему состоянию контейнеров.
 5. Все сетевые порты, лимиты ресурсов и политики рестарта ДОЛЖНЫ быть явными в
 `docker-compose.yml`.
+
+## MCP Operational Policy
+
+1. Для локальной разработки MCP-стек ДОЛЖЕН запускаться на уникальных портах,
+чтобы не конфликтовать с другими проектами/стеками.
+2. Перед началом работы агент ДОЛЖЕН проверить:
+`/health`, `/.well-known/mcp`, `/v1/system/config`.
+3. Если docs-коллекция пуста, ДОЛЖЕН выполняться docs-only indexing перед
+использованием docs search в задачах анализа/планирования.
+4. `readiness` ДОЛЖЕН интерпретироваться отдельно от `health`: `/health=ok`
+означает доступность API, а `/v1/system/startup/readiness` отражает строго
+состояние bootstrap-процесса.
+5. Для release/quality-gate сценариев bootstrap ДОЛЖЕН завершаться без ошибок
+(`completed`, без деградации по failed chunks). Для dev-исследования
+допускается ограниченный partial-статус при сохранении работоспособности
+search-инструментов.
+6. Профили окружения MCP (порты, лимиты, коллекции, режим индексации) ДОЛЖНЫ
+храниться в явном env-файле проекта и быть воспроизводимыми.
 
 ## Development Workflow and Delivery Gates
 
@@ -111,6 +134,19 @@ Sync Impact Report
 8. Все Markdown-файлы (`*.md`) ДОЛЖНЫ сохраняться в кодировке UTF-8.
 Файлы в UTF-16/ANSI считаются нарушением quality gates и подлежат исправлению в
 том же изменении.
+9. Для задач, затрагивающих более одного модуля/подсистемы, агент ДОЛЖЕН
+сначала выполнить MCP-контекстный проход: docs search -> semantic search ->
+точечное чтение исходников.
+10. MCP-инструменты ДОЛЖНЫ применяться по назначению: `search_docs` для
+документации и продуктовых требований, `semantic_search` для кодовых связей,
+`get_source_by_id`/`get_metadata_by_id` для верификации найденного фрагмента.
+11. Перед редактированием файлов результаты MCP-поиска ДОЛЖНЫ быть подтверждены
+локальными средствами (`rg`, прямое чтение файлов).
+12. Если MCP-индекс устарел или неполон для текущей задачи, агент ДОЛЖЕН
+инициировать обновление индекса и только после этого продолжать анализ.
+13. При расхождении между MCP-выдачей и фактическим содержимым файлов приоритет
+ДОЛЖЕН отдаваться файлам в репозитории; расхождение ДОЛЖНО быть зафиксировано
+в комментарии к задаче/PR.
 
 ## Governance
 
@@ -127,6 +163,4 @@ quality gates;
 - отсутствие подтверждения compliance блокирует merge;
 - обнаруженные нарушения фиксируются как отдельные задачи с дедлайном.
 
-**Version**: 1.2.2 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-22
-
-
+**Version**: 1.3.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-02-23

@@ -105,6 +105,12 @@ Bootstrap state is visible in:
 - `GET /v1/indexing/ingestion/jobs/{runId}`;
 - `GET /v1/indexing/ingestion/jobs/{runId}/summary`.
 
+Important status semantics:
+
+- `GET /health` shows API availability.
+- `GET /v1/system/startup/readiness` shows bootstrap/readiness lifecycle.
+- For release/quality-gate flows, bootstrap is expected to finish without partial failures.
+
 ## Preset matrix
 
 | Preset | Best for | Main indexed types |
@@ -181,6 +187,12 @@ Run tests:
 .\.venv\Scripts\python.exe -m pytest tests/unit
 powershell -File scripts/tests/run_quality_stability_suite.ps1
 ```
+
+Recommended MCP-assisted workflow for multi-module changes:
+
+1. Check `/health`, `/.well-known/mcp`, `/v1/system/config`.
+2. Build context with `search_docs` then `semantic_search`.
+3. Confirm findings with local file reads (`rg`, direct source inspection) before edits.
 
 ## Roadmap status
 

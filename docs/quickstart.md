@@ -87,6 +87,11 @@ curl http://localhost:8080/v1/system/startup/readiness
 Expected in healthy startup path: `status=ready` and populated fields
 `serviceReadiness`, `workspacePath`, `indexMode`, `mcpEndpoint`, `collectionName`.
 
+Note: `GET /health` and `GET /v1/system/startup/readiness` have different roles.
+`/health` confirms API availability; readiness reflects bootstrap lifecycle.
+In dev environments, search can still be usable when readiness is degraded after a
+partial bootstrap. For release validation, treat such state as non-ready.
+
 ## 3) Run first semantic search
 
 ```bash
