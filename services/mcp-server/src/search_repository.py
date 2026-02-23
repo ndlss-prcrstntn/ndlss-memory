@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from dataclasses import dataclass
+from collections import OrderedDict
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from urllib import error, request
@@ -32,13 +33,15 @@ class QdrantSearchRepository:
     request_timeout_seconds: float = 5.0
     vector_size: int = 16
     workspace_path: str = "/workspace"
-    docs_hybrid_vector_weight: float = 0.65
-    docs_hybrid_bm25_weight: float = 0.35
-    docs_hybrid_max_candidates: int = 200
+    docs_hybrid_vector_weight: float = 0.55
+    docs_hybrid_bm25_weight: float = 0.45
+    docs_hybrid_max_candidates: int = 160
     docs_rerank_enabled: bool = True
     docs_rerank_fail_open: bool = True
     docs_rerank_max_candidates: int = 100
     docs_rerank_force_failure: bool = False
+    docs_source_cache_size: int = 4096
+    _docs_source_cache: OrderedDict[tuple[str, int | None], str] = field(default_factory=OrderedDict, init=False, repr=False)
 
     @classmethod
     def from_env(cls) -> "QdrantSearchRepository":
@@ -53,13 +56,14 @@ class QdrantSearchRepository:
             request_timeout_seconds=float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
             vector_size=int(os.getenv("INGESTION_EMBEDDING_VECTOR_SIZE", "16")),
             workspace_path=os.getenv("WORKSPACE_PATH", "/workspace"),
-            docs_hybrid_vector_weight=float(os.getenv("DOCS_HYBRID_VECTOR_WEIGHT", "0.65")),
-            docs_hybrid_bm25_weight=float(os.getenv("DOCS_HYBRID_BM25_WEIGHT", "0.35")),
-            docs_hybrid_max_candidates=int(os.getenv("DOCS_HYBRID_MAX_CANDIDATES", "200")),
+            docs_hybrid_vector_weight=float(os.getenv("DOCS_HYBRID_VECTOR_WEIGHT", "0.55")),
+            docs_hybrid_bm25_weight=float(os.getenv("DOCS_HYBRID_BM25_WEIGHT", "0.45")),
+            docs_hybrid_max_candidates=int(os.getenv("DOCS_HYBRID_MAX_CANDIDATES", "160")),
             docs_rerank_enabled=cls._parse_bool_env("DOCS_RERANK_ENABLED", True),
             docs_rerank_fail_open=cls._parse_bool_env("DOCS_RERANK_FAIL_OPEN", True),
             docs_rerank_max_candidates=int(os.getenv("DOCS_RERANK_MAX_CANDIDATES", "100")),
             docs_rerank_force_failure=cls._parse_bool_env("DOCS_RERANK_FORCE_FAILURE", False),
+            docs_source_cache_size=int(os.getenv("DOCS_SOURCE_CACHE_SIZE", "4096")),
         )
 
     def semantic_search(self, *, query: str, limit: int, filters: SearchFilters) -> list[dict[str, Any]]:
@@ -128,13 +132,16 @@ class QdrantSearchRepository:
         lexical_documents: dict[str, str] = {}
 
         for point in candidate_points:
+            candidate_id = self._candidate_id_from_point(point)
+            if not candidate_id:
+                continue
+            existing = candidates.get(candidate_id)
+            if existing is not None and str(existing.get("_lexicalText", "")).strip():
+                continue
+
             mapped_item = self._map_point_to_docs_result(point)
             if not mapped_item:
                 continue
-            candidate_id = self._candidate_id(
-                document_path=str(mapped_item["documentPath"]),
-                chunk_index=int(mapped_item["chunkIndex"]),
-            )
             existing = candidates.get(candidate_id)
             if existing is None:
                 candidates[candidate_id] = mapped_item
@@ -145,13 +152,9 @@ class QdrantSearchRepository:
             vector_scores.setdefault(candidate_id, 0.0)
 
         for point in vector_points:
-            mapped_item = self._map_point_to_docs_result(point)
-            if not mapped_item:
+            candidate_id = self._candidate_id_from_point(point)
+            if not candidate_id:
                 continue
-            candidate_id = self._candidate_id(
-                document_path=str(mapped_item["documentPath"]),
-                chunk_index=int(mapped_item["chunkIndex"]),
-            )
             vector_scores[candidate_id] = max(vector_scores.get(candidate_id, 0.0), float(point.get("score", 0.0)))
 
         lexical_scores = bm25_scores(query=query, documents=lexical_documents)
@@ -170,6 +173,7 @@ class QdrantSearchRepository:
             ranked_candidates.append(
                 {
                     "_candidateId": candidate_id,
+                    "_lexicalText": candidate.get("_lexicalText", ""),
                     "documentPath": candidate["documentPath"],
                     "chunkIndex": candidate["chunkIndex"],
                     "snippet": candidate["snippet"],
@@ -239,7 +243,7 @@ class QdrantSearchRepository:
 
         content = str(payload.get("content", "")).strip()
         if not content and source_path:
-            content = self._read_source_content(source_path=source_path, chunk_index=chunk_index)
+            content = self._read_source_content_cached(source_path=source_path, chunk_index=chunk_index)
 
         return {
             "resultId": build_result_id(str(point.get("id", ""))),
@@ -326,6 +330,8 @@ class QdrantSearchRepository:
             chunk_index = 0
         snippet = str(payload.get("snippet", "")).strip()
         content = str(payload.get("content", "")).strip()
+        if not content and source_path:
+            content = self._read_source_content_cached(source_path=source_path, chunk_index=chunk_index).strip()
         if not snippet:
             snippet = content[:280]
         lexical_text = content or snippet
@@ -415,6 +421,20 @@ class QdrantSearchRepository:
     def _candidate_id(*, document_path: str, chunk_index: int) -> str:
         return f"{document_path}::{chunk_index}"
 
+    def _candidate_id_from_point(self, point: dict[str, Any]) -> str | None:
+        payload = point.get("payload", {})
+        source_path = _normalize_path(str(payload.get("path", "")))
+        if not source_path:
+            return None
+        raw_chunk_index = payload.get("chunkIndex", 0)
+        if isinstance(raw_chunk_index, str) and raw_chunk_index.isdigit():
+            chunk_index = int(raw_chunk_index)
+        elif isinstance(raw_chunk_index, int):
+            chunk_index = raw_chunk_index
+        else:
+            chunk_index = 0
+        return self._candidate_id(document_path=source_path, chunk_index=chunk_index)
+
     def _rerank_docs_candidates(
         self,
         *,
@@ -432,7 +452,7 @@ class QdrantSearchRepository:
             candidate_id = str(item.get("_candidateId", ""))
             if not candidate_id:
                 continue
-            documents[candidate_id] = str(item.get("snippet", ""))
+            documents[candidate_id] = str(item.get("_lexicalText") or item.get("snippet", ""))
 
         reranked_scores = rerank_scores(
             query=query,
@@ -529,4 +549,21 @@ class QdrantSearchRepository:
             return content[start : start + chunk_size]
         except OSError:
             return ""
+
+    def _read_source_content_cached(self, *, source_path: str, chunk_index: int | None) -> str:
+        if self.docs_source_cache_size <= 0:
+            return self._read_source_content(source_path=source_path, chunk_index=chunk_index)
+
+        key = (source_path, chunk_index)
+        cached = self._docs_source_cache.get(key)
+        if cached is not None:
+            self._docs_source_cache.move_to_end(key, last=True)
+            return cached
+
+        content = self._read_source_content(source_path=source_path, chunk_index=chunk_index)
+        self._docs_source_cache[key] = content
+        self._docs_source_cache.move_to_end(key, last=True)
+        while len(self._docs_source_cache) > self.docs_source_cache_size:
+            self._docs_source_cache.popitem(last=False)
+        return content
 

@@ -40,13 +40,14 @@
 - `WATCH_MAX_EVENTS_PER_CYCLE`: лимит событий в одном цикле обработки.
 - `QDRANT_COLLECTION_NAME`: имя коллекции векторных данных.
 - `QDRANT_DOCS_COLLECTION_NAME`: имя docs-only коллекции векторных данных.
-- `DOCS_HYBRID_VECTOR_WEIGHT`: вес semantic/vector сигнала в docs hybrid search (по умолчанию `0.65`).
-- `DOCS_HYBRID_BM25_WEIGHT`: вес lexical/BM25 сигнала в docs hybrid search (по умолчанию `0.35`).
-- `DOCS_HYBRID_MAX_CANDIDATES`: максимум docs-кандидатов для lexical стадии hybrid search.
+- `DOCS_HYBRID_VECTOR_WEIGHT`: вес semantic/vector сигнала в docs hybrid search (по умолчанию `0.55`).
+- `DOCS_HYBRID_BM25_WEIGHT`: вес lexical/BM25 сигнала в docs hybrid search (по умолчанию `0.45`).
+- `DOCS_HYBRID_MAX_CANDIDATES`: максимум docs-кандидатов для lexical стадии hybrid search (по умолчанию `160`).
 - `DOCS_RERANK_ENABLED`: включает второй этап reranking для docs-search (`1`/`0`).
 - `DOCS_RERANK_FAIL_OPEN`: при ошибке reranking возвращать hybrid fallback вместо ошибки (`1`/`0`).
-- `DOCS_RERANK_MAX_CANDIDATES`: максимальный размер candidate-set, передаваемый в reranking этап.
+- `DOCS_RERANK_MAX_CANDIDATES`: максимальный размер candidate-set, передаваемый в reranking этап (по умолчанию `100`).
 - `DOCS_RERANK_FORCE_FAILURE`: тестовый флаг принудительной деградации reranking (`1`/`0`).
+- `DOCS_SOURCE_CACHE_SIZE`: размер LRU-кеша текстовых docs-чанков для lexical/rerank этапов (по умолчанию `4096`).
 - `IDEMPOTENCY_HASH_ALGORITHM`: алгоритм fingerprint (должен быть `sha256`).
 - `IDEMPOTENCY_SKIP_UNCHANGED`: `1` пропускает неизмененные файлы до upsert.
 - `IDEMPOTENCY_ENABLE_STALE_CLEANUP`: `1` удаляет устаревшие чанки после синхронизации.
@@ -114,6 +115,11 @@
 - Используйте `DOCS_RERANK_MAX_CANDIDATES` для контроля latency reranking этапа:
   слишком большое значение увеличит время ответа при больших docs-корпусах.
 - `DOCS_RERANK_FORCE_FAILURE` включайте только в тестовой среде для проверки fallback/ошибок.
+- Для ускорения повторных запросов держите `DOCS_SOURCE_CACHE_SIZE` > 0; уменьшайте только при жестких
+  ограничениях памяти контейнера.
+- Для средне-крупных репозиториев используйте baseline-профиль:
+  `DOCS_HYBRID_VECTOR_WEIGHT=0.55`, `DOCS_HYBRID_BM25_WEIGHT=0.45`,
+  `DOCS_HYBRID_MAX_CANDIDATES=160`, `DOCS_RERANK_MAX_CANDIDATES=100`.
 
 ## Bootstrap observability
 

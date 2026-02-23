@@ -80,6 +80,14 @@ Practical model:
 
 This gives a good out-of-box setup for different codebases while keeping one runtime architecture.
 
+Recommended defaults for medium-to-large repositories:
+
+- `DOCS_HYBRID_VECTOR_WEIGHT=0.55`
+- `DOCS_HYBRID_BM25_WEIGHT=0.45`
+- `DOCS_HYBRID_MAX_CANDIDATES=160`
+- `DOCS_RERANK_MAX_CANDIDATES=100`
+- `DOCS_SOURCE_CACHE_SIZE=4096`
+
 ## Startup preflight
 
 By default, both `mcp-server` and `file-indexer` run startup preflight checks before entering ready state:

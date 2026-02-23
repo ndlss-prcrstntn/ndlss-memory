@@ -124,6 +124,38 @@ def test_docs_repository_search_uses_deterministic_tie_breaker(monkeypatch):
     assert all(item["sourceType"] == "documentation" for item in results)
 
 
+def test_docs_repository_search_reads_workspace_content_for_lexical_signal(monkeypatch):
+    repository = QdrantSearchRepository(
+        qdrant_url="http://qdrant:6333",
+        collection_name="workspace_chunks",
+        docs_collection_name="workspace_docs_chunks",
+        vector_size=4,
+        docs_hybrid_vector_weight=0.5,
+        docs_hybrid_bm25_weight=0.5,
+    )
+
+    def fake_request_json(*, method, path, payload):  # noqa: ANN001
+        if path == "/collections/workspace_docs_chunks/points/search":
+            return {"result": [{"id": "1", "score": 0.7, "payload": {"path": "docs/a.md", "chunkIndex": 0}}]}
+        if path == "/collections/workspace_docs_chunks/points/scroll":
+            return {"result": {"points": []}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(repository, "_request_json", fake_request_json)
+    monkeypatch.setattr(
+        repository,
+        "_read_source_content",
+        lambda source_path, chunk_index: "startup readiness fallback content for lexical ranking",
+    )
+
+    payload = repository.docs_search(query="startup readiness", limit=5)
+    result = payload["results"][0]
+
+    assert result["snippet"] != ""
+    assert result["rankingSignals"]["lexical"] > 0.0
+    assert result["rankingSignals"]["rerank"] == 0.0
+
+
 def test_docs_repository_search_applies_fallback_when_rerank_fails(monkeypatch):
     repository = QdrantSearchRepository(
         qdrant_url="http://qdrant:6333",
