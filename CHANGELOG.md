@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.2.7 - 2026-02-23
+
+- Added docs-only reranking stage on top of hybrid candidate retrieval for markdown search:
+  - `POST /v1/search/docs/query` now returns `appliedStrategy=bm25_plus_vector_rerank_docs_only`;
+  - response now includes `fallbackApplied`;
+  - docs result items now include `rankingSignals.rerank` along with lexical/semantic signals.
+- Added reranking reliability controls:
+  - `DOCS_RERANK_ENABLED`
+  - `DOCS_RERANK_FAIL_OPEN`
+  - `DOCS_RERANK_MAX_CANDIDATES`
+  - `DOCS_RERANK_FORCE_FAILURE` (test/degradation simulation flag)
+- Added controlled degradation behavior:
+  - fail-open path returns valid docs payload with `fallbackApplied=true`;
+  - fail-closed path returns `DOCS_RERANKING_UNAVAILABLE` (HTTP 503).
+- Preserved backward compatibility for non-docs search:
+  - `POST /v1/search/semantic` contract remains unchanged.
+- Updated OpenAPI, docs, and feature artifacts for reranking behavior:
+  - `services/mcp-server/openapi/mcp-search-tools.openapi.yaml`
+  - `README.md`, `docs/configuration.md`, `docs/quickstart.md`
+  - `specs/017-md-hybrid-reranking/*`
+- Added/updated coverage for reranking scoring, fallback, scope isolation, and contract payloads:
+  - `tests/unit/mcp_server/test_search_repository_docs.py`
+  - `tests/unit/mcp_server/test_docs_hybrid_search_service.py`
+  - `tests/unit/mcp_server/test_mcp_docs_search_tool.py`
+  - `tests/contract/test_docs_search_contract.py`
+  - `tests/integration/test_docs_search_hybrid.py`
+  - `tests/integration/test_docs_search_baseline.py`
+  - `tests/artifacts/hybrid-reranking/verification-report.md`
+
 ## 0.2.6 - 2026-02-23
 
 - Added hybrid docs search (BM25 + vector) only for markdown docs collection:

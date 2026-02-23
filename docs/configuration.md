@@ -43,6 +43,10 @@
 - `DOCS_HYBRID_VECTOR_WEIGHT`: вес semantic/vector сигнала в docs hybrid search (по умолчанию `0.65`).
 - `DOCS_HYBRID_BM25_WEIGHT`: вес lexical/BM25 сигнала в docs hybrid search (по умолчанию `0.35`).
 - `DOCS_HYBRID_MAX_CANDIDATES`: максимум docs-кандидатов для lexical стадии hybrid search.
+- `DOCS_RERANK_ENABLED`: включает второй этап reranking для docs-search (`1`/`0`).
+- `DOCS_RERANK_FAIL_OPEN`: при ошибке reranking возвращать hybrid fallback вместо ошибки (`1`/`0`).
+- `DOCS_RERANK_MAX_CANDIDATES`: максимальный размер candidate-set, передаваемый в reranking этап.
+- `DOCS_RERANK_FORCE_FAILURE`: тестовый флаг принудительной деградации reranking (`1`/`0`).
 - `IDEMPOTENCY_HASH_ALGORITHM`: алгоритм fingerprint (должен быть `sha256`).
 - `IDEMPOTENCY_SKIP_UNCHANGED`: `1` пропускает неизмененные файлы до upsert.
 - `IDEMPOTENCY_ENABLE_STALE_CLEANUP`: `1` удаляет устаревшие чанки после синхронизации.
@@ -105,6 +109,11 @@
   если сумма весов равна 0, используется fallback на vector-only нормализацию.
 - Подбирайте `DOCS_HYBRID_MAX_CANDIDATES` под размер проекта:
   слишком малое значение ухудшает recall, слишком большое увеличивает latency.
+- В production держите `DOCS_RERANK_ENABLED=1` и `DOCS_RERANK_FAIL_OPEN=1`, чтобы сохранять
+  качество ранжирования и отказоустойчивость docs-search.
+- Используйте `DOCS_RERANK_MAX_CANDIDATES` для контроля latency reranking этапа:
+  слишком большое значение увеличит время ответа при больших docs-корпусах.
+- `DOCS_RERANK_FORCE_FAILURE` включайте только в тестовой среде для проверки fallback/ошибок.
 
 ## Bootstrap observability
 

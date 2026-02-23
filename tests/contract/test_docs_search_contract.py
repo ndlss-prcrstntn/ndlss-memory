@@ -14,7 +14,8 @@ class _DocsSearchServiceStub:
         return {
             "query": request.query,
             "total": 1,
-            "appliedStrategy": "bm25_plus_vector_docs_only",
+            "appliedStrategy": "bm25_plus_vector_rerank_docs_only",
+            "fallbackApplied": False,
             "results": [
                 {
                     "documentPath": "docs/readme.md",
@@ -22,7 +23,7 @@ class _DocsSearchServiceStub:
                     "snippet": "overview",
                     "score": 0.7,
                     "sourceType": "documentation",
-                    "rankingSignals": {"lexical": 0.4, "semantic": 0.9},
+                    "rankingSignals": {"lexical": 0.4, "semantic": 0.9, "rerank": 0.75},
                 }
             ],
         }
@@ -38,11 +39,13 @@ def test_docs_search_endpoint_contract_success(monkeypatch):
 
     assert payload["query"] == "overview"
     assert isinstance(payload["total"], int)
-    assert payload["appliedStrategy"] == "bm25_plus_vector_docs_only"
+    assert payload["appliedStrategy"] == "bm25_plus_vector_rerank_docs_only"
+    assert payload["fallbackApplied"] is False
     assert isinstance(payload["results"], list)
     assert payload["results"][0]["documentPath"] == "docs/readme.md"
     assert payload["results"][0]["sourceType"] == "documentation"
     assert "rankingSignals" in payload["results"][0]
+    assert "rerank" in payload["results"][0]["rankingSignals"]
 
 
 def test_docs_search_endpoint_contract_error_payload():
@@ -72,4 +75,24 @@ def test_docs_search_endpoint_contract_unavailable_payload(monkeypatch):
     assert response.status_code == 503
     payload = response.get_json()
     assert payload["errorCode"] == "DOCS_COLLECTION_UNAVAILABLE"
+    assert "message" in payload
+
+
+class _DocsRerankingUnavailableStub:
+    def docs_search(self, request):  # noqa: ANN001
+        raise SearchApiError(
+            "DOCS_RERANKING_UNAVAILABLE",
+            "Docs reranking stage is temporarily unavailable",
+            503,
+        )
+
+
+def test_docs_search_endpoint_contract_reranking_unavailable_payload(monkeypatch):
+    monkeypatch.setattr(handler, "SEARCH_SERVICE", _DocsRerankingUnavailableStub())
+    client = handler.app.test_client()
+
+    response = client.post("/v1/search/docs/query", json={"query": "overview"})
+    assert response.status_code == 503
+    payload = response.get_json()
+    assert payload["errorCode"] == "DOCS_RERANKING_UNAVAILABLE"
     assert "message" in payload

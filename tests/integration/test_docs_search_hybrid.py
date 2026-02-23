@@ -14,13 +14,32 @@ class _HybridDocsSearchServiceStub:
             return {
                 "query": request.query,
                 "total": 0,
-                "appliedStrategy": "bm25_plus_vector_docs_only",
+                "appliedStrategy": "bm25_plus_vector_rerank_docs_only",
+                "fallbackApplied": False,
                 "results": [],
+            }
+        if request.query == "fallback":
+            return {
+                "query": request.query,
+                "total": 1,
+                "appliedStrategy": "bm25_plus_vector_rerank_docs_only",
+                "fallbackApplied": True,
+                "results": [
+                    {
+                        "documentPath": "docs/fallback.md",
+                        "chunkIndex": 0,
+                        "snippet": "fallback path",
+                        "score": 0.5,
+                        "sourceType": "documentation",
+                        "rankingSignals": {"lexical": 0.4, "semantic": 0.7, "rerank": 0.0},
+                    }
+                ],
             }
         return {
             "query": request.query,
             "total": 2,
-            "appliedStrategy": "bm25_plus_vector_docs_only",
+            "appliedStrategy": "bm25_plus_vector_rerank_docs_only",
+            "fallbackApplied": False,
             "results": [
                 {
                     "documentPath": "docs/a.md",
@@ -28,7 +47,7 @@ class _HybridDocsSearchServiceStub:
                     "snippet": "startup readiness A",
                     "score": 0.9,
                     "sourceType": "documentation",
-                    "rankingSignals": {"lexical": 0.6, "semantic": 0.9},
+                    "rankingSignals": {"lexical": 0.6, "semantic": 0.9, "rerank": 0.95},
                 },
                 {
                     "documentPath": "docs/b.md",
@@ -36,7 +55,7 @@ class _HybridDocsSearchServiceStub:
                     "snippet": "startup readiness B",
                     "score": 0.8,
                     "sourceType": "documentation",
-                    "rankingSignals": {"lexical": 0.5, "semantic": 0.7},
+                    "rankingSignals": {"lexical": 0.5, "semantic": 0.7, "rerank": 0.85},
                 },
             ],
         }
@@ -56,8 +75,10 @@ def test_docs_hybrid_search_positive_and_non_docs_compatibility(monkeypatch):
     docs_response = client.post("/v1/search/docs/query", json={"query": "startup readiness", "limit": 5})
     assert docs_response.status_code == 200
     docs_payload = docs_response.get_json()
-    assert docs_payload["appliedStrategy"] == "bm25_plus_vector_docs_only"
+    assert docs_payload["appliedStrategy"] == "bm25_plus_vector_rerank_docs_only"
+    assert docs_payload["fallbackApplied"] is False
     assert docs_payload["results"][0]["rankingSignals"]["semantic"] == 0.9
+    assert docs_payload["results"][0]["rankingSignals"]["rerank"] == 0.95
 
     semantic_response = client.post("/v1/search/semantic", json={"query": "startup readiness", "limit": 3})
     assert semantic_response.status_code == 200
@@ -90,3 +111,14 @@ def test_docs_hybrid_search_empty_result(monkeypatch):
     payload = response.get_json()
     assert payload["total"] == 0
     assert payload["results"] == []
+
+
+def test_docs_hybrid_search_fallback_response(monkeypatch):
+    monkeypatch.setattr(handler, "SEARCH_SERVICE", _HybridDocsSearchServiceStub())
+    client = handler.app.test_client()
+
+    response = client.post("/v1/search/docs/query", json={"query": "fallback", "limit": 5})
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["fallbackApplied"] is True
+    assert payload["results"][0]["rankingSignals"]["rerank"] == 0.0

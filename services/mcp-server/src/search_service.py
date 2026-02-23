@@ -42,10 +42,18 @@ class SearchService:
         return build_results_envelope(results, limit=search_request.limit)
 
     def docs_search(self, search_request: DocsSearchRequest) -> dict[str, Any]:
-        raw_results = self._repository.docs_search(
+        repository_payload = self._repository.docs_search(
             query=search_request.query,
             limit=search_request.limit,
         )
+        if isinstance(repository_payload, dict):
+            raw_results = repository_payload.get("results", [])
+            applied_strategy = str(repository_payload.get("appliedStrategy", "bm25_plus_vector_rerank_docs_only"))
+            fallback_applied = bool(repository_payload.get("fallbackApplied", False))
+        else:
+            raw_results = repository_payload
+            applied_strategy = "bm25_plus_vector_rerank_docs_only"
+            fallback_applied = False
         results = [
             DocsSearchResultItem(
                 document_path=str(item.get("documentPath", "")),
@@ -57,7 +65,12 @@ class SearchService:
             )
             for item in raw_results
         ]
-        return build_docs_results_envelope(query=search_request.query, results=results)
+        return build_docs_results_envelope(
+            query=search_request.query,
+            results=results,
+            applied_strategy=applied_strategy,
+            fallback_applied=fallback_applied,
+        )
 
     def get_source(self, result_id: str) -> dict[str, Any]:
         payload = self._repository.get_source_by_result_id(result_id)
