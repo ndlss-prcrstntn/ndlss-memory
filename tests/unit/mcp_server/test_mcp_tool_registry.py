@@ -14,6 +14,7 @@ def test_default_tool_registry_contains_required_tools():
     names = {item["name"] for item in registry.list_tools()}
     assert names == {
         "semantic_search",
+        "search_docs",
         "get_source_by_id",
         "get_metadata_by_id",
         "start_ingestion",

@@ -17,6 +17,7 @@ class BootstrapCollectionSnapshot:
     exists: bool
     point_count: int
     checked_at: str
+    docs_collection: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -24,6 +25,7 @@ class BootstrapCollectionSnapshot:
             "exists": self.exists,
             "pointCount": self.point_count,
             "checkedAt": self.checked_at,
+            **({"docsCollection": self.docs_collection} if self.docs_collection is not None else {}),
         }
 
 
@@ -31,6 +33,7 @@ class BootstrapCollectionSnapshot:
 class BootstrapCollectionService:
     qdrant_url: str
     collection_name: str
+    docs_collection_name: str = "workspace_docs_chunks"
     vector_size: int = 16
     request_timeout_seconds: float = 5.0
 
@@ -41,12 +44,19 @@ class BootstrapCollectionService:
         return cls(
             qdrant_url=f"http://{host}:{port}",
             collection_name=os.getenv("QDRANT_COLLECTION_NAME", "workspace_chunks"),
+            docs_collection_name=os.getenv("QDRANT_DOCS_COLLECTION_NAME", "workspace_docs_chunks"),
             vector_size=int(os.getenv("INGESTION_EMBEDDING_VECTOR_SIZE", "16")),
             request_timeout_seconds=float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
         )
 
     def ensure_collection_exists(self) -> bool:
-        endpoint = f"/collections/{self.collection_name}"
+        return self._ensure_collection_exists(self.collection_name)
+
+    def ensure_docs_collection_exists(self) -> bool:
+        return self._ensure_collection_exists(self.docs_collection_name)
+
+    def _ensure_collection_exists(self, collection_name: str) -> bool:
+        endpoint = f"/collections/{collection_name}"
         try:
             self._request_json(method="GET", path=endpoint, payload=None)
             return False
@@ -61,17 +71,29 @@ class BootstrapCollectionService:
         return True
 
     def point_count(self) -> int:
+        return self._point_count(self.collection_name)
+
+    def docs_point_count(self) -> int:
+        return self._point_count(self.docs_collection_name)
+
+    def _point_count(self, collection_name: str) -> int:
         response = self._request_json(
             method="POST",
-            path=f"/collections/{self.collection_name}/points/count",
+            path=f"/collections/{collection_name}/points/count",
             payload={"exact": False},
         )
         result = response.get("result", {})
         return int(result.get("count", 0))
 
     def exists(self) -> bool:
+        return self._exists(self.collection_name)
+
+    def docs_exists(self) -> bool:
+        return self._exists(self.docs_collection_name)
+
+    def _exists(self, collection_name: str) -> bool:
         try:
-            self._request_json(method="GET", path=f"/collections/{self.collection_name}", payload=None)
+            self._request_json(method="GET", path=f"/collections/{collection_name}", payload=None)
             return True
         except BootstrapCollectionServiceError as exc:
             if "HTTP 404" in str(exc):
@@ -81,11 +103,19 @@ class BootstrapCollectionService:
     def snapshot(self, checked_at: str) -> BootstrapCollectionSnapshot:
         exists = self.exists()
         count = self.point_count() if exists else 0
+        docs_exists = self.docs_exists()
+        docs_count = self.docs_point_count() if docs_exists else 0
         return BootstrapCollectionSnapshot(
             collection_name=self.collection_name,
             exists=exists,
             point_count=count,
             checked_at=checked_at,
+            docs_collection={
+                "collectionName": self.docs_collection_name,
+                "exists": docs_exists,
+                "pointCount": docs_count,
+                "checkedAt": checked_at,
+            },
         )
 
     def _request_json(self, *, method: str, path: str, payload: dict[str, Any] | None) -> dict[str, Any]:

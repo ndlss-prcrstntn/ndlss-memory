@@ -27,6 +27,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-21
 - Qdrant (`workspace_chunks`, служебные коллекции состояния), bind-mounted workspace (`/workspace`), in-memory состояние watch-run и очереди событий (013-watch-mode-indexing)
 - Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` runtime), PowerShell 7+ (test orchestration) + Flask API, PyYAML, существующие модули индексации (`full-scan`, `ingestion`), Docker Compose v2, Qdrant HTTP API (014-indexing-run-limits)
 - Qdrant коллекции (`workspace_chunks`), bind-mounted workspace (`/workspace`), runtime summary/state в памяти сервиса (014-indexing-run-limits)
+- Python 3.12 (`mcp-server`, `file-indexer`), POSIX shell runtime, PowerShell 7+ для e2e/quality orchestration + Flask API, PyYAML, существующие модули `ingestion_pipeline/*`, runtime bootstrap services, Docker Compose v2, Qdrant HTTP API (015-docs-index-baseline)
+- Qdrant коллекции (`workspace_chunks` + новая docs-коллекция), bind-mounted workspace (`/workspace`), in-memory run state/summaries (015-docs-index-baseline)
 
 - Docker Compose Specification (CLI v2), YAML 1.2 + Docker Engine, Docker Compose CLI, ������������ ������ `qdrant`, `file-indexer`, `mcp-server` (001-base-docker-compose)
 
@@ -46,9 +48,9 @@ tests/
 Docker Compose Specification (CLI v2), YAML 1.2: Follow standard conventions
 
 ## Recent Changes
+- 015-docs-index-baseline: Added Python 3.12 (`mcp-server`, `file-indexer`), POSIX shell runtime, PowerShell 7+ для e2e/quality orchestration + Flask API, PyYAML, существующие модули `ingestion_pipeline/*`, runtime bootstrap services, Docker Compose v2, Qdrant HTTP API
 - 014-indexing-run-limits: Added Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` runtime), PowerShell 7+ (test orchestration) + Flask API, PyYAML, существующие модули индексации (`full-scan`, `ingestion`), Docker Compose v2, Qdrant HTTP API
 - 013-watch-mode-indexing: Added Python 3.12 (`mcp-server` и ingestion runtime), POSIX shell runtime в контейнере (`file-indexer`) + Flask, PyYAML, существующие модули `ingestion_pipeline/*`, `idempotency_state`, `ingestion_state`, файловый watcher-адаптер в Python runtime
-- 011-startup-preflight-summary: Added Python 3.12 (`mcp-server`), POSIX shell (`file-indexer` entrypoint/runtime), Docker Compose v2 + Flask, PyYAML, ���������� Python-������ (`pathlib`, `subprocess`, `urllib`/HTTP-������), Docker Compose runtime env
 
 
 <!-- MANUAL ADDITIONS START -->

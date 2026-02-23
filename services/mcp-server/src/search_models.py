@@ -4,10 +4,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-from search_errors import invalid_request
+from search_errors import invalid_request, search_query_empty
 
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 100
+DOCS_DEFAULT_LIMIT = 10
+DOCS_MAX_LIMIT = 50
 
 
 def _now_iso() -> str:
@@ -79,6 +81,32 @@ class SemanticSearchRequest:
 
         filters = SearchFilters.from_payload(payload.get("filters"))
         return cls(query=query, limit=limit, filters=filters)
+
+
+@dataclass(frozen=True)
+class DocsSearchRequest:
+    query: str
+    limit: int = DOCS_DEFAULT_LIMIT
+    workspace_path: str | None = None
+
+    @classmethod
+    def from_payload(cls, payload: Any) -> "DocsSearchRequest":
+        if not isinstance(payload, dict):
+            raise invalid_request("Request body must be a JSON object")
+        query = str(payload.get("query", "")).strip()
+        if not query:
+            raise search_query_empty()
+
+        raw_limit = payload.get("limit", DOCS_DEFAULT_LIMIT)
+        try:
+            limit = int(raw_limit)
+        except (TypeError, ValueError) as exc:
+            raise invalid_request("limit must be an integer") from exc
+        if limit < 1 or limit > DOCS_MAX_LIMIT:
+            raise invalid_request(f"limit must be in range [1, {DOCS_MAX_LIMIT}]")
+
+        workspace_path = _normalize_optional_text(payload.get("workspacePath"))
+        return cls(query=query, limit=limit, workspace_path=workspace_path)
 
 
 @dataclass(frozen=True)
@@ -161,3 +189,29 @@ def build_source_envelope(source: DocumentSource) -> dict[str, Any]:
 
 def build_metadata_envelope(metadata: DocumentMetadata) -> dict[str, Any]:
     return {"status": "ok", "metadata": metadata.as_dict(), "meta": {"requestedAt": _now_iso()}}
+
+
+@dataclass(frozen=True)
+class DocsSearchResultItem:
+    document_path: str
+    chunk_index: int
+    snippet: str
+    score: float
+    source_type: str = "documentation"
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "documentPath": self.document_path,
+            "chunkIndex": self.chunk_index,
+            "snippet": self.snippet,
+            "score": self.score,
+            "sourceType": self.source_type,
+        }
+
+
+def build_docs_results_envelope(*, query: str, results: list[DocsSearchResultItem]) -> dict[str, Any]:
+    return {
+        "query": query,
+        "total": len(results),
+        "results": [item.as_dict() for item in results],
+    }

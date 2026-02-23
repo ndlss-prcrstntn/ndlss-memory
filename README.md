@@ -57,6 +57,8 @@ The indexer behavior is preset-driven and still fully configurable:
 
 - `INDEX_FILE_TYPES`: which file extensions are indexed.
 - `INDEX_EXCLUDE_PATTERNS`: directories/files to skip.
+- `DOCS_INDEX_FILE_TYPES`: file extensions for docs-only indexing (default `.md`).
+- `DOCS_INDEX_EXCLUDE_PATTERNS`: exclude patterns for docs-only indexing.
 - `INDEX_MAX_TRAVERSAL_DEPTH`: optional maximum directory depth per run (`0` = only workspace root files).
 - `INDEX_MAX_FILES_PER_RUN`: optional maximum number of files selected in one run.
 - `INDEX_MODE=full-scan`: indexes the current workspace.
@@ -139,6 +141,7 @@ MCP transport:
 Search:
 
 - `POST /v1/search/semantic`
+- `POST /v1/search/docs/query`
 - `GET /v1/search/results/{resultId}/source`
 - `GET /v1/search/results/{resultId}/metadata`
 
@@ -146,6 +149,8 @@ Indexing:
 
 - `POST /v1/indexing/full-scan/jobs`
 - `POST /v1/indexing/ingestion/jobs`
+- `POST /v1/indexing/docs/jobs`
+- `GET /v1/indexing/docs/jobs/{runId}/summary`
 - `POST /v1/indexing/idempotency/jobs`
 - `POST /v1/indexing/delta-after-commit/jobs`
 - `GET /v1/indexing/watch/status`

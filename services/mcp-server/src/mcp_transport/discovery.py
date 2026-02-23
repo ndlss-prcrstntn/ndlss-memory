@@ -11,7 +11,7 @@ def build_discovery_document(*, request, tool_registry: McpToolRegistry) -> dict
     base_url = request.host_url.rstrip("/")
     return {
         "name": "ndlss-memory-mcp-server",
-        "version": os.getenv("NDLSS_VERSION", "0.1.7"),
+        "version": os.getenv("NDLSS_VERSION", "0.3.0"),
         "transports": [
             {"type": "streamable-http", "url": f"{base_url}/mcp"},
             {"type": "sse", "url": f"{base_url}/sse"},

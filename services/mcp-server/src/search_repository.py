@@ -21,6 +21,7 @@ def _normalize_path(value: str) -> str:
 class QdrantSearchRepository:
     qdrant_url: str
     collection_name: str
+    docs_collection_name: str = "workspace_docs_chunks"
     request_timeout_seconds: float = 5.0
     vector_size: int = 16
     workspace_path: str = "/workspace"
@@ -30,9 +31,11 @@ class QdrantSearchRepository:
         host = os.getenv("QDRANT_HOST", "qdrant")
         port = os.getenv("QDRANT_API_PORT") or os.getenv("QDRANT_PORT", "6333")
         collection_name = os.getenv("QDRANT_COLLECTION_NAME", "workspace_chunks")
+        docs_collection_name = os.getenv("QDRANT_DOCS_COLLECTION_NAME", "workspace_docs_chunks")
         return cls(
             qdrant_url=f"http://{host}:{port}",
             collection_name=collection_name,
+            docs_collection_name=docs_collection_name,
             request_timeout_seconds=float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
             vector_size=int(os.getenv("INGESTION_EMBEDDING_VECTOR_SIZE", "16")),
             workspace_path=os.getenv("WORKSPACE_PATH", "/workspace"),
@@ -74,6 +77,41 @@ class QdrantSearchRepository:
             mapped = [item for item in mapped if item["sourcePath"].startswith(folder + "/") or item["sourcePath"] == folder]
 
         return mapped
+
+    def docs_search(self, *, query: str, limit: int) -> list[dict[str, Any]]:
+        payload: dict[str, Any] = {
+            "vector": self._build_query_embedding(query),
+            "limit": limit,
+            "with_payload": True,
+        }
+        try:
+            response = self._request_json(
+                method="POST",
+                path=f"/collections/{self.docs_collection_name}/points/search",
+                payload=payload,
+            )
+        except SearchApiError as exc:
+            if exc.code == "SEARCH_COLLECTION_NOT_FOUND":
+                return []
+            raise
+        points = response.get("result", [])
+        if not isinstance(points, list):
+            return []
+
+        mapped: list[dict[str, Any]] = []
+        for point in points:
+            mapped_item = self._map_point_to_docs_result(point)
+            if mapped_item:
+                mapped.append(mapped_item)
+
+        mapped.sort(
+            key=lambda item: (
+                -float(item["score"]),
+                str(item["documentPath"]),
+                int(item["chunkIndex"]),
+            )
+        )
+        return mapped[:limit]
 
     def get_source_by_result_id(self, result_id: str) -> dict[str, Any] | None:
         point = self._get_point(result_id)
@@ -163,6 +201,29 @@ class QdrantSearchRepository:
             "metadataRef": build_result_id(point_id),
         }
 
+    def _map_point_to_docs_result(self, point: dict[str, Any]) -> dict[str, Any] | None:
+        payload = point.get("payload", {})
+        source_path = _normalize_path(str(payload.get("path", "")))
+        if not source_path:
+            return None
+        raw_chunk_index = payload.get("chunkIndex", 0)
+        if isinstance(raw_chunk_index, str) and raw_chunk_index.isdigit():
+            chunk_index = int(raw_chunk_index)
+        elif isinstance(raw_chunk_index, int):
+            chunk_index = raw_chunk_index
+        else:
+            chunk_index = 0
+        snippet = str(payload.get("snippet", "")).strip()
+        if not snippet:
+            snippet = str(payload.get("content", "")).strip()[:280]
+        return {
+            "documentPath": source_path,
+            "chunkIndex": chunk_index,
+            "snippet": snippet,
+            "score": float(point.get("score", 0.0)),
+            "sourceType": "documentation",
+        }
+
     def _request_json(self, *, method: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         endpoint = f"{self.qdrant_url.rstrip('/')}{path}"
         body = json.dumps(payload).encode("utf-8")
@@ -200,14 +261,17 @@ class QdrantSearchRepository:
 
     def _is_missing_collection_error(self, *, path: str, response_text: str) -> bool:
         normalized = response_text.lower()
-        collection_marker = self.collection_name.lower()
+        collection_markers = {self.collection_name.lower(), self.docs_collection_name.lower()}
         # Qdrant returns 404 with body like:
         # {"status":{"error":"Not found: Collection `workspace_chunks` doesn't exist!"}, ...}
         if "collection" in normalized and ("doesn't exist" in normalized or "not found" in normalized):
-            if collection_marker in normalized:
+            if any(marker in normalized for marker in collection_markers):
                 return True
         # Fallback: the request is scoped to the configured collection path.
-        return f"/collections/{self.collection_name}/" in path
+        return (
+            f"/collections/{self.collection_name}/" in path
+            or f"/collections/{self.docs_collection_name}/" in path
+        )
 
     def _build_query_embedding(self, query: str) -> list[float]:
         digest = hashlib.sha256(query.encode("utf-8")).hexdigest()

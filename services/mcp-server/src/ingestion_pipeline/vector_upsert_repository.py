@@ -16,6 +16,10 @@ class UpsertError(RuntimeError):
 
 _REPOSITORY_CACHE: dict[str, "VectorUpsertRepository"] = {}
 _QDRANT_POINT_NAMESPACE = uuid.UUID("c6a7f5f3-2f2d-4f4a-92c2-8f313f2fd63c")
+_DEFAULT_COLLECTION_BY_SCOPE = {
+    "code": ("QDRANT_COLLECTION_NAME", "workspace_chunks"),
+    "docs": ("QDRANT_DOCS_COLLECTION_NAME", "workspace_docs_chunks"),
+}
 
 
 @dataclass
@@ -160,19 +164,28 @@ class VectorUpsertRepository:
         self._collection_initialized = True
 
 
-def repository_from_env() -> VectorUpsertRepository:
+def _resolve_collection_name(index_scope: str) -> str:
+    env_name, default_name = _DEFAULT_COLLECTION_BY_SCOPE.get(index_scope, _DEFAULT_COLLECTION_BY_SCOPE["code"])
+    return os.getenv(env_name, default_name)
+
+
+def repository_from_env(*, index_scope: str = "code", collection_name: str | None = None) -> VectorUpsertRepository:
     host = os.getenv("QDRANT_HOST", "qdrant")
     port = os.getenv("QDRANT_API_PORT") or os.getenv("QDRANT_PORT", "6333")
-    collection_name = os.getenv("QDRANT_COLLECTION_NAME", "workspace_chunks")
+    effective_collection = collection_name or _resolve_collection_name(index_scope)
     qdrant_url = f"http://{host}:{port}"
-    cache_key = f"{qdrant_url}|{collection_name}"
+    cache_key = f"{qdrant_url}|{effective_collection}"
     if cache_key not in _REPOSITORY_CACHE:
         _REPOSITORY_CACHE[cache_key] = VectorUpsertRepository(
-            collection_name=collection_name,
+            collection_name=effective_collection,
             qdrant_url=qdrant_url,
             vector_size=int(os.getenv("INGESTION_EMBEDDING_VECTOR_SIZE", "16")),
             request_timeout_seconds=float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
             enable_http_upsert=os.getenv("INGESTION_ENABLE_QDRANT_HTTP", "1") == "1",
         )
     return _REPOSITORY_CACHE[cache_key]
+
+
+def docs_repository_from_env() -> VectorUpsertRepository:
+    return repository_from_env(index_scope="docs")
 

@@ -49,6 +49,20 @@ class McpToolRegistry:
                     },
                 ),
                 McpToolDescriptor(
+                    name="search_docs",
+                    description="Search markdown documentation collection only.",
+                    input_schema={
+                        "type": "object",
+                        "required": ["query"],
+                        "properties": {
+                            "query": {"type": "string"},
+                            "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+                            "workspacePath": {"type": "string"},
+                        },
+                        "additionalProperties": False,
+                    },
+                ),
+                McpToolDescriptor(
                     name="get_source_by_id",
                     description="Resolve full source payload by search result ID.",
                     input_schema={

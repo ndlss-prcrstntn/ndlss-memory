@@ -14,6 +14,8 @@ class McpSearchTools:
     def call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         if tool_name == "semantic_search":
             return self._semantic_search(arguments)
+        if tool_name == "search_docs":
+            return self._search_docs(arguments)
         if tool_name == "get_source_by_id":
             return self._get_source(arguments)
         if tool_name == "get_metadata_by_id":
@@ -76,3 +78,21 @@ class McpSearchTools:
                 http_status=400,
             )
         return self._adapter.get_metadata(result_id)
+
+    def _search_docs(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        query = str(arguments.get("query") or "").strip()
+        if not query:
+            raise McpToolExecutionError(
+                error_code="SEARCH_QUERY_EMPTY",
+                message="search_docs requires non-empty 'query'",
+                retryable=False,
+                jsonrpc_code=-32602,
+                http_status=400,
+            )
+        payload: dict[str, Any] = {
+            "query": query,
+            "limit": arguments.get("limit", 10),
+        }
+        if arguments.get("workspacePath") is not None:
+            payload["workspacePath"] = arguments.get("workspacePath")
+        return self._adapter.docs_search(payload)

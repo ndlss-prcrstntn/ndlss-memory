@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.0 - 2026-02-23
+
+- Added isolated docs indexing and search baseline:
+  - separate docs collection (`QDRANT_DOCS_COLLECTION_NAME`) without mixing code chunks;
+  - docs indexing config (`DOCS_INDEX_FILE_TYPES`, `DOCS_INDEX_EXCLUDE_PATTERNS`);
+  - docs indexing APIs:
+    - `POST /v1/indexing/docs/jobs`
+    - `GET /v1/indexing/docs/jobs/{runId}/summary`
+  - docs search API:
+    - `POST /v1/search/docs/query`
+- Added docs-specific MCP search tool:
+  - `search_docs` available in MCP `tools/list`;
+  - integrated into MCP transport handlers and adapter flow.
+- Added deterministic docs chunk identity and metadata improvements:
+  - stable docs chunk key by `path + chunkIndex`;
+  - `chunkIndex` exposed in metadata/search payloads for traceability.
+- Added docs collection bootstrap/runtime resilience:
+  - startup bootstrap now ensures docs collection exists;
+  - runtime self-heal for missing collections remains active in upsert paths.
+- Added test coverage for docs scope:
+  - unit/integration/contract tests for docs indexing, docs search API, and MCP docs tool;
+  - quality suite artifacts refreshed and passed.
+- Updated OpenAPI and user docs for 0.3.0 docs capabilities.
+
 ## 0.2.4 - 2026-02-22
 
 - Added indexing run limits for blast-radius control in large repositories:

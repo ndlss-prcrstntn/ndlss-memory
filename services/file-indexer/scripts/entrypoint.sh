@@ -9,8 +9,16 @@ if [ -z "${INDEX_FILE_TYPES:-}" ]; then
   export INDEX_FILE_TYPES=".md,.txt,.json,.yml,.yaml"
 fi
 
-if [ -z "${INDEX_EXCLUDE_PATTERNS:-}" ]; then
-  export INDEX_EXCLUDE_PATTERNS=".git,node_modules,dist,build"
+if [ -z "${DOCS_INDEX_FILE_TYPES:-}" ]; then
+  export DOCS_INDEX_FILE_TYPES=".md"
+fi
+
+if [ -z "${DOCS_INDEX_EXCLUDE_PATTERNS:-}" ]; then
+  export DOCS_INDEX_EXCLUDE_PATTERNS=".git,node_modules,dist,build"
+fi
+
+if [ -z "${QDRANT_DOCS_COLLECTION_NAME:-}" ]; then
+  export QDRANT_DOCS_COLLECTION_NAME="workspace_docs_chunks"
 fi
 
 if [ -z "${INDEX_MAX_FILE_SIZE_BYTES:-}" ]; then
@@ -144,7 +152,7 @@ if [ "${INDEX_MODE}" = "watch" ]; then
   echo "watch mode config poll=${WATCH_POLL_INTERVAL_SECONDS}s coalesce=${WATCH_COALESCE_WINDOW_SECONDS}s reconcile=${WATCH_RECONCILE_INTERVAL_SECONDS}s retryMax=${WATCH_RETRY_MAX_ATTEMPTS} retryBase=${WATCH_RETRY_BASE_DELAY_SECONDS}s retryMaxDelay=${WATCH_RETRY_MAX_DELAY_SECONDS}s maxEvents=${WATCH_MAX_EVENTS_PER_CYCLE}"
 fi
 if [ "${STARTUP_READY_SUMMARY_LOG_ENABLED}" = "1" ]; then
-  echo "startup-ready summary service=file-indexer workspace=${WORKSPACE_PATH:-/workspace} mode=${INDEX_MODE} mcpEndpoint=${MCP_ENDPOINT_PATH} collection=${QDRANT_COLLECTION_NAME:-workspace_chunks}"
+  echo "startup-ready summary service=file-indexer workspace=${WORKSPACE_PATH:-/workspace} mode=${INDEX_MODE} mcpEndpoint=${MCP_ENDPOINT_PATH} collection=${QDRANT_COLLECTION_NAME:-workspace_chunks} docsCollection=${QDRANT_DOCS_COLLECTION_NAME:-workspace_docs_chunks}"
 fi
 
 if [ "${INDEX_MODE}" = "full-scan" ]; then

@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ingestion_pipeline.chunk_identity import build_chunk_identity
+from ingestion_pipeline.chunk_identity import build_chunk_identity, build_stable_chunk_identity
 from ingestion_pipeline.chunk_models import ChunkRecord, ChunkingConfig
 from ingestion_pipeline.chunker import chunk_text
 from ingestion_pipeline.content_hash import build_text_hash
@@ -18,6 +18,7 @@ def build_chunk_records(
     file_path: Path,
     content: str,
     config: ChunkingConfig,
+    stable_chunk_ids: bool = False,
     processed_at: str | None = None,
 ) -> list[ChunkRecord]:
     if processed_at is None:
@@ -36,7 +37,10 @@ def build_chunk_records(
 
     records: list[ChunkRecord] = []
     for idx, chunk in enumerate(chunks):
-        identity = build_chunk_identity(file_path=relative_path, chunk_index=idx, chunk_text=chunk)
+        if stable_chunk_ids:
+            identity = build_stable_chunk_identity(file_path=relative_path, chunk_index=idx, chunk_text=chunk)
+        else:
+            identity = build_chunk_identity(file_path=relative_path, chunk_index=idx, chunk_text=chunk)
         records.append(
             ChunkRecord(
                 chunk_id=identity.chunk_id,

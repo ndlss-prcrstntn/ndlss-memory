@@ -1,0 +1,227 @@
+﻿openapi: 3.0.3
+info:
+  title: Docs Indexing and Baseline Search Contract
+  version: 0.3.0
+  description: Contract for isolated markdown indexing and baseline search over docs collection.
+
+paths:
+  /v1/indexing/docs/jobs:
+    post:
+      summary: Start docs-only indexing job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartDocsIndexingRequest'
+      responses:
+        '202':
+          description: Docs indexing run accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartDocsIndexingResponse'
+        '400':
+          description: Invalid docs indexing request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/indexing/docs/jobs/{runId}/summary:
+    get:
+      summary: Get docs indexing run summary
+      parameters:
+        - in: path
+          name: runId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Docs indexing summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocsIndexingSummaryResponse'
+        '404':
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/search/docs/query:
+    post:
+      summary: Execute baseline search only on docs collection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocsSearchRequest'
+      responses:
+        '200':
+          description: Search response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocsSearchResponse'
+        '400':
+          description: Invalid search request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    StartDocsIndexingRequest:
+      type: object
+      required: [workspacePath]
+      properties:
+        workspacePath:
+          type: string
+        includeExtensions:
+          type: array
+          description: Allowed document extensions for this run.
+          items:
+            type: string
+          default: ['.md']
+
+    StartDocsIndexingResponse:
+      type: object
+      required: [runId, status, acceptedAt]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [running]
+        acceptedAt:
+          type: string
+          format: date-time
+
+    DocsIndexingSummaryResponse:
+      type: object
+      required: [runId, status, totals, skipBreakdown, startedAt, finishedAt]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [completed, partial, failed]
+        totals:
+          type: object
+          required: [processedDocuments, indexedDocuments, updatedDocuments, skippedDocuments, deletedDocuments]
+          properties:
+            processedDocuments:
+              type: integer
+              minimum: 0
+            indexedDocuments:
+              type: integer
+              minimum: 0
+            updatedDocuments:
+              type: integer
+              minimum: 0
+            skippedDocuments:
+              type: integer
+              minimum: 0
+            deletedDocuments:
+              type: integer
+              minimum: 0
+        skipBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkipBreakdownItem'
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    SkipBreakdownItem:
+      type: object
+      required: [code, count]
+      properties:
+        code:
+          type: string
+          enum:
+            - UNSUPPORTED_EXTENSION
+            - FILE_NOT_FOUND
+            - FILE_READ_ERROR
+            - EMPTY_CONTENT
+            - LIMIT_DEPTH_EXCEEDED
+            - LIMIT_MAX_FILES_REACHED
+            - UNCHANGED_DOCUMENT
+            - UPSERT_FAILED
+        count:
+          type: integer
+          minimum: 0
+
+    DocsSearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        workspacePath:
+          type: string
+
+    DocsSearchResponse:
+      type: object
+      required: [query, total, results]
+      properties:
+        query:
+          type: string
+        total:
+          type: integer
+          minimum: 0
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocsSearchResultItem'
+
+    DocsSearchResultItem:
+      type: object
+      required: [documentPath, chunkIndex, snippet, score, sourceType]
+      properties:
+        documentPath:
+          type: string
+        chunkIndex:
+          type: integer
+          minimum: 0
+        snippet:
+          type: string
+        score:
+          type: number
+        sourceType:
+          type: string
+          enum: [documentation]
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+          enum:
+            - INVALID_REQUEST
+            - RUN_NOT_FOUND
+            - DOCS_COLLECTION_UNAVAILABLE
+            - SEARCH_QUERY_EMPTY
+            - DOCS_INDEXING_FAILED
+            - INTERNAL_ERROR
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
