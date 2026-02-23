@@ -42,6 +42,15 @@ def backend_error(message: str, details: str | None = None) -> SearchApiError:
     return SearchApiError("SEARCH_BACKEND_ERROR", message, 502, details)
 
 
+def docs_collection_unavailable(details: str | None = None) -> SearchApiError:
+    return SearchApiError(
+        "DOCS_COLLECTION_UNAVAILABLE",
+        "Docs collection is temporarily unavailable",
+        503,
+        details,
+    )
+
+
 def collection_not_found(collection_name: str) -> SearchApiError:
     return SearchApiError(
         "SEARCH_COLLECTION_NOT_FOUND",

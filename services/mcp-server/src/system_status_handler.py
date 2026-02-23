@@ -125,7 +125,7 @@ API_COMMANDS = [
         "category": "search",
         "method": "POST",
         "path": "/v1/search/docs/query",
-        "description": "Run baseline docs-only search over documentation collection",
+        "description": "Run hybrid (BM25 + vector) docs-only search over documentation collection",
     },
     {
         "category": "search",

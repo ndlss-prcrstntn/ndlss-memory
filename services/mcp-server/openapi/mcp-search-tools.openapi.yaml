@@ -36,7 +36,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
   /v1/search/docs/query:
     post:
-      summary: Выполнить baseline docs search
+      summary: Выполнить hybrid docs search (BM25 + vector) только для markdown-коллекции
       operationId: docsSearch
       requestBody:
         required: true
@@ -53,6 +53,12 @@ paths:
                 $ref: "#/components/schemas/DocsSearchResponse"
         "400":
           description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Docs collection is temporarily unavailable
           content:
             application/json:
               schema:
@@ -141,13 +147,16 @@ components:
           type: string
     DocsSearchResponse:
       type: object
-      required: [query, total, results]
+      required: [query, total, results, appliedStrategy]
       properties:
         query:
           type: string
         total:
           type: integer
           minimum: 0
+        appliedStrategy:
+          type: string
+          enum: [bm25_plus_vector_docs_only]
         results:
           type: array
           items:
@@ -250,9 +259,19 @@ components:
         indexedAt:
           type: string
           format: date-time
+    DocsSearchResultSignals:
+      type: object
+      required: [lexical, semantic]
+      properties:
+        lexical:
+          type: number
+          minimum: 0
+        semantic:
+          type: number
+          minimum: 0
     DocsSearchResult:
       type: object
-      required: [documentPath, chunkIndex, snippet, score, sourceType]
+      required: [documentPath, chunkIndex, snippet, score, sourceType, rankingSignals]
       properties:
         documentPath:
           type: string
@@ -266,6 +285,8 @@ components:
         sourceType:
           type: string
           enum: [documentation]
+        rankingSignals:
+          $ref: "#/components/schemas/DocsSearchResultSignals"
     ErrorResponse:
       type: object
       required: [errorCode, message]

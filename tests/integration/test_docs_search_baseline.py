@@ -11,10 +11,11 @@ import system_status_handler as handler  # noqa: E402
 class _DocsSearchServiceStub:
     def docs_search(self, request):  # noqa: ANN001
         if request.query == "missing":
-            return {"query": request.query, "total": 0, "results": []}
+            return {"query": request.query, "total": 0, "appliedStrategy": "bm25_plus_vector_docs_only", "results": []}
         return {
             "query": request.query,
             "total": 1,
+            "appliedStrategy": "bm25_plus_vector_docs_only",
             "results": [
                 {
                     "documentPath": "docs/guide.md",
@@ -22,6 +23,7 @@ class _DocsSearchServiceStub:
                     "snippet": "startup readiness summary",
                     "score": 0.91,
                     "sourceType": "documentation",
+                    "rankingSignals": {"lexical": 0.5, "semantic": 0.9},
                 }
             ],
         }

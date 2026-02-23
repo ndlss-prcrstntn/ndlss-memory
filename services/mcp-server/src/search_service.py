@@ -53,6 +53,7 @@ class SearchService:
                 snippet=str(item.get("snippet", "")),
                 score=float(item.get("score", 0.0)),
                 source_type=str(item.get("sourceType", "documentation")),
+                ranking_signals=item.get("rankingSignals"),
             )
             for item in raw_results
         ]

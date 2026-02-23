@@ -1,0 +1,122 @@
+﻿openapi: 3.0.3
+info:
+  title: Markdown Hybrid Search Contract
+  version: 0.1.0
+  description: Contract for BM25 + vector hybrid retrieval applied only to markdown docs collection.
+
+paths:
+  /v1/search/docs/query:
+    post:
+      summary: Execute hybrid search on markdown docs collection
+      operationId: docsHybridSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HybridDocsSearchRequest'
+      responses:
+        '200':
+          description: Successful hybrid docs search response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HybridDocsSearchResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Docs collection temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HybridDocsSearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+          description: Search phrase for markdown documentation.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        workspacePath:
+          type: string
+          description: Optional workspace scope override.
+
+    HybridDocsSearchResponse:
+      type: object
+      required: [query, total, results, appliedStrategy]
+      properties:
+        query:
+          type: string
+        total:
+          type: integer
+          minimum: 0
+        appliedStrategy:
+          type: string
+          enum: [bm25_plus_vector_docs_only]
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/HybridDocsSearchResultItem'
+
+    HybridDocsSearchResultItem:
+      type: object
+      required: [documentPath, chunkIndex, snippet, score, sourceType, rankingSignals]
+      properties:
+        documentPath:
+          type: string
+        chunkIndex:
+          type: integer
+          minimum: 0
+        snippet:
+          type: string
+        score:
+          type: number
+        sourceType:
+          type: string
+          enum: [documentation]
+        rankingSignals:
+          type: object
+          required: [lexical, semantic]
+          properties:
+            lexical:
+              type: number
+              minimum: 0
+            semantic:
+              type: number
+              minimum: 0
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, message]
+      properties:
+        errorCode:
+          type: string
+          enum:
+            - INVALID_REQUEST
+            - SEARCH_QUERY_EMPTY
+            - DOCS_COLLECTION_UNAVAILABLE
+            - INTERNAL_ERROR
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
