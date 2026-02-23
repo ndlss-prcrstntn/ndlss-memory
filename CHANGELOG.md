@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 - 2026-02-23
+## 0.2.5 - 2026-02-23
 
 - Added isolated docs indexing and search baseline:
   - separate docs collection (`QDRANT_DOCS_COLLECTION_NAME`) without mixing code chunks;
@@ -22,7 +22,7 @@
 - Added test coverage for docs scope:
   - unit/integration/contract tests for docs indexing, docs search API, and MCP docs tool;
   - quality suite artifacts refreshed and passed.
-- Updated OpenAPI and user docs for 0.3.0 docs capabilities.
+- Updated OpenAPI and user docs for 0.2.5 docs capabilities.
 
 ## 0.2.4 - 2026-02-22
 
