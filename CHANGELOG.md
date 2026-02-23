@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.8 - 2026-02-23
+
+- Tuned default docs hybrid/reranking profile for medium-to-large repositories:
+  - `DOCS_HYBRID_VECTOR_WEIGHT=0.55`
+  - `DOCS_HYBRID_BM25_WEIGHT=0.45`
+  - `DOCS_HYBRID_MAX_CANDIDATES=160`
+  - `DOCS_RERANK_MAX_CANDIDATES=100`
+- Added docs lexical content caching for stable warm-query performance:
+  - new `DOCS_SOURCE_CACHE_SIZE` env knob (default `4096`)
+  - LRU cache used in docs lexical/rerank content reads.
+- Improved docs search pipeline efficiency:
+  - reduced duplicate candidate mapping work
+  - improved candidate-id reuse between vector and lexical stages.
+- Synced runtime env propagation for docs hybrid/rerank settings in both compose files:
+  - `docker-compose.yml`
+  - `infra/docker/docker-compose.yml`
+- Updated documentation and tests for new defaults and lexical fallback behavior.
+
 ## 0.2.7 - 2026-02-23
 
 - Added docs-only reranking stage on top of hybrid candidate retrieval for markdown search:
