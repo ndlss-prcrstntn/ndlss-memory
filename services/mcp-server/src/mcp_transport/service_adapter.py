@@ -39,7 +39,13 @@ class McpServiceAdapter:
 
     def docs_search(self, payload: dict[str, Any]) -> dict[str, Any]:
         try:
-            request = DocsSearchRequest.from_payload(payload)
+            normalized_payload: dict[str, Any] = {
+                "query": payload.get("query"),
+                "limit": payload.get("limit", 10),
+            }
+            if payload.get("workspacePath") is not None:
+                normalized_payload["workspacePath"] = payload.get("workspacePath")
+            request = DocsSearchRequest.from_payload(normalized_payload)
             return self._search_service.docs_search(request)
         except SearchApiError:
             raise

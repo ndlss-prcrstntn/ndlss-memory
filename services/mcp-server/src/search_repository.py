@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
-from search_errors import SearchApiError, backend_error, collection_not_found
+from search_errors import SearchApiError, backend_error, collection_not_found, docs_collection_unavailable
+from search_hybrid import blend_scores, bm25_scores
 from search_models import SearchFilters
 from search_result_ref import build_result_id, parse_result_id
 
@@ -25,6 +26,9 @@ class QdrantSearchRepository:
     request_timeout_seconds: float = 5.0
     vector_size: int = 16
     workspace_path: str = "/workspace"
+    docs_hybrid_vector_weight: float = 0.65
+    docs_hybrid_bm25_weight: float = 0.35
+    docs_hybrid_max_candidates: int = 200
 
     @classmethod
     def from_env(cls) -> "QdrantSearchRepository":
@@ -39,6 +43,9 @@ class QdrantSearchRepository:
             request_timeout_seconds=float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
             vector_size=int(os.getenv("INGESTION_EMBEDDING_VECTOR_SIZE", "16")),
             workspace_path=os.getenv("WORKSPACE_PATH", "/workspace"),
+            docs_hybrid_vector_weight=float(os.getenv("DOCS_HYBRID_VECTOR_WEIGHT", "0.65")),
+            docs_hybrid_bm25_weight=float(os.getenv("DOCS_HYBRID_BM25_WEIGHT", "0.35")),
+            docs_hybrid_max_candidates=int(os.getenv("DOCS_HYBRID_MAX_CANDIDATES", "200")),
         )
 
     def semantic_search(self, *, query: str, limit: int, filters: SearchFilters) -> list[dict[str, Any]]:
@@ -79,11 +86,8 @@ class QdrantSearchRepository:
         return mapped
 
     def docs_search(self, *, query: str, limit: int) -> list[dict[str, Any]]:
-        payload: dict[str, Any] = {
-            "vector": self._build_query_embedding(query),
-            "limit": limit,
-            "with_payload": True,
-        }
+        vector_limit = min(max(limit * 4, 20), max(self.docs_hybrid_max_candidates, limit))
+        payload: dict[str, Any] = {"vector": self._build_query_embedding(query), "limit": vector_limit, "with_payload": True}
         try:
             response = self._request_json(
                 method="POST",
@@ -93,25 +97,84 @@ class QdrantSearchRepository:
         except SearchApiError as exc:
             if exc.code == "SEARCH_COLLECTION_NOT_FOUND":
                 return []
+            if exc.code == "SEARCH_BACKEND_ERROR":
+                raise docs_collection_unavailable(exc.details or exc.message) from exc
             raise
-        points = response.get("result", [])
-        if not isinstance(points, list):
-            return []
 
-        mapped: list[dict[str, Any]] = []
-        for point in points:
+        vector_points = response.get("result", [])
+        if not isinstance(vector_points, list):
+            vector_points = []
+
+        lexical_points = self._scroll_docs_points(limit=max(self.docs_hybrid_max_candidates, limit))
+        candidate_points = list(vector_points)
+        candidate_points.extend(lexical_points)
+
+        candidates: dict[str, dict[str, Any]] = {}
+        vector_scores: dict[str, float] = {}
+        lexical_documents: dict[str, str] = {}
+
+        for point in candidate_points:
             mapped_item = self._map_point_to_docs_result(point)
-            if mapped_item:
-                mapped.append(mapped_item)
+            if not mapped_item:
+                continue
+            candidate_id = self._candidate_id(
+                document_path=str(mapped_item["documentPath"]),
+                chunk_index=int(mapped_item["chunkIndex"]),
+            )
+            existing = candidates.get(candidate_id)
+            if existing is None:
+                candidates[candidate_id] = mapped_item
+            elif len(str(mapped_item.get("snippet", ""))) > len(str(existing.get("snippet", ""))):
+                candidates[candidate_id] = mapped_item
 
-        mapped.sort(
+            lexical_documents[candidate_id] = str(mapped_item.get("_lexicalText", ""))
+            vector_scores.setdefault(candidate_id, 0.0)
+
+        for point in vector_points:
+            mapped_item = self._map_point_to_docs_result(point)
+            if not mapped_item:
+                continue
+            candidate_id = self._candidate_id(
+                document_path=str(mapped_item["documentPath"]),
+                chunk_index=int(mapped_item["chunkIndex"]),
+            )
+            vector_scores[candidate_id] = max(vector_scores.get(candidate_id, 0.0), float(point.get("score", 0.0)))
+
+        lexical_scores = bm25_scores(query=query, documents=lexical_documents)
+        blended, normalized_vector, normalized_lexical = blend_scores(
+            vector_scores=vector_scores,
+            lexical_scores=lexical_scores,
+            vector_weight=self.docs_hybrid_vector_weight,
+            lexical_weight=self.docs_hybrid_bm25_weight,
+        )
+
+        ranked: list[dict[str, Any]] = []
+        for candidate_id, score in blended.items():
+            candidate = candidates.get(candidate_id)
+            if not candidate:
+                continue
+            ranked.append(
+                {
+                    "documentPath": candidate["documentPath"],
+                    "chunkIndex": candidate["chunkIndex"],
+                    "snippet": candidate["snippet"],
+                    "score": float(score),
+                    "sourceType": "documentation",
+                    "rankingSignals": {
+                        "lexical": float(normalized_lexical.get(candidate_id, 0.0)),
+                        "semantic": float(normalized_vector.get(candidate_id, 0.0)),
+                    },
+                }
+            )
+
+        ranked.sort(
             key=lambda item: (
                 -float(item["score"]),
                 str(item["documentPath"]),
                 int(item["chunkIndex"]),
             )
         )
-        return mapped[:limit]
+        return ranked[:limit]
 
     def get_source_by_result_id(self, result_id: str) -> dict[str, Any] | None:
         point = self._get_point(result_id)
@@ -214,14 +277,17 @@ class QdrantSearchRepository:
         else:
             chunk_index = 0
         snippet = str(payload.get("snippet", "")).strip()
+        content = str(payload.get("content", "")).strip()
         if not snippet:
-            snippet = str(payload.get("content", "")).strip()[:280]
+            snippet = content[:280]
+        lexical_text = content or snippet
         return {
             "documentPath": source_path,
             "chunkIndex": chunk_index,
             "snippet": snippet,
             "score": float(point.get("score", 0.0)),
             "sourceType": "documentation",
+            "_lexicalText": lexical_text,
         }
 
     def _request_json(self, *, method: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -242,7 +308,8 @@ class QdrantSearchRepository:
         except error.HTTPError as exc:
             response_text = self._read_http_error_body(exc)
             if exc.code == 404 and self._is_missing_collection_error(path=path, response_text=response_text):
-                raise collection_not_found(self.collection_name) from exc
+                collection_name = self.docs_collection_name if f"/collections/{self.docs_collection_name}/" in path else self.collection_name
+                raise collection_not_found(collection_name) from exc
             raise backend_error(
                 f"Qdrant request failed with HTTP {exc.code}",
                 details=response_text.strip() or None,
@@ -272,6 +339,33 @@ class QdrantSearchRepository:
             f"/collections/{self.collection_name}/" in path
             or f"/collections/{self.docs_collection_name}/" in path
         )
+
+    def _scroll_docs_points(self, *, limit: int) -> list[dict[str, Any]]:
+        try:
+            response = self._request_json(
+                method="POST",
+                path=f"/collections/{self.docs_collection_name}/points/scroll",
+                payload={"limit": max(limit, 1), "with_payload": True, "with_vector": False},
+            )
+        except SearchApiError as exc:
+            if exc.code == "SEARCH_COLLECTION_NOT_FOUND":
+                return []
+            if exc.code == "SEARCH_BACKEND_ERROR":
+                raise docs_collection_unavailable(exc.details or exc.message) from exc
+            raise
+
+        result = response.get("result", {})
+        if isinstance(result, list):
+            return result
+        if isinstance(result, dict):
+            points = result.get("points", [])
+            if isinstance(points, list):
+                return points
+        return []
+
+    @staticmethod
+    def _candidate_id(*, document_path: str, chunk_index: int) -> str:
+        return f"{document_path}::{chunk_index}"
 
     def _build_query_embedding(self, query: str) -> list[float]:
         digest = hashlib.sha256(query.encode("utf-8")).hexdigest()

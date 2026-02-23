@@ -17,6 +17,7 @@ class _Adapter:
         return {
             "query": payload["query"],
             "total": 1,
+            "appliedStrategy": "bm25_plus_vector_docs_only",
             "results": [
                 {
                     "documentPath": "docs/guide.md",
@@ -24,6 +25,7 @@ class _Adapter:
                     "snippet": "docs",
                     "score": 0.9,
                     "sourceType": "documentation",
+                    "rankingSignals": {"lexical": 0.4, "semantic": 0.8},
                 }
             ],
         }
@@ -43,7 +45,9 @@ def test_mcp_docs_search_tool_calls_adapter():
     payload = tools.call("search_docs", {"query": "readiness", "limit": 5})
 
     assert payload["query"] == "readiness"
+    assert payload["appliedStrategy"] == "bm25_plus_vector_docs_only"
     assert payload["results"][0]["sourceType"] == "documentation"
+    assert payload["results"][0]["rankingSignals"]["semantic"] == 0.8
 
 
 def test_mcp_docs_search_tool_rejects_empty_query():

@@ -95,4 +95,21 @@ class McpSearchTools:
         }
         if arguments.get("workspacePath") is not None:
             payload["workspacePath"] = arguments.get("workspacePath")
-        return self._adapter.docs_search(payload)
+        response = self._adapter.docs_search(payload)
+        if not isinstance(response, dict):
+            return response
+
+        patched = dict(response)
+        patched.setdefault("appliedStrategy", "bm25_plus_vector_docs_only")
+        results = patched.get("results")
+        if isinstance(results, list):
+            normalized_results: list[dict[str, Any]] = []
+            for item in results:
+                if isinstance(item, dict):
+                    normalized = dict(item)
+                    normalized.setdefault("rankingSignals", {"lexical": 0.0, "semantic": 0.0})
+                    normalized_results.append(normalized)
+                else:
+                    normalized_results.append(item)
+            patched["results"] = normalized_results
+        return patched

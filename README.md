@@ -59,6 +59,9 @@ The indexer behavior is preset-driven and still fully configurable:
 - `INDEX_EXCLUDE_PATTERNS`: directories/files to skip.
 - `DOCS_INDEX_FILE_TYPES`: file extensions for docs-only indexing (default `.md`).
 - `DOCS_INDEX_EXCLUDE_PATTERNS`: exclude patterns for docs-only indexing.
+- `DOCS_HYBRID_VECTOR_WEIGHT`: semantic signal weight for docs hybrid search.
+- `DOCS_HYBRID_BM25_WEIGHT`: lexical BM25 signal weight for docs hybrid search.
+- `DOCS_HYBRID_MAX_CANDIDATES`: candidate pool size for docs lexical stage.
 - `INDEX_MAX_TRAVERSAL_DEPTH`: optional maximum directory depth per run (`0` = only workspace root files).
 - `INDEX_MAX_FILES_PER_RUN`: optional maximum number of files selected in one run.
 - `INDEX_MODE=full-scan`: indexes the current workspace.
@@ -147,7 +150,7 @@ MCP transport:
 Search:
 
 - `POST /v1/search/semantic`
-- `POST /v1/search/docs/query`
+- `POST /v1/search/docs/query` (hybrid BM25 + vector, docs-only)
 - `GET /v1/search/results/{resultId}/source`
 - `GET /v1/search/results/{resultId}/metadata`
 

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.6 - 2026-02-23
+
+- Added hybrid docs search (BM25 + vector) only for markdown docs collection:
+  - `POST /v1/search/docs/query` now returns `appliedStrategy=bm25_plus_vector_docs_only`;
+  - docs result items now include `rankingSignals.lexical` and `rankingSignals.semantic`;
+  - deterministic tie-break for equal scores (`documentPath`, then `chunkIndex`).
+- Added docs hybrid ranking controls in environment/config docs:
+  - `DOCS_HYBRID_VECTOR_WEIGHT`
+  - `DOCS_HYBRID_BM25_WEIGHT`
+  - `DOCS_HYBRID_MAX_CANDIDATES`
+- Extended error contract for docs search with `DOCS_COLLECTION_UNAVAILABLE` (HTTP 503).
+- Preserved backward compatibility for non-docs search:
+  - `POST /v1/search/semantic` response shape unchanged.
+- Added/updated tests for hybrid behavior, scope isolation, deterministic ranking, and error payloads:
+  - `tests/unit/mcp_server/test_docs_hybrid_search_service.py`
+  - `tests/integration/test_docs_search_hybrid.py`
+  - updates in docs-search unit/contract/integration suites.
+- Updated docs and feature artifacts:
+  - `README.md`, `docs/configuration.md`, `docs/quickstart.md`
+  - `specs/016-md-hybrid-search/*`
+  - `tests/artifacts/hybrid-search/verification-report.md`
+
 ## 0.2.5 - 2026-02-23
 
 - Added isolated docs indexing and search baseline:

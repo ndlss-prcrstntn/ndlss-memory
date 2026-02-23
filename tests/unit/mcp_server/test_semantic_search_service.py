@@ -60,3 +60,26 @@ def test_semantic_search_returns_empty_status_on_no_matches():
     assert response["status"] == "empty"
     assert response["results"] == []
     assert response["meta"]["count"] == 0
+
+
+def test_semantic_search_contract_remains_unchanged_from_docs_hybrid_changes():
+    repo = _RepositoryStub(
+        [
+            {
+                "resultId": "chunk:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "score": 0.42,
+                "snippet": "code snippet",
+                "sourcePath": "src/module.py",
+                "fileType": ".py",
+                "metadataRef": "chunk:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            }
+        ]
+    )
+    service = SearchService(repo)
+    request = SemanticSearchRequest.from_payload({"query": "module", "limit": 2})
+
+    response = service.semantic_search(request)
+
+    assert response["status"] == "ok"
+    assert "appliedStrategy" not in response
+    assert "rankingSignals" not in response["results"][0]

@@ -110,7 +110,7 @@ curl -X POST http://localhost:8080/v1/indexing/ingestion/jobs \
 
 Then repeat the search.
 
-## 3.1) Run docs-only indexing and docs baseline search
+## 3.1) Run docs-only indexing and docs hybrid search (BM25 + vector)
 
 ```bash
 curl -X POST http://localhost:8080/v1/indexing/docs/jobs \
@@ -123,6 +123,12 @@ curl -X POST http://localhost:8080/v1/search/docs/query \
   -H "Content-Type: application/json" \
   -d '{"query":"startup readiness","limit":5}'
 ```
+
+Expected shape:
+
+- `appliedStrategy=bm25_plus_vector_docs_only`
+- each result has `sourceType=documentation`
+- each result includes `rankingSignals.lexical` and `rankingSignals.semantic`
 
 ## 4) Optional: connect an MCP client
 

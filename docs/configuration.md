@@ -40,6 +40,9 @@
 - `WATCH_MAX_EVENTS_PER_CYCLE`: лимит событий в одном цикле обработки.
 - `QDRANT_COLLECTION_NAME`: имя коллекции векторных данных.
 - `QDRANT_DOCS_COLLECTION_NAME`: имя docs-only коллекции векторных данных.
+- `DOCS_HYBRID_VECTOR_WEIGHT`: вес semantic/vector сигнала в docs hybrid search (по умолчанию `0.65`).
+- `DOCS_HYBRID_BM25_WEIGHT`: вес lexical/BM25 сигнала в docs hybrid search (по умолчанию `0.35`).
+- `DOCS_HYBRID_MAX_CANDIDATES`: максимум docs-кандидатов для lexical стадии hybrid search.
 - `IDEMPOTENCY_HASH_ALGORITHM`: алгоритм fingerprint (должен быть `sha256`).
 - `IDEMPOTENCY_SKIP_UNCHANGED`: `1` пропускает неизмененные файлы до upsert.
 - `IDEMPOTENCY_ENABLE_STALE_CLEANUP`: `1` удаляет устаревшие чанки после синхронизации.
@@ -98,6 +101,10 @@
 - Для production оставляйте `BOOTSTRAP_RETRY_FAILED_ON_START=1`, чтобы
   failed-bootstrap автоматически восстанавливался после кратковременных сбоев.
 - Не переиспользуйте `BOOTSTRAP_STATE_COLLECTION` между изолированными окружениями.
+- Держите положительные значения `DOCS_HYBRID_VECTOR_WEIGHT` и `DOCS_HYBRID_BM25_WEIGHT`;
+  если сумма весов равна 0, используется fallback на vector-only нормализацию.
+- Подбирайте `DOCS_HYBRID_MAX_CANDIDATES` под размер проекта:
+  слишком малое значение ухудшает recall, слишком большое увеличивает latency.
 
 ## Bootstrap observability
 
