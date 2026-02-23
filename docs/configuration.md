@@ -10,6 +10,8 @@
 - `INDEX_MODE`: `full-scan`, `delta-after-commit` или `watch`.
 - `INDEX_FILE_TYPES`: расширения индексируемых файлов через запятую.
 - `INDEX_EXCLUDE_PATTERNS`: исключаемые каталоги/паттерны.
+- `DOCS_INDEX_FILE_TYPES`: расширения файлов для docs-only индексации (по умолчанию `.md`).
+- `DOCS_INDEX_EXCLUDE_PATTERNS`: исключения для docs-only индексации.
 - `INDEX_MAX_FILE_SIZE_BYTES`: лимит размера файла для Full Scan.
 - `INDEX_MAX_TRAVERSAL_DEPTH`: опциональный лимит глубины обхода (`0` = только файлы в корне workspace).
 - `INDEX_MAX_FILES_PER_RUN`: опциональный лимит числа файлов в одном запуске (если пусто, лимит отключен).
@@ -37,6 +39,7 @@
 - `WATCH_HEARTBEAT_INTERVAL_SECONDS`: интервал heartbeat в статусе watch-runtime.
 - `WATCH_MAX_EVENTS_PER_CYCLE`: лимит событий в одном цикле обработки.
 - `QDRANT_COLLECTION_NAME`: имя коллекции векторных данных.
+- `QDRANT_DOCS_COLLECTION_NAME`: имя docs-only коллекции векторных данных.
 - `IDEMPOTENCY_HASH_ALGORITHM`: алгоритм fingerprint (должен быть `sha256`).
 - `IDEMPOTENCY_SKIP_UNCHANGED`: `1` пропускает неизмененные файлы до upsert.
 - `IDEMPOTENCY_ENABLE_STALE_CLEANUP`: `1` удаляет устаревшие чанки после синхронизации.
@@ -100,7 +103,7 @@
 
 - `GET /v1/system/startup/readiness` возвращает:
   - `bootstrap` (`trigger`, `decision`, `status`, `workspaceKey`, `runId?`, `errorCode?`, `reason?`);
-  - `collection` (`collectionName`, `exists`, `pointCount`, `checkedAt`);
+  - `collection` (`collectionName`, `exists`, `pointCount`, `checkedAt`, `docsCollection`);
   - `bootstrapFailure` при статусе `failed` (структурированная actionable-диагностика).
 - `GET /v1/indexing/ingestion/jobs/{runId}` и `/summary` включают:
   - `bootstrap` контекст запуска;

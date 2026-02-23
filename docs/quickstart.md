@@ -105,6 +105,20 @@ curl -X POST http://localhost:8080/v1/indexing/ingestion/jobs \
 
 Then repeat the search.
 
+## 3.1) Run docs-only indexing and docs baseline search
+
+```bash
+curl -X POST http://localhost:8080/v1/indexing/docs/jobs \
+  -H "Content-Type: application/json" \
+  -d '{"workspacePath":"/workspace","includeExtensions":[".md"]}'
+```
+
+```bash
+curl -X POST http://localhost:8080/v1/search/docs/query \
+  -H "Content-Type: application/json" \
+  -d '{"query":"startup readiness","limit":5}'
+```
+
 ## 4) Optional: connect an MCP client
 
 Verify MCP discovery first:

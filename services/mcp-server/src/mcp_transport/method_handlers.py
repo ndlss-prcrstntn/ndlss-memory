@@ -67,7 +67,7 @@ class McpMethodHandlers:
             "protocolVersion": "2025-06-18",
             "serverInfo": {
                 "name": "ndlss-memory-mcp-server",
-                "version": os.getenv("NDLSS_VERSION", "0.1.7"),
+                "version": os.getenv("NDLSS_VERSION", "0.3.0"),
             },
             "capabilities": {
                 "tools": {"listChanged": False},
@@ -116,7 +116,7 @@ class McpMethodHandlers:
                 http_status=404,
             )
 
-        if tool_name in {"semantic_search", "get_source_by_id", "get_metadata_by_id"}:
+        if tool_name in {"semantic_search", "search_docs", "get_source_by_id", "get_metadata_by_id"}:
             payload = self._search_tools.call(tool_name, arguments)
         else:
             payload = self._indexing_tools.call(tool_name, arguments)

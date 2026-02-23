@@ -25,3 +25,16 @@ def build_chunk_identity(*, file_path: str, chunk_index: int, chunk_text: str) -
         chunk_text_hash=chunk_text_hash,
     )
 
+
+def build_stable_chunk_identity(*, file_path: str, chunk_index: int, chunk_text: str) -> ChunkIdentity:
+    # Stable identity for docs flow: path + chunk index remain deterministic across content updates.
+    chunk_text_hash = build_text_hash(chunk_text)
+    raw = f"{file_path}:{chunk_index}".encode("utf-8")
+    chunk_id = hashlib.sha256(raw).hexdigest()
+    return ChunkIdentity(
+        chunk_id=chunk_id,
+        file_path=file_path,
+        chunk_index=chunk_index,
+        chunk_text_hash=chunk_text_hash,
+    )
+

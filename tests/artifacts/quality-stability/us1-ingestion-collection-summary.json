@@ -1,9 +1,9 @@
 ﻿{
-    "runId":  "4c3001767fd8455da2af929f67e0d669",
+    "runId":  "01f70a9892da4ccc9c734691c38e01dd",
     "stageName":  "us1-ingestion-collection-creation",
     "status":  "passed",
-    "generatedAt":  "2026-02-23T00:52:28.8983722+03:00",
-    "ingestionRunId":  "bb353f6ade6448c7b5b841003053c5db",
+    "generatedAt":  "2026-02-23T03:24:43.8827549+03:00",
+    "ingestionRunId":  "30a3338fb1be482f98cee1f0be7fd33b",
     "collectionName":  "workspace_chunks",
     "collectionMissingBefore":  true,
     "pointsCount":  15,

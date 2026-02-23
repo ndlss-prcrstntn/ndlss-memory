@@ -15,6 +15,7 @@ def _now_iso() -> str:
 class IngestionRunRecord:
     run_id: str
     workspace_path: str
+    run_kind: str = "ingestion"
     max_traversal_depth: int | None = None
     max_files_per_run: int | None = None
     status: str = "queued"
@@ -36,6 +37,7 @@ class IngestionRunRecord:
     def as_status(self) -> dict[str, Any]:
         payload = {
             "runId": self.run_id,
+            "runKind": self.run_kind,
             "status": self.status,
             "appliedLimits": {
                 "maxTraversalDepth": self.max_traversal_depth,
@@ -67,6 +69,7 @@ class IngestionState:
         self,
         workspace_path: str,
         *,
+        run_kind: str = "ingestion",
         max_traversal_depth: int | None = None,
         max_files_per_run: int | None = None,
         bootstrap: dict[str, Any] | None = None,
@@ -79,6 +82,7 @@ class IngestionState:
             record = IngestionRunRecord(
                 run_id=uuid4().hex,
                 workspace_path=workspace_path,
+                run_kind=run_kind,
                 max_traversal_depth=max_traversal_depth,
                 max_files_per_run=max_files_per_run,
             )
@@ -113,10 +117,23 @@ class IngestionState:
             record.status = status
             record.finished_at = _now_iso()
             record.last_event_at = record.finished_at
-            record.total_files = int(summary.get("totalFiles", record.total_files))
-            record.total_chunks = int(summary.get("totalChunks", record.total_chunks))
-            record.embedded_chunks = int(summary.get("embeddedChunks", record.embedded_chunks))
-            record.failed_chunks = int(summary.get("failedChunks", record.failed_chunks))
+            if isinstance(summary.get("totals"), dict):
+                totals = summary.get("totals", {})
+                record.total_files = int(totals.get("processedDocuments", record.total_files))
+                record.total_chunks = int(
+                    totals.get("indexedDocuments", 0)
+                    + totals.get("updatedDocuments", 0)
+                    + totals.get("deletedDocuments", 0)
+                )
+                record.embedded_chunks = int(
+                    totals.get("indexedDocuments", 0) + totals.get("updatedDocuments", 0)
+                )
+                record.failed_chunks = int(totals.get("skippedDocuments", record.failed_chunks))
+            else:
+                record.total_files = int(summary.get("totalFiles", record.total_files))
+                record.total_chunks = int(summary.get("totalChunks", record.total_chunks))
+                record.embedded_chunks = int(summary.get("embeddedChunks", record.embedded_chunks))
+                record.failed_chunks = int(summary.get("failedChunks", record.failed_chunks))
             record.retry_count = int(summary.get("retryCount", record.retry_count))
             if isinstance(record.summary, dict):
                 record.summary.setdefault(

@@ -30,7 +30,7 @@ from ingestion_errors import classify_pipeline_exception, json_error as ingestio
 from ingestion_state import STATE as INGESTION_STATE
 from mcp_transport import register_mcp_transport_routes
 from search_errors import SearchApiError, json_error_from_exception as search_json_error_from_exception
-from search_models import SemanticSearchRequest
+from search_models import DocsSearchRequest, SemanticSearchRequest
 from search_repository import QdrantSearchRepository
 from search_service import SearchService
 from startup_preflight_checks import run_startup_preflight
@@ -123,6 +123,12 @@ API_COMMANDS = [
     },
     {
         "category": "search",
+        "method": "POST",
+        "path": "/v1/search/docs/query",
+        "description": "Run baseline docs-only search over documentation collection",
+    },
+    {
+        "category": "search",
         "method": "GET",
         "path": "/v1/search/results/{resultId}/source",
         "description": "Resolve source text for a search result",
@@ -186,6 +192,18 @@ API_COMMANDS = [
         "method": "GET",
         "path": "/v1/indexing/ingestion/jobs/{runId}/summary",
         "description": "Get ingestion job summary",
+    },
+    {
+        "category": "indexing",
+        "method": "POST",
+        "path": "/v1/indexing/docs/jobs",
+        "description": "Start docs-only indexing job",
+    },
+    {
+        "category": "indexing",
+        "method": "GET",
+        "path": "/v1/indexing/docs/jobs/{runId}/summary",
+        "description": "Get docs-only indexing summary",
     },
     {
         "category": "indexing",
@@ -563,6 +581,82 @@ def _run_ingestion_job(run_id: str, workspace_path: str, payload: dict) -> None:
             _update_startup_readiness_with_bootstrap()
 
 
+def _run_docs_ingestion_job(run_id: str, workspace_path: str, payload: dict) -> None:
+    run = INGESTION_STATE.get_run(run_id)
+    if not run:
+        return
+
+    def _progress_update(progress: dict[str, int]) -> None:
+        indexed = int(progress.get("indexedDocuments", 0))
+        updated = int(progress.get("updatedDocuments", 0))
+        deleted = int(progress.get("deletedDocuments", 0))
+        INGESTION_STATE.update_run(
+            run_id,
+            total_files=int(progress.get("processedDocuments", run.total_files)),
+            total_chunks=indexed + updated + deleted,
+            embedded_chunks=indexed + updated,
+            failed_chunks=int(progress.get("skippedDocuments", run.failed_chunks)),
+        )
+
+    try:
+        _ensure_file_indexer_src_path()
+        from ingestion_pipeline.chunk_models import ChunkingConfig
+        from ingestion_pipeline.ingestion_service import IngestionService
+
+        effective_chunk_size = int(payload.get("chunkSize") or os.getenv("INGESTION_CHUNK_SIZE", "800"))
+        effective_overlap = int(payload.get("chunkOverlap") or os.getenv("INGESTION_CHUNK_OVERLAP", "120"))
+        effective_attempts = int(payload.get("retryMaxAttempts") or os.getenv("INGESTION_RETRY_MAX_ATTEMPTS", "3"))
+        effective_backoff = float(os.getenv("INGESTION_RETRY_BACKOFF_SECONDS", "1.0"))
+
+        config = ChunkingConfig(
+            chunk_size=effective_chunk_size,
+            chunk_overlap=effective_overlap,
+            retry_max_attempts=effective_attempts,
+            retry_backoff_seconds=effective_backoff,
+        )
+        config.validate()
+        service = IngestionService(
+            config=config,
+            max_traversal_depth=run.max_traversal_depth,
+            max_files_per_run=run.max_files_per_run,
+        )
+        include_extensions = payload.get("includeExtensions")
+        if not isinstance(include_extensions, list):
+            include_extensions = None
+        summary = service.run_docs_index(
+            run_id=run_id,
+            workspace_path=workspace_path,
+            include_extensions=include_extensions,
+            progress_callback=_progress_update,
+        )
+        summary_payload = summary.to_dict()
+        INGESTION_STATE.finish_run(run_id, summary=summary_payload, status=summary_payload.get("status", "completed"))
+    except Exception as exc:
+        error_code, error_message = classify_pipeline_exception(exc)
+        failure = {
+            "runId": run_id,
+            "status": "failed",
+            "totals": {
+                "processedDocuments": run.total_files,
+                "indexedDocuments": 0,
+                "updatedDocuments": 0,
+                "skippedDocuments": run.failed_chunks + 1,
+                "deletedDocuments": 0,
+            },
+            "skipBreakdown": [{"code": "DOCS_INDEXING_FAILED", "count": 1}],
+            "appliedLimits": {
+                "maxTraversalDepth": run.max_traversal_depth,
+                "maxFilesPerRun": run.max_files_per_run,
+            },
+            "startedAt": run.started_at or _now_iso(),
+            "finishedAt": _now_iso(),
+            "errorCode": error_code,
+            "errorMessage": error_message,
+        }
+        INGESTION_STATE.update_run(run_id, error_code=error_code, error_message=error_message)
+        INGESTION_STATE.finish_run(run_id, summary=failure, status="failed")
+
+
 def _run_idempotency_job(run_id: str, workspace_path: str, payload: dict) -> None:
     run = IDEMPOTENCY_STATE.get_run(run_id)
     if not run:
@@ -716,19 +810,23 @@ def _start_ingestion_run(
     *,
     workspace_path: str,
     payload: dict,
+    run_kind: str = "ingestion",
+    runner=None,
     max_traversal_depth: int | None = None,
     max_files_per_run: int | None = None,
     bootstrap_context: dict | None = None,
 ):
     run = INGESTION_STATE.create_run(
         workspace_path=workspace_path,
+        run_kind=run_kind,
         max_traversal_depth=max_traversal_depth,
         max_files_per_run=max_files_per_run,
         bootstrap=bootstrap_context,
     )
     if _is_watch_mode_enabled():
         INGESTION_STATE.update_run(run.run_id, watch_activity=WATCH_STATE.get_status())
-    Thread(target=_run_ingestion_job, args=(run.run_id, workspace_path, payload), daemon=True).start()
+    target = runner or _run_ingestion_job
+    Thread(target=target, args=(run.run_id, workspace_path, payload), daemon=True).start()
     return run
 
 
@@ -741,6 +839,8 @@ def build_runtime_config() -> dict:
     allowlist = _split_csv(allowlist_env) if allowlist_env else allowlist_cfg
     index_file_types = _split_csv(os.getenv("INDEX_FILE_TYPES", ".md,.txt,.json,.yml,.yaml"))
     index_exclude_patterns = _split_csv(os.getenv("INDEX_EXCLUDE_PATTERNS", ".git,node_modules,dist,build"))
+    docs_index_file_types = _split_csv(os.getenv("DOCS_INDEX_FILE_TYPES", ".md"))
+    docs_index_exclude_patterns = _split_csv(os.getenv("DOCS_INDEX_EXCLUDE_PATTERNS", ".git,node_modules,dist,build"))
     max_size = _parse_int_env("INDEX_MAX_FILE_SIZE_BYTES", 1048576)
     max_traversal_depth = _parse_optional_int_env("INDEX_MAX_TRAVERSAL_DEPTH", 0)
     max_files_per_run = _parse_optional_int_env("INDEX_MAX_FILES_PER_RUN", 1)
@@ -754,6 +854,8 @@ def build_runtime_config() -> dict:
         "indexMode": os.getenv("INDEX_MODE", "full-scan"),
         "indexFileTypes": index_file_types,
         "indexExcludePatterns": index_exclude_patterns,
+        "docsIndexFileTypes": docs_index_file_types,
+        "docsIndexExcludePatterns": docs_index_exclude_patterns,
         "indexMaxFileSizeBytes": max_size,
         "indexMaxTraversalDepth": max_traversal_depth,
         "indexMaxFilesPerRun": max_files_per_run,
@@ -765,6 +867,8 @@ def build_runtime_config() -> dict:
         "ingestionEnableQdrantHttp": os.getenv("INGESTION_ENABLE_QDRANT_HTTP", "1"),
         "ingestionUpsertTimeoutSeconds": float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
         "ingestionEmbeddingVectorSize": _parse_int_env("INGESTION_EMBEDDING_VECTOR_SIZE", 16),
+        "qdrantCollectionName": os.getenv("QDRANT_COLLECTION_NAME", "workspace_chunks"),
+        "qdrantDocsCollectionName": os.getenv("QDRANT_DOCS_COLLECTION_NAME", "workspace_docs_chunks"),
         "deltaGitBaseRef": os.getenv("DELTA_GIT_BASE_REF", "HEAD~1"),
         "deltaGitTargetRef": os.getenv("DELTA_GIT_TARGET_REF", "HEAD"),
         "deltaIncludeRenames": os.getenv("DELTA_INCLUDE_RENAMES", "1"),
@@ -997,6 +1101,16 @@ def semantic_search():
         return search_json_error_from_exception(exc)
 
 
+@app.post("/v1/search/docs/query")
+def docs_search():
+    payload = request.get_json(silent=True) or {}
+    try:
+        search_request = DocsSearchRequest.from_payload(payload)
+        return jsonify(SEARCH_SERVICE.docs_search(search_request))
+    except SearchApiError as exc:
+        return search_json_error_from_exception(exc)
+
+
 @app.get("/v1/search/results/<result_id>/source")
 def get_search_result_source(result_id: str):
     try:
@@ -1128,6 +1242,34 @@ def start_ingestion_job():
     return jsonify({"runId": run.run_id, "status": run.status, "acceptedAt": run.accepted_at}), 202
 
 
+@app.post("/v1/indexing/docs/jobs")
+def start_docs_ingestion_job():
+    payload = request.get_json(silent=True) or {}
+    workspace_path = payload.get("workspacePath") or os.getenv("WORKSPACE_PATH", "/workspace")
+    try:
+        run_limits = resolve_indexing_run_limits(payload, env=os.environ)
+    except IndexingRunLimitValidationError as exc:
+        return ingestion_json_error(INGESTION_INVALID_LIMIT_VALUE, str(exc), 400)
+    try:
+        run = _start_ingestion_run(
+            workspace_path=workspace_path,
+            payload=payload,
+            run_kind="docs",
+            runner=_run_docs_ingestion_job,
+            max_traversal_depth=run_limits.max_traversal_depth,
+            max_files_per_run=run_limits.max_files_per_run,
+            bootstrap_context={
+                "trigger": "manual",
+                "decision": "run",
+                "status": "running",
+                "workspaceKey": build_workspace_key(workspace_path),
+            },
+        )
+    except RuntimeError:
+        return ingestion_json_error("INGESTION_ALREADY_RUNNING", "Ingestion run is already running", 409)
+    return jsonify({"runId": run.run_id, "status": run.status, "acceptedAt": run.accepted_at}), 202
+
+
 @app.get("/v1/indexing/ingestion/jobs/<run_id>")
 def get_ingestion_job_status(run_id: str):
     run = INGESTION_STATE.get_run(run_id)
@@ -1140,6 +1282,25 @@ def get_ingestion_job_status(run_id: str):
     if _is_watch_mode_enabled():
         payload.setdefault("watch", WATCH_STATE.get_status())
     payload["collection"] = BOOTSTRAP_ORCHESTRATOR.get_collection_payload()
+    return jsonify(payload)
+
+
+@app.get("/v1/indexing/docs/jobs/<run_id>/summary")
+def get_docs_job_summary(run_id: str):
+    run = INGESTION_STATE.get_run(run_id)
+    if not run or run.run_kind != "docs":
+        return ingestion_json_error("RUN_NOT_FOUND", f"Docs indexing run '{run_id}' is not found", 404)
+    if run.status in {"queued", "running"}:
+        return ingestion_json_error("RUN_NOT_FINISHED", "Docs indexing run is not finished yet", 409)
+    if run.summary is None:
+        return ingestion_json_error("RUN_SUMMARY_MISSING", "Run summary is not available", 404)
+    payload = dict(run.summary)
+    collection = BOOTSTRAP_ORCHESTRATOR.get_collection_payload()
+    payload["collection"] = collection.get("docsCollection") or {
+        "collectionName": os.getenv("QDRANT_DOCS_COLLECTION_NAME", "workspace_docs_chunks"),
+        "exists": False,
+        "pointCount": 0,
+    }
     return jsonify(payload)
 
 

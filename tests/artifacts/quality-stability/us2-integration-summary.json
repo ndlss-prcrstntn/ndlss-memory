@@ -1,9 +1,9 @@
 ﻿{
-    "runId":  "316a8493533648b4a89096e7a9c96ebb",
+    "runId":  "aa6f0f4ae6114def884201624c4db495",
     "stageName":  "us2-integration-search",
     "status":  "passed",
-    "generatedAt":  "2026-02-23T00:52:26.7510866+03:00",
-    "ingestionRunId":  "c061f6f97e7d4a42a1be6f6da48b770f",
+    "generatedAt":  "2026-02-23T03:24:41.7016006+03:00",
+    "ingestionRunId":  "d18f748648c94bc59b9fc4e0b8a39b02",
     "ingestionSummary":  {
                              "appliedLimits":  {
                                                    "maxFilesPerRun":  500,
@@ -16,14 +16,20 @@
                                                "workspaceKey":  "/workspace/tests/fixtures/idempotency|b39b2cf24e0bcc48"
                                            },
                              "collection":  {
-                                                "checkedAt":  "2026-02-22T21:52:26.607644+00:00",
+                                                "checkedAt":  "2026-02-23T00:24:41.583775+00:00",
                                                 "collectionName":  "workspace_chunks",
+                                                "docsCollection":  {
+                                                                       "checkedAt":  "2026-02-23T00:24:41.583775+00:00",
+                                                                       "collectionName":  "workspace_docs_chunks",
+                                                                       "exists":  false,
+                                                                       "pointCount":  0
+                                                                   },
                                                 "exists":  true,
-                                                "pointCount":  9944
+                                                "pointCount":  10531
                                             },
                              "embeddedChunks":  15,
                              "failedChunks":  0,
-                             "finishedAt":  "2026-02-22T21:52:26.373516+00:00",
+                             "finishedAt":  "2026-02-23T00:24:41.290214+00:00",
                              "metadataCoverage":  {
                                                       "contentHash":  1.0,
                                                       "fileName":  1.0,
@@ -40,11 +46,11 @@
                                                  "qdrantHost":  "qdrant"
                                              },
                              "retryCount":  0,
-                             "runId":  "c061f6f97e7d4a42a1be6f6da48b770f",
+                             "runId":  "d18f748648c94bc59b9fc4e0b8a39b02",
                              "skipBreakdown":  [
 
                                                ],
-                             "startedAt":  "2026-02-22T21:52:26.119576+00:00",
+                             "startedAt":  "2026-02-23T00:24:41.066321+00:00",
                              "status":  "completed",
                              "totalChunks":  15,
                              "totalFiles":  15

@@ -8,7 +8,7 @@ from typing import Any
 from ingestion_state import STATE as INGESTION_STATE
 from mcp_transport.error_mapper import McpToolExecutionError
 from search_errors import SearchApiError
-from search_models import SemanticSearchRequest
+from search_models import DocsSearchRequest, SemanticSearchRequest
 from search_repository import QdrantSearchRepository
 from search_service import SearchService
 
@@ -31,6 +31,22 @@ class McpServiceAdapter:
             raise McpToolExecutionError(
                 error_code="INVALID_REQUEST",
                 message="Invalid semantic search request",
+                details=str(exc),
+                retryable=False,
+                jsonrpc_code=-32602,
+                http_status=400,
+            ) from exc
+
+    def docs_search(self, payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            request = DocsSearchRequest.from_payload(payload)
+            return self._search_service.docs_search(request)
+        except SearchApiError:
+            raise
+        except Exception as exc:
+            raise McpToolExecutionError(
+                error_code="INVALID_REQUEST",
+                message="Invalid docs search request",
                 details=str(exc),
                 retryable=False,
                 jsonrpc_code=-32602,

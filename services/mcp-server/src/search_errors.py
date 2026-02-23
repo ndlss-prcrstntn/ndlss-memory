@@ -30,6 +30,10 @@ def invalid_request(message: str, details: str | None = None) -> SearchApiError:
     return SearchApiError("INVALID_REQUEST", message, 400, details)
 
 
+def search_query_empty() -> SearchApiError:
+    return SearchApiError("SEARCH_QUERY_EMPTY", "query must not be empty", 400)
+
+
 def result_not_found(result_id: str) -> SearchApiError:
     return SearchApiError("RESULT_NOT_FOUND", f"Result '{result_id}' is not found", 404)
 

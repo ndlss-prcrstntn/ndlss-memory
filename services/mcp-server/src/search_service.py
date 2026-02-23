@@ -4,10 +4,13 @@ from typing import Any
 
 from search_errors import result_not_found
 from search_models import (
+    DocsSearchRequest,
+    DocsSearchResultItem,
     DocumentMetadata,
     DocumentSource,
     SearchResult,
     SemanticSearchRequest,
+    build_docs_results_envelope,
     build_metadata_envelope,
     build_results_envelope,
     build_source_envelope,
@@ -37,6 +40,23 @@ class SearchService:
             for item in raw_results
         ]
         return build_results_envelope(results, limit=search_request.limit)
+
+    def docs_search(self, search_request: DocsSearchRequest) -> dict[str, Any]:
+        raw_results = self._repository.docs_search(
+            query=search_request.query,
+            limit=search_request.limit,
+        )
+        results = [
+            DocsSearchResultItem(
+                document_path=str(item.get("documentPath", "")),
+                chunk_index=int(item.get("chunkIndex", 0)),
+                snippet=str(item.get("snippet", "")),
+                score=float(item.get("score", 0.0)),
+                source_type=str(item.get("sourceType", "documentation")),
+            )
+            for item in raw_results
+        ]
+        return build_docs_results_envelope(query=search_request.query, results=results)
 
     def get_source(self, result_id: str) -> dict[str, Any]:
         payload = self._repository.get_source_by_result_id(result_id)

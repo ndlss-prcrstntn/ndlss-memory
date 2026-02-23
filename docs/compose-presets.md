@@ -68,6 +68,9 @@ You can still override any setting at runtime, for example:
 ```powershell
 $env:INDEX_FILE_TYPES=".md,.txt,.py,.sql"
 $env:INDEX_EXCLUDE_PATTERNS=".git,node_modules,.venv"
+$env:DOCS_INDEX_FILE_TYPES=".md"
+$env:DOCS_INDEX_EXCLUDE_PATTERNS=".git,node_modules,dist,build"
+$env:QDRANT_DOCS_COLLECTION_NAME="workspace_docs_chunks"
 docker compose -f ndlss-compose.yml up -d
 ```
 

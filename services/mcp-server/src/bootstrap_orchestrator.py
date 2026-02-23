@@ -142,6 +142,9 @@ class BootstrapOrchestrator:
             created_collection = False
             try:
                 created_collection = self._collection_service.ensure_collection_exists()
+                ensure_docs = getattr(self._collection_service, "ensure_docs_collection_exists", None)
+                if callable(ensure_docs):
+                    created_collection = ensure_docs() or created_collection
             except BootstrapCollectionServiceError as exc:
                 decision = BootstrapDecision(
                     trigger=trigger,
@@ -326,6 +329,12 @@ class BootstrapOrchestrator:
                 "exists": False,
                 "pointCount": 0,
                 "checkedAt": checked_at,
+                "docsCollection": {
+                    "collectionName": getattr(self._collection_service, "docs_collection_name", "workspace_docs_chunks"),
+                    "exists": False,
+                    "pointCount": 0,
+                    "checkedAt": checked_at,
+                },
             }
 
     def _set_runtime_snapshot(self, decision: BootstrapDecision) -> None:

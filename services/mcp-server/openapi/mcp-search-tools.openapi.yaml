@@ -34,6 +34,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /v1/search/docs/query:
+    post:
+      summary: Выполнить baseline docs search
+      operationId: docsSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocsSearchRequest"
+      responses:
+        "200":
+          description: Docs-only search response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocsSearchResponse"
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/search/results/{resultId}/source:
     get:
       summary: Получить источник по resultId
@@ -102,6 +125,33 @@ components:
               type: string
             fileType:
               type: string
+    DocsSearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        workspacePath:
+          type: string
+    DocsSearchResponse:
+      type: object
+      required: [query, total, results]
+      properties:
+        query:
+          type: string
+        total:
+          type: integer
+          minimum: 0
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocsSearchResult"
     SemanticSearchResponse:
       type: object
       required: [status, results, meta]
@@ -200,6 +250,22 @@ components:
         indexedAt:
           type: string
           format: date-time
+    DocsSearchResult:
+      type: object
+      required: [documentPath, chunkIndex, snippet, score, sourceType]
+      properties:
+        documentPath:
+          type: string
+        chunkIndex:
+          type: integer
+          minimum: 0
+        snippet:
+          type: string
+        score:
+          type: number
+        sourceType:
+          type: string
+          enum: [documentation]
     ErrorResponse:
       type: object
       required: [errorCode, message]

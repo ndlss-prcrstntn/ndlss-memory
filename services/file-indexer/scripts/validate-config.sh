@@ -19,6 +19,21 @@ if [ -z "${INDEX_FILE_TYPES:-}" ]; then
   exit 1
 fi
 
+if [ -z "${DOCS_INDEX_FILE_TYPES:-}" ]; then
+  echo "DOCS_INDEX_FILE_TYPES is required"
+  exit 1
+fi
+
+if [ -z "${DOCS_INDEX_EXCLUDE_PATTERNS:-}" ]; then
+  echo "DOCS_INDEX_EXCLUDE_PATTERNS is required"
+  exit 1
+fi
+
+if [ -z "${QDRANT_DOCS_COLLECTION_NAME:-}" ]; then
+  echo "QDRANT_DOCS_COLLECTION_NAME is required"
+  exit 1
+fi
+
 if [ -z "${COMMAND_TIMEOUT_SECONDS:-}" ]; then
   echo "COMMAND_TIMEOUT_SECONDS is required"
   exit 1

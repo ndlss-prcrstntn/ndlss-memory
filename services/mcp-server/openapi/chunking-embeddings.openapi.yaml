@@ -90,8 +90,92 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /v1/indexing/docs/jobs:
+    post:
+      summary: Start docs-only indexing run
+      operationId: startDocsIndexingJob
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartDocsIndexingRequest"
+      responses:
+        "202":
+          description: Docs run accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartIngestionResponse"
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Another run is active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/indexing/docs/jobs/{runId}/summary:
+    get:
+      summary: Get docs-only indexing summary
+      operationId: getDocsIndexingSummary
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Completed docs run summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocsRunSummary"
+        "404":
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Run still active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
+    StartDocsIndexingRequest:
+      type: object
+      properties:
+        workspacePath:
+          type: string
+        includeExtensions:
+          type: array
+          items:
+            type: string
+        chunkSize:
+          type: integer
+          minimum: 1
+        chunkOverlap:
+          type: integer
+          minimum: 0
+        retryMaxAttempts:
+          type: integer
+          minimum: 1
+        maxTraversalDepth:
+          type: integer
+          minimum: 0
+          nullable: true
+        maxFilesPerRun:
+          type: integer
+          minimum: 1
+          nullable: true
     StartIngestionRequest:
       type: object
       properties:
@@ -233,6 +317,48 @@ components:
               type: number
             timestamp:
               type: number
+    DocsRunTotals:
+      type: object
+      required: [processedDocuments, indexedDocuments, updatedDocuments, skippedDocuments, deletedDocuments]
+      properties:
+        processedDocuments:
+          type: integer
+          minimum: 0
+        indexedDocuments:
+          type: integer
+          minimum: 0
+        updatedDocuments:
+          type: integer
+          minimum: 0
+        skippedDocuments:
+          type: integer
+          minimum: 0
+        deletedDocuments:
+          type: integer
+          minimum: 0
+    DocsRunSummary:
+      type: object
+      required: [runId, status, totals, skipBreakdown, startedAt, finishedAt]
+      properties:
+        runId:
+          type: string
+        status:
+          type: string
+          enum: [completed, failed, partial]
+        totals:
+          $ref: "#/components/schemas/DocsRunTotals"
+        appliedLimits:
+          $ref: "#/components/schemas/RunLimits"
+        skipBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkipReasonAggregate"
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
     ErrorResponse:
       type: object
       required: [errorCode, message]

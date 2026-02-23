@@ -32,3 +32,15 @@ def test_repository_from_env_enables_http_upsert_when_enabled(monkeypatch):
     repo = repo_module.repository_from_env()
 
     assert repo.enable_http_upsert is True
+
+
+def test_repository_from_env_uses_docs_collection_for_docs_scope(monkeypatch):
+    monkeypatch.setenv("QDRANT_HOST", "qdrant")
+    monkeypatch.setenv("QDRANT_PORT", "6333")
+    monkeypatch.setenv("QDRANT_DOCS_COLLECTION_NAME", "workspace_docs_chunks")
+    monkeypatch.setenv("INGESTION_ENABLE_QDRANT_HTTP", "1")
+    repo_module._REPOSITORY_CACHE.clear()
+
+    repo = repo_module.repository_from_env(index_scope="docs")
+
+    assert repo.collection_name == "workspace_docs_chunks"
