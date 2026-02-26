@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from datetime import datetime, timezone
 from typing import Any
 
@@ -19,6 +18,7 @@ from mcp_transport.session_state import McpSessionStore
 from mcp_transport.tool_registry import McpToolRegistry
 from mcp_transport.tools_indexing import McpIndexingTools
 from mcp_transport.tools_search import McpSearchTools
+from mcp_transport.versioning import resolve_service_version
 
 
 def _now_iso() -> str:
@@ -67,7 +67,7 @@ class McpMethodHandlers:
             "protocolVersion": "2025-06-18",
             "serverInfo": {
                 "name": "ndlss-memory-mcp-server",
-                "version": os.getenv("NDLSS_VERSION", "0.2.5"),
+                "version": resolve_service_version(),
             },
             "capabilities": {
                 "tools": {"listChanged": False},

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.10 - 2026-02-26
+
+- Fixed MCP reported version in discovery and initialize handshake:
+  - removed hardcoded fallback `0.2.5` in MCP transport version payloads;
+  - added runtime version resolver with priority:
+    - `NDLSS_VERSION`
+    - `NDLSS_IMAGE_TAG`
+    - `NDLSS_GIT_REF`
+    - fallback `unknown`.
+- Propagated runtime version env vars into `mcp-server` across all compose entrypoints:
+  - local compose files (`docker-compose.yml`, `infra/docker/docker-compose.yml`);
+  - deploy presets (`deploy/compose/*.yml`, `deploy/compose-images/*.yml`).
+- Added MCP versioning unit coverage:
+  - `tests/unit/mcp_server/test_mcp_versioning.py`.
+- Resolved release telemetry mismatch:
+  - root cause: `mcp-server` container did not receive version env and transport code defaulted to `0.2.5`;
+  - outcome: discovery/initialize now report actual deployed release version (e.g. `0.2.9`, `0.2.10`).
+
 ## 0.2.9 - 2026-02-26
 
 - Fixed excluded-directory traversal performance in indexing pipelines:

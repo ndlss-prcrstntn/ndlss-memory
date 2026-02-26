@@ -64,6 +64,9 @@ services:
         condition: service_healthy
     environment:
       MCP_PORT: ${MCP_PORT:-8080}
+      NDLSS_VERSION: ${NDLSS_VERSION:-}
+      NDLSS_IMAGE_TAG: ${NDLSS_IMAGE_TAG:-}
+      NDLSS_GIT_REF: ${NDLSS_GIT_REF:-}
       QDRANT_HOST: qdrant
       QDRANT_PORT: ${QDRANT_PORT:-6333}
       QDRANT_API_PORT: ${QDRANT_API_PORT:-6333}
