@@ -6,7 +6,7 @@ from typing import Any
 
 from file_type_filter import is_supported_file, parse_supported_types
 from file_size_guard import is_file_too_large
-from full_scan_walker import path_depth, walk_files
+from full_scan_walker import path_depth, walk_files_pruned
 from path_exclude_filter import is_excluded_path, parse_exclude_patterns
 from progress_reporter import ProgressReporter
 from skip_reasons import (
@@ -31,7 +31,7 @@ def run_full_scan(
 ) -> dict[str, Any]:
     supported_types = parse_supported_types(file_types_csv)
     exclude_patterns = parse_exclude_patterns(exclude_patterns_csv)
-    files = walk_files(workspace_path)
+    files = walk_files_pruned(workspace_path, exclude_patterns=exclude_patterns)
     reporter = ProgressReporter(progress_interval_seconds)
 
     processed = 0

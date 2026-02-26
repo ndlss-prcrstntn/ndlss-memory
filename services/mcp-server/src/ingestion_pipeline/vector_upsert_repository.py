@@ -92,7 +92,7 @@ class VectorUpsertRepository:
                         raise UpsertError(f"Qdrant upsert failed with HTTP {resp.status}")
                     return
             except error.HTTPError as exc:
-                # Collection may be dropped between runs while repository cache still marks it as initialized.
+                # Collection may be dropped while repository cache still marks it as initialized.
                 if exc.code == 404 and attempt == 0:
                     self._collection_initialized = False
                     self._ensure_collection_exists()
@@ -181,7 +181,7 @@ def repository_from_env(*, index_scope: str = "code", collection_name: str | Non
             qdrant_url=qdrant_url,
             vector_size=int(os.getenv("INGESTION_EMBEDDING_VECTOR_SIZE", "16")),
             request_timeout_seconds=float(os.getenv("INGESTION_UPSERT_TIMEOUT_SECONDS", "5")),
-            enable_http_upsert=os.getenv("INGESTION_ENABLE_QDRANT_HTTP", "1") == "1",
+            enable_http_upsert=os.getenv("INGESTION_ENABLE_QDRANT_HTTP", "0") == "1",
         )
     return _REPOSITORY_CACHE[cache_key]
 

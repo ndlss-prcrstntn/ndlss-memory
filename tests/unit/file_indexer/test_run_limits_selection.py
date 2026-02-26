@@ -6,7 +6,7 @@ SRC_PATH = ROOT / "services" / "file-indexer" / "src"
 sys.path.insert(0, str(SRC_PATH))
 
 from full_scan_service import run_full_scan
-from full_scan_walker import walk_files
+from full_scan_walker import walk_files, walk_files_pruned
 
 
 def _skip_map(summary: dict) -> dict[str, int]:
@@ -22,6 +22,21 @@ def test_walk_files_is_sorted_by_relative_path(tmp_path: Path):
     files = walk_files(str(tmp_path))
     rel = [str(path.relative_to(tmp_path)).replace("\\", "/") for path in files]
     assert rel == ["a.md", "b.md", "nested/c.md"]
+
+
+def test_walk_files_pruned_skips_excluded_directories(tmp_path: Path):
+    (tmp_path / "keep").mkdir()
+    (tmp_path / "keep" / "ok.md").write_text("ok", encoding="utf-8")
+    (tmp_path / "node_modules").mkdir()
+    (tmp_path / "node_modules" / "pkg.js").write_text("skip", encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "node_modules").mkdir()
+    (tmp_path / "src" / "node_modules" / "deep.js").write_text("skip", encoding="utf-8")
+
+    files = walk_files_pruned(str(tmp_path), exclude_patterns=["node_modules"])
+    rel = [str(path.relative_to(tmp_path)).replace("\\", "/") for path in files]
+
+    assert rel == ["keep/ok.md"]
 
 
 def test_run_full_scan_respects_depth_and_max_files_limits(tmp_path: Path):

@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from file_size_guard import is_file_too_large
 from file_type_filter import is_supported_file, parse_supported_types
-from full_scan_walker import path_depth
+from full_scan_walker import path_depth, walk_files_pruned
 from ingestion_pipeline.chunk_models import ChunkingConfig
 from ingestion_pipeline.chunk_record_builder import build_chunk_records
 from ingestion_pipeline.embedding_models import EmbeddingTask, VectorRecord
@@ -162,7 +162,7 @@ class IngestionService:
 
         supported_types = self._resolve_docs_extensions(include_extensions)
         exclude_patterns = parse_exclude_patterns(self.docs_exclude_patterns_csv)
-        candidates = sorted(path for path in root.rglob("*") if path.is_file())
+        candidates = walk_files_pruned(str(root), exclude_patterns=exclude_patterns)
 
         selected_files = 0
         seen_files: set[str] = set()
@@ -378,7 +378,7 @@ class IngestionService:
     def _iter_candidate_files(self, root: Path, summary: SummaryAccumulator | None = None) -> Iterable[Path]:
         supported_types = parse_supported_types(self.file_types_csv)
         exclude_patterns = parse_exclude_patterns(self.exclude_patterns_csv)
-        candidates = sorted(path for path in root.rglob("*") if path.is_file())
+        candidates = walk_files_pruned(str(root), exclude_patterns=exclude_patterns)
         selected_files = 0
         for path in candidates:
             rel = path.relative_to(root)

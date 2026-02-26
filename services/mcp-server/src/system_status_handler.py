@@ -22,6 +22,7 @@ from delta_after_commit_errors import json_error as delta_json_error
 from delta_after_commit_state import STATE as DELTA_STATE
 from full_scan_errors import json_error as full_scan_json_error
 from full_scan_state import LIMIT_DEPTH_EXCEEDED, LIMIT_MAX_FILES_REACHED, STATE as FULL_SCAN_STATE
+from full_scan_walker import walk_files_pruned
 from idempotency_errors import json_error as idempotency_json_error
 from idempotency_state import STATE as IDEMPOTENCY_STATE
 from indexing_run_limits import IndexingRunLimitValidationError, resolve_indexing_run_limits
@@ -402,10 +403,7 @@ def _run_full_scan_job(job_id: str) -> None:
         FULL_SCAN_STATE.finish_job(job_id, "failed")
         return
 
-    files = sorted(
-        (path for path in workspace.rglob("*") if path.is_file()),
-        key=lambda path: str(path.relative_to(workspace)).replace("\\", "/"),
-    )
+    files = walk_files_pruned(str(workspace), exclude_patterns=excluded_patterns)
     total = len(files)
     if total == 0:
         FULL_SCAN_STATE.finish_job(job_id, "completed")
