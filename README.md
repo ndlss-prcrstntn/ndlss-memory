@@ -1,4 +1,7 @@
-﻿# ndlss-memory
+# !!!!NOT READY NOT WORKING
+ 
+ 
+ # ndlss-memory
 
 Language versions: [English](README.md) | [Russian](docs/i18n/README.ru.md) | [French](docs/i18n/README.fr.md) | [German](docs/i18n/README.de.md) | [Chinese](docs/i18n/README.zh-CN.md) | [Korean](docs/i18n/README.ko.md) | [Japanese](docs/i18n/README.ja.md)
 
