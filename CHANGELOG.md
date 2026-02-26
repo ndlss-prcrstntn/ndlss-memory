@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.9 - 2026-02-26
+
+- Fixed excluded-directory traversal performance in indexing pipelines:
+  - added pruned directory walk (`os.walk(topdown=True)`) to skip excluded directories before file enumeration;
+  - exclusion patterns like `node_modules`, `bin`, `obj`, `dist`, `build` are now applied during traversal, not after full tree scan.
+- Applied traversal pruning consistently across runtime paths:
+  - `file-indexer` full-scan service;
+  - `file-indexer` ingestion/docs candidate selection;
+  - `mcp-server` full-scan endpoint path;
+  - `mcp-server` ingestion/docs candidate selection.
+- Fixed MCP ingestion pipeline runtime drift:
+  - synchronized `mcp-server` ingestion modules with current `file-indexer` implementation;
+  - added missing shared modules (`full_scan_walker.py`, `skip_reasons.py`) to `mcp-server`.
+- Added regression coverage:
+  - unit test verifying pruned traversal skips excluded directories (including nested `node_modules`).
+- Resolved release-blocking bug:
+  - root cause: indexing used full recursive scan first (`rglob("*")`) and applied excludes afterward, causing large-repo slowdowns/hangs despite `INDEX_EXCLUDE_PATTERNS`;
+  - outcome: excluded directories are no longer traversed, restoring expected indexing startup behavior on large workspaces.
+
 ## 0.2.8 - 2026-02-23
 
 - Tuned default docs hybrid/reranking profile for medium-to-large repositories:
